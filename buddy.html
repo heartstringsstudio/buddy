@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buddy — Virtual Pet</title>
+<style>
+  :root {
+    --bg-grad: linear-gradient(135deg, #fdf6c3 0%, #ffe082 60%, #ffb74d 100%);
+    --accent: #e65100;
+    --secondary: #6d4c41;
+    --text: #3e2723;
+    --panel-bg: rgba(255,255,255,0.55);
+    --border: #ffa726;
+    --bar-fill: #ff8f00;
+    --mood-tint: rgba(0,0,0,0);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    background: var(--bg-grad);
+    color: var(--text);
+    transition: background 0.8s ease, color 0.5s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--mood-tint);
+    pointer-events: none;
+    transition: background 1s ease;
+    z-index: 0;
+  }
+
+  .screen {
+    width: 100%;
+    max-width: 480px;
+    padding: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Selection Screen ── */
+  #selection-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 40px;
+    gap: 24px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
+  }
+
+  .selection-title {
+    font-size: 2rem;
+    font-weight: 800;
+    text-align: center;
+    color: #4a148c;
+    text-shadow: 0 2px 8px rgba(74,20,140,0.15);
+    letter-spacing: -0.5px;
+  }
+
+  .selection-subtitle {
+    font-size: 0.95rem;
+    color: #757575;
+    text-align: center;
+    margin-top: -16px;
+  }
+
+  .pet-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .pet-card {
+    background: rgba(255,255,255,0.75);
+    border: 2.5px solid transparent;
+    border-radius: 16px;
+    padding: 16px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+
+  .pet-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  .pet-card.selected {
+    border-color: var(--sel-accent, #6a1b9a);
+    background: rgba(255,255,255,0.95);
+    box-shadow: 0 0 0 4px rgba(106,27,154,0.15), 0 8px 24px rgba(0,0,0,0.12);
+    transform: translateY(-3px);
+  }
+
+  .pet-card pre {
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: 10px;
+    line-height: 1.35;
+    text-align: left;
+    display: inline-block;
+    color: #333;
+  }
+
+  .pet-card-name {
+    margin-top: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .pet-card-emoji {
+    font-size: 1.4rem;
+  }
+
+  .name-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .name-row label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  .name-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+  }
+
+  .name-input:focus {
+    border-color: var(--sel-accent, #6a1b9a);
+  }
+
+  .start-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--sel-accent, #6a1b9a);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+  }
+
+  .start-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .start-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Main Screen ── */
+  #main-screen {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 8px;
+    padding-bottom: 24px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    backdrop-filter: blur(8px);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text);
+  }
+
+  .header-emoji { font-size: 1.4rem; }
+
+  .header-meta {
+    font-size: 0.72rem;
+    font-weight: 400;
+    opacity: 0.7;
+    display: block;
+    line-height: 1.2;
+  }
+
+  .mood-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    background: var(--accent);
+    color: white;
+    transition: background 0.5s ease;
+  }
+
+  .new-pet-btn {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .new-pet-btn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Art Panel */
+  .art-panel {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 12px 16px;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+  }
+
+  .art-panel pre {
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: clamp(11px, 2.5vw, 14px);
+    line-height: 1.4;
+    display: inline-block;
+    text-align: left;
+    color: var(--text);
+    transition: color 0.5s ease;
+  }
+
+  @keyframes shake {
+    0%   { transform: translateX(0); }
+    15%  { transform: translateX(-6px); }
+    30%  { transform: translateX(6px); }
+    45%  { transform: translateX(-4px); }
+    60%  { transform: translateX(4px); }
+    75%  { transform: translateX(-2px); }
+    90%  { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes bounce {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.06); }
+    60%  { transform: scale(0.97); }
+    80%  { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes pulse-gentle {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.015); }
+    100% { transform: scale(1); }
+  }
+
+  .art-panel pre.anim-shake { animation: shake 0.45s ease; }
+  .art-panel pre.anim-bounce { animation: bounce 0.5s ease; }
+
+  /* Stats Panel */
+  .stats-panel {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stat-label {
+    width: 100px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .stat-bar-track {
+    flex: 1;
+    height: 12px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease, background 0.5s ease;
+  }
+
+  @keyframes bar-pulse {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.55; }
+    100% { opacity: 1; }
+  }
+
+  .stat-bar-fill.critical { animation: bar-pulse 1s infinite; }
+
+  .stat-pct {
+    width: 36px;
+    text-align: right;
+    font-size: 0.82rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Actions */
+  .actions-panel {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .action-btn {
+    padding: 10px 18px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    letter-spacing: 0.3px;
+  }
+
+  .action-btn:hover:not(:disabled) {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  }
+
+  .action-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    transform: none;
+    filter: grayscale(0.4);
+  }
+
+  /* Message */
+  .message-area {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  .message-bubble {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-align: center;
+    backdrop-filter: blur(8px);
+    width: 100%;
+    color: var(--accent);
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes msgOut {
+    0%   { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .message-bubble.show {
+    animation: msgIn 0.3s ease forwards;
+  }
+
+  .message-bubble.fade {
+    animation: msgOut 3s ease forwards;
+  }
+
+  /* Tricks Panel */
+  .tricks-panel {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+
+  .tricks-panel.visible { display: block; }
+
+  .tricks-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.7;
+    margin-bottom: 8px;
+  }
+
+  .tricks-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .trick-pill {
+    background: var(--secondary);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  /* Rename modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 18px;
+    padding: 28px 24px;
+    width: min(340px, 90vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .modal h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #222;
+  }
+
+  .modal input {
+    padding: 12px 14px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+  }
+
+  .modal input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .modal-cancel {
+    padding: 10px 18px;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: #555;
+  }
+
+  .modal-confirm {
+    padding: 10px 18px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+
+  .modal-confirm:hover { filter: brightness(1.1); }
+  .modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Confirm dialog reuse */
+  #confirm-modal .modal-confirm { background: #c62828; }
+
+  @media (max-width: 360px) {
+    .art-panel pre { font-size: 10px; }
+    .action-btn { padding: 10px 12px; font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ SELECTION SCREEN ══ -->
+<div id="selection-screen" class="screen">
+  <div class="selection-title">✨ Choose Your Buddy ✨</div>
+  <p class="selection-subtitle">Pick a pet to raise and care for!</p>
+
+  <div class="pet-cards" id="pet-cards"></div>
+
+  <div class="name-row" id="name-row" style="display:none">
+    <label for="pet-name-input">Give your buddy a name</label>
+    <input type="text" id="pet-name-input" class="name-input"
+           placeholder="Enter a name..." maxlength="20" autocomplete="off">
+    <button class="start-btn" id="start-btn" disabled>🐾 Let's Go!</button>
+  </div>
+</div>
+
+<!-- ══ MAIN SCREEN ══ -->
+<div id="main-screen" class="screen">
+
+  <div class="header">
+    <div class="header-left">
+      <span class="header-emoji" id="header-emoji">🐕</span>
+      <span>
+        <span id="header-name">Buddy</span>
+        <span class="header-meta" id="header-meta">dog · 0.0 days old</span>
+      </span>
+    </div>
+    <span class="mood-badge" id="mood-badge">HAPPY</span>
+    <button class="new-pet-btn" id="new-pet-btn">🔄 New Pet</button>
+  </div>
+
+  <div class="art-panel">
+    <pre id="pet-art"></pre>
+  </div>
+
+  <div class="stats-panel">
+    <div class="stat-row">
+      <span class="stat-label">🍖 Hunger</span>
+      <div class="stat-bar-track">
+        <div class="stat-bar-fill" id="bar-hunger" style="width:80%"></div>
+      </div>
+      <span class="stat-pct" id="pct-hunger">80%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">💛 Happiness</span>
+      <div class="stat-bar-track">
+        <div class="stat-bar-fill" id="bar-happiness" style="width:80%"></div>
+      </div>
+      <span class="stat-pct" id="pct-happiness">80%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">⚡ Energy</span>
+      <div class="stat-bar-track">
+        <div class="stat-bar-fill" id="bar-energy" style="width:80%"></div>
+      </div>
+      <span class="stat-pct" id="pct-energy">80%</span>
+    </div>
+  </div>
+
+  <div class="actions-panel">
+    <button class="action-btn" id="btn-feed"   onclick="doAction('feed')">🍖 Feed</button>
+    <button class="action-btn" id="btn-play"   onclick="doAction('play')">🎾 Play</button>
+    <button class="action-btn" id="btn-sleep"  onclick="doAction('sleep')">😴 Sleep</button>
+    <button class="action-btn" id="btn-train"  onclick="doAction('train')">🎓 Train</button>
+    <button class="action-btn" id="btn-rename" onclick="openRenameModal()">✏️ Rename</button>
+  </div>
+
+  <div class="message-area">
+    <div class="message-bubble" id="message-bubble" style="display:none"></div>
+  </div>
+
+  <div class="tricks-panel" id="tricks-panel">
+    <div class="tricks-title">🎓 Tricks Learned</div>
+    <div class="tricks-list" id="tricks-list"></div>
+  </div>
+
+</div>
+
+<!-- Rename Modal -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal">
+    <h3>Rename your buddy</h3>
+    <input type="text" id="rename-input" maxlength="20" placeholder="New name...">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('rename-modal')">Cancel</button>
+      <button class="modal-confirm" id="rename-confirm" onclick="confirmRename()" disabled>Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm "New Pet" Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <h3>Start over?</h3>
+    <p style="color:#555;font-size:0.9rem;line-height:1.5">
+      This will release your current pet. They'll miss you! Are you sure?
+    </p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('confirm-modal')">Keep my pet</button>
+      <button class="modal-confirm" onclick="confirmNewPet()">Start over</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════
+
+const PETS = {
+  dog: {
+    emoji: '🐕',
+    label: 'Dog',
+    theme: {
+      bg: 'linear-gradient(135deg, #fdf6c3 0%, #ffe082 60%, #ffb74d 100%)',
+      accent: '#e65100', secondary: '#6d4c41', text: '#3e2723',
+      panel: 'rgba(255,255,255,0.55)', border: '#ffa726', bar: '#ff8f00',
+    },
+    moodTints: {
+      happy: 'rgba(0,0,0,0)', hungry: 'rgba(255,80,0,0.08)',
+      sleeping: 'rgba(70,70,180,0.10)', excited: 'rgba(255,220,0,0.10)', sad: 'rgba(60,60,120,0.15)',
+    },
+    art: {
+      happy: [
+`    / \\__
+   (    @\\___
+   /         O
+  /   (_____/
+ /_____/   U
+   ~~  ~~   `,
+`    / \\__
+   (    @\\___
+   /         O
+  /   (_____/
+ /_____/   U
+      ~~  ~~`
+      ],
+      hungry: [
+`    / \\__
+   (    >\\___
+   /         O
+  /   (_____/
+ /_____/   U
+  ...  ~drool`,
+`    / \\__
+   (    >\\___
+   /         O
+  /   (_____/
+ /_____/   U
+  ......    `
+      ],
+      sleeping: [
+`    / \\__
+   (    -\\___
+   /         O
+  /   (_____/
+ /_____/   U
+      z z z `,
+`    / \\__
+   (    -\\___
+   /         O
+  /   (_____/
+ /_____/   U
+    z   z   z`
+      ],
+      excited: [
+`    / \\__
+   (   ^o^\\__
+   /          O
+  /   (______/
+ /_____/  U
+    !  !  !  `,
+`  __/ \\
+ __/^o^   )
+O          \\
+ \\______/   \\
+        U___\\
+   !!!!!!    `
+      ],
+      sad: [
+`    / \\__
+   (    T\\___
+   /         O
+  /   (_____/
+ /_____/   U
+   ' '  ' ' `,
+`    / \\__
+   (    T\\___
+   /         O
+  /   (_____/
+ /_____/   U
+  '   '   '  `
+      ],
+    },
+    responses: {
+      feed: ["Woof! Nom nom nom!", "Chomp chomp! Tail wagging!", "Sniff sniff... CHOMP!"],
+      play: ["FETCH! FETCH! FETCH!", "Buddy zooms around the room!", "Zoomies activated! 🐾"],
+      sleep: ["Buddy curls up... zzz", "Paws tucked in, dreaming of squirrels..."],
+      rename: (o, n) => `${o} is now ${n}. Woof!`,
+      train: (t) => `Buddy learned "${t}"! Good dog! 🎉`,
+      trainFull: "Buddy knows every trick! What a genius!",
+      trainTired: "Too tired to train right now...",
+    },
+    tricks: ["sit","shake","roll over","speak","fetch","spin","high five","play dead"],
+  },
+
+  cat: {
+    emoji: '🐱',
+    label: 'Cat',
+    theme: {
+      bg: 'linear-gradient(135deg, #f3e5f5 0%, #ce93d8 60%, #9c27b0 100%)',
+      accent: '#6a1b9a', secondary: '#4a148c', text: '#1a0030',
+      panel: 'rgba(255,255,255,0.50)', border: '#ce93d8', bar: '#ab47bc',
+    },
+    moodTints: {
+      happy: 'rgba(0,0,0,0)', hungry: 'rgba(255,80,0,0.07)',
+      sleeping: 'rgba(70,40,120,0.12)', excited: 'rgba(220,180,255,0.12)', sad: 'rgba(40,30,80,0.15)',
+    },
+    art: {
+      happy: [
+`  /\\     /\\
+ (  o   o  )
+ =( Y  Y )=
+  )      (
+ (_|    |_)
+  |  ^^  |
+  ~~ ~~ ~~`,
+`  /\\     /\\
+ (  o   o  )
+ =( Y  Y )=
+  )      (
+ (_|    |_)
+  | (^^) |
+  ~~ ~~ ~~`
+      ],
+      hungry: [
+`  /\\     /\\
+ (  -   -  )
+ =( Y  Y )=
+  )      (
+ (_|    |_)
+  |  ~~  |
+  meow...`,
+`  /\\     /\\
+ (  -   -  )
+ =( Y  Y )=
+  )      (
+ (_|    |_)
+  | meow |
+  ........`
+      ],
+      sleeping: [
+`  /\\     /\\
+ (  -   -  )
+ =( u  u )=
+  )      (
+ (_|    |_)
+  |  zzz  |
+  ________`,
+`  /\\     /\\
+ (  -   -  )
+ =( u  u )=
+  )      (
+ (_|    |_)
+  | z   z |
+  ________`
+      ],
+      excited: [
+`  /\\     /\\
+ (  *   *  )
+ =( Y  Y )=
+  )      (
+ (_|    |_)
+  | !!!! |
+  ~~ ~~ ~~`,
+`  /\\  /\\
+ ( *  * )
+=(  YY  )=
+ )      (
+(_|    |_)
+ | /\\/\\ |
+ ~!~!~!~!`
+      ],
+      sad: [
+`  /\\     /\\
+ (  T   T  )
+ =( v  v )=
+  )      (
+ (_|    |_)
+  | ...  |
+  ........`,
+`  /\\     /\\
+ (  T   T  )
+ =( v  v )=
+  )      (
+ (_|    |_)
+  |  :'(  |
+  ........`
+      ],
+    },
+    responses: {
+      feed: ["Mrrrow. Acceptable.", "Purrr... nom nom", "*condescendingly eats*"],
+      play: ["Pounce! Swat swat swat!", "The red dot is MINE!", "Chaos mode: activated 🐾"],
+      sleep: ["Cat enters maximum sleep mode.", "18 hours minimum. Do not disturb."],
+      rename: (o, n) => `${n}? If I must.`,
+      train: (t) => `Cat learned "${t}"... eventually. 🎉`,
+      trainFull: "Cat knows all tricks. Cat chooses when to use them.",
+      trainTired: "Cat is not interested in learning right now.",
+    },
+    tricks: ["sit","ignore you","knock things off","beg for food","spin","high five","roll over","speak"],
+  },
+
+  bird: {
+    emoji: '🐦',
+    label: 'Bird',
+    theme: {
+      bg: 'linear-gradient(135deg, #e0f7fa 0%, #80deea 60%, #26c6da 100%)',
+      accent: '#00838f', secondary: '#006064', text: '#00363a',
+      panel: 'rgba(255,255,255,0.55)', border: '#80deea', bar: '#00acc1',
+    },
+    moodTints: {
+      happy: 'rgba(0,0,0,0)', hungry: 'rgba(255,150,0,0.07)',
+      sleeping: 'rgba(0,80,120,0.10)', excited: 'rgba(0,220,255,0.10)', sad: 'rgba(0,50,80,0.12)',
+    },
+    art: {
+      happy: [
+`    _   _
+   ( o o )
+    > ^ <
+   /|   |\\
+    | _ |
+   _|   |_
+  ~~ ~ ~ ~~`,
+`    _   _
+   ( o o )
+    > ^ <
+   /|   |\\
+    |   |
+   _|   |_
+  ~ ~~ ~ ~~`
+      ],
+      hungry: [
+`    _   _
+   ( - - )
+    > . <
+    |   |
+    |   |
+   _|   |_
+   tweet! `,
+`    _   _
+   ( - - )
+    > . <
+    |   |
+    |   |
+   _|   |_
+   tweet!!`
+      ],
+      sleeping: [
+`    _   _
+   ( - - )
+    >   <
+    |   |
+   /|___|\\
+  /_______\\
+    z z z `,
+`    _   _
+   ( - - )
+    >   <
+    |   |
+   /|___|\\
+  /_______\\
+  z   z   z`
+      ],
+      excited: [
+`    _   _
+   ( ^ ^ )
+    > * <
+  --|   |--
+    | ^ |
+   _|   |_
+  !!! !!! !`,
+` \\  _   _  /
+  \\( ^ ^ )/
+   > * * <
+   |     |
+   | ^ ^ |
+  _|     |_
+  !!!!!!!!`
+      ],
+      sad: [
+`    _   _
+   ( T T )
+    > v <
+    |   |
+    |   |
+   _|   |_
+   ......  `,
+`    _   _
+   ( T T )
+    > v <
+    |   |
+    |   |
+   _|   |_
+   ' ' ' '`
+      ],
+    },
+    responses: {
+      feed: ["TWEET! Nom nom seed!", "Chirp chirp crunch!", "*happy wing flap*"],
+      play: ["Wheee! Flap flap flap!", "Zoom around the perch!", "Birb parkour mode ON 🐾"],
+      sleep: ["Bird tucks head under wing. zzz", "Fluffy feather ball mode activated."],
+      rename: (o, n) => `Tweet tweet! ${n}!`,
+      train: (t) => `Tweet! "${t}" mastered! 🎉`,
+      trainFull: "Bird knows every trick and will repeat them endlessly!",
+      trainTired: "Too tired to train. Needs seeds first.",
+    },
+    tricks: ["step up","whistle","wave","fetch","turn around","nod","speak","play dead"],
+  },
+
+  dragon: {
+    emoji: '🐉',
+    label: 'Dragon',
+    theme: {
+      bg: 'linear-gradient(135deg, #1a1a2e 0%, #4a0e0e 50%, #b71c1c 100%)',
+      accent: '#ff5722', secondary: '#ff9800', text: '#fff9c4',
+      panel: 'rgba(0,0,0,0.40)', border: '#ff5722', bar: '#f44336',
+    },
+    moodTints: {
+      happy: 'rgba(0,0,0,0)', hungry: 'rgba(255,60,0,0.12)',
+      sleeping: 'rgba(0,0,60,0.20)', excited: 'rgba(255,150,0,0.12)', sad: 'rgba(20,20,60,0.20)',
+    },
+    art: {
+      happy: [
+`   / \\   / \\
+  ( o ) ( o )
+   \\_/___\\_/
+   |  ^^^  |
+  /|  ~~~  |\\
+ / |_______| \\
+~~~~~~~~~~~~~~~~~`,
+`   / \\   / \\
+  ( o ) ( o )
+   \\_/___\\_/
+   |  ^^^  |
+  /|  ~~~  |\\
+ / |_______| \\
+ ~~ ~~~ ~~ ~~~`
+      ],
+      hungry: [
+`   / \\   / \\
+  ( > ) ( < )
+   \\_/___\\_/
+   |  vvv  |
+  /| ~~~~~ |\\
+ / |_______| \\
+  * * fire * *`,
+`   / \\   / \\
+  ( > ) ( < )
+   \\_/___\\_/
+   |  vvv  |
+  /| ~~~~~ |\\
+ / |_______| \\
+ *  fire  *  *`
+      ],
+      sleeping: [
+`   / \\   / \\
+  ( - ) ( - )
+   \\_/___\\_/
+   |       |
+  /|  ~~~  |\\
+ / |_______| \\
+   z  Z  z  Z`,
+`   / \\   / \\
+  ( - ) ( - )
+   \\_/___\\_/
+   |       |
+  /|  ~~~  |\\
+ / |_______| \\
+  Z   z   Z  `
+      ],
+      excited: [
+`  \\/ \\   / \\/
+  ( ^ ) ( ^ )
+   \\_/___\\_/
+   | !!!!! |
+  /| ~~~~~ |\\
+ / |_______| \\
+ !!~!!~!!~!!~!`,
+`  \\/ \\   / \\/
+  ( * ) ( * )
+   \\_/___\\_/
+   |  \\O/  |
+  /| ~~~~~ |\\
+ / |_______| \\
+!!!!!!!!!!!!!!`
+      ],
+      sad: [
+`   / \\   / \\
+  ( T ) ( T )
+   \\_/___\\_/
+   |  ...  |
+  /|       |\\
+ / |_______| \\
+  ' ' ' ' ' '`,
+`   / \\   / \\
+  ( T ) ( T )
+   \\_/___\\_/
+   |  ...  |
+  /|       |\\
+ / |_______| \\
+ '  '  '  '  `
+      ],
+    },
+    responses: {
+      feed: ["ROAR! DELICIOUS SACRIFICE!", "*chomps deeply*", "The great one is pleased."],
+      play: ["Dragon breathes fire with joy!", "STOMP STOMP STOMP!", "Mountains tremble! 🐾"],
+      sleep: ["Dragon coils up... rumbling snores.", "Do not disturb. Seriously."],
+      rename: (o, n) => `The great ${n} accepts this name.`,
+      train: (t) => `Dragon mastered "${t}". Humans tremble. 🎉`,
+      trainFull: "Dragon needs no more tricks. Dragon IS the trick.",
+      trainTired: "Dragon is too powerful to train right now.",
+    },
+    tricks: ["breathe fire","fly","roar","hoard gold","intimidate","tail whip","crush rocks","mind control"],
+  },
+};
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+
+const DECAY = { hunger: 5, happiness: 3, energyRegen: 4 }; // per hour
+const MOOD_THRESH = { sleepEnergy: 20, hungryHunger: 30, excitedHappiness: 85, sadHappiness: 40 };
+
+let state = null;
+let frameIdx = 0;
+let msgTimer = null;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('buddySave');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function saveState() {
+  localStorage.setItem('buddySave', JSON.stringify(state));
+}
+
+function applyTimeDecay(s) {
+  const elapsed = (Date.now() - (s.last_seen || Date.now())) / 3600000; // hours
+  s.hunger     = clamp(s.hunger - elapsed * DECAY.hunger, 0, 100);
+  s.happiness  = clamp(s.happiness - elapsed * DECAY.happiness, 0, 100);
+  s.energy     = clamp(s.energy + elapsed * DECAY.energyRegen, 0, 100);
+  s.age_days   = (s.age_days || 0) + elapsed / 24;
+  s.last_seen  = Date.now();
+  return s;
+}
+
+function getMood(s) {
+  if (s.energy    < MOOD_THRESH.sleepEnergy)      return 'sleeping';
+  if (s.hunger    < MOOD_THRESH.hungryHunger)      return 'hungry';
+  if (s.happiness > MOOD_THRESH.excitedHappiness)  return 'excited';
+  if (s.happiness < MOOD_THRESH.sadHappiness)      return 'sad';
+  return 'happy';
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+
+function applyTheme(petType, mood) {
+  const { theme, moodTints } = PETS[petType];
+  const root = document.documentElement.style;
+  root.setProperty('--bg-grad',   theme.bg);
+  root.setProperty('--accent',    theme.accent);
+  root.setProperty('--secondary', theme.secondary);
+  root.setProperty('--text',      theme.text);
+  root.setProperty('--panel-bg',  theme.panel);
+  root.setProperty('--border',    theme.border);
+  root.setProperty('--bar-fill',  theme.bar);
+  root.setProperty('--mood-tint', moodTints[mood] || 'rgba(0,0,0,0)');
+}
+
+function barColor(val) {
+  if (val > 60) return '#66bb6a';
+  if (val > 30) return '#ffa726';
+  return '#ef5350';
+}
+
+function renderStats() {
+  ['hunger','happiness','energy'].forEach(stat => {
+    const val = Math.round(state[stat]);
+    const bar = document.getElementById(`bar-${stat}`);
+    const pct = document.getElementById(`pct-${stat}`);
+    bar.style.width   = val + '%';
+    bar.style.background = barColor(val);
+    bar.classList.toggle('critical', val < 30);
+    pct.textContent = val + '%';
+  });
+}
+
+function renderPetArt() {
+  const mood = getMood(state);
+  const frames = PETS[state.petType].art[mood];
+  document.getElementById('pet-art').textContent = frames[frameIdx % frames.length];
+}
+
+function renderMoodBadge() {
+  const mood = getMood(state);
+  document.getElementById('mood-badge').textContent = mood.toUpperCase();
+}
+
+function renderHeader() {
+  const pet = PETS[state.petType];
+  document.getElementById('header-emoji').textContent = pet.emoji;
+  document.getElementById('header-name').textContent  = state.name;
+  const age = state.age_days || 0;
+  const ageStr = age < 1 ? `${Math.round(age*24)}h old` : `${age.toFixed(1)} days old`;
+  document.getElementById('header-meta').textContent = `${pet.label} · ${ageStr}`;
+}
+
+function renderTricks() {
+  const list = state.tricks || [];
+  const panel = document.getElementById('tricks-panel');
+  const container = document.getElementById('tricks-list');
+  panel.classList.toggle('visible', list.length > 0);
+  container.innerHTML = list.map(t =>
+    `<span class="trick-pill">${t}</span>`
+  ).join('');
+}
+
+function renderButtons() {
+  const s = state;
+  const knownTricks = new Set(s.tricks || []);
+  const allTricks = PETS[s.petType].tricks;
+  const allKnown = allTricks.every(t => knownTricks.has(t));
+
+  document.getElementById('btn-feed').disabled  = s.hunger >= 95;
+  document.getElementById('btn-play').disabled  = s.energy < 20;
+  document.getElementById('btn-sleep').disabled = s.energy >= 95;
+  document.getElementById('btn-train').disabled = s.energy < 30 || allKnown;
+}
+
+function render() {
+  const mood = getMood(state);
+  applyTheme(state.petType, mood);
+  renderPetArt();
+  renderMoodBadge();
+  renderHeader();
+  renderStats();
+  renderTricks();
+  renderButtons();
+}
+
+// ══════════════════════════════════════════
+//  MESSAGES
+// ══════════════════════════════════════════
+
+function showMessage(text) {
+  const el = document.getElementById('message-bubble');
+  el.style.display = 'block';
+  el.textContent = text;
+  el.className = 'message-bubble show';
+  if (msgTimer) clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => {
+    el.className = 'message-bubble fade';
+    msgTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }, 100);
+}
+
+// ══════════════════════════════════════════
+//  ANIMATIONS
+// ══════════════════════════════════════════
+
+function animatePet(type) {
+  const el = document.getElementById('pet-art');
+  el.classList.remove('anim-shake','anim-bounce');
+  void el.offsetWidth; // reflow
+  el.classList.add(type === 'bounce' ? 'anim-bounce' : 'anim-shake');
+  setTimeout(() => el.classList.remove('anim-shake','anim-bounce'), 500);
+}
+
+// ══════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function doAction(action) {
+  const r = PETS[state.petType].responses;
+  let msg = '';
+
+  if (action === 'feed') {
+    if (state.hunger >= 95) return;
+    state.hunger    = clamp(state.hunger + 30, 0, 100);
+    state.happiness = clamp(state.happiness + 5, 0, 100);
+    msg = pick(r.feed);
+    animatePet('shake');
+
+  } else if (action === 'play') {
+    if (state.energy < 20) return;
+    state.happiness = clamp(state.happiness + 25, 0, 100);
+    state.energy    = clamp(state.energy - 20, 0, 100);
+    state.hunger    = clamp(state.hunger - 10, 0, 100);
+    msg = pick(r.play);
+    animatePet('shake');
+
+  } else if (action === 'sleep') {
+    if (state.energy >= 95) return;
+    state.energy    = clamp(state.energy + 40, 0, 100);
+    state.happiness = clamp(state.happiness + 5, 0, 100);
+    msg = pick(r.sleep);
+    animatePet('bounce');
+
+  } else if (action === 'train') {
+    const known = new Set(state.tricks || []);
+    const all   = PETS[state.petType].tricks;
+    if (state.energy < 30) { showMessage(r.trainTired); return; }
+    const unknown = all.filter(t => !known.has(t));
+    if (!unknown.length) { showMessage(r.trainFull); return; }
+    const trick = unknown[Math.floor(Math.random() * unknown.length)];
+    state.tricks = [...known, trick];
+    state.energy    = clamp(state.energy - 15, 0, 100);
+    state.happiness = clamp(state.happiness + 10, 0, 100);
+    msg = r.train(trick);
+    animatePet('bounce');
+  }
+
+  state.last_seen = Date.now();
+  saveState();
+  render();
+  if (msg) showMessage(msg);
+}
+
+// ══════════════════════════════════════════
+//  RENAME MODAL
+// ══════════════════════════════════════════
+
+function openRenameModal() {
+  const input = document.getElementById('rename-input');
+  input.value = state.name;
+  document.getElementById('rename-confirm').disabled = false;
+  openModal('rename-modal');
+  setTimeout(() => { input.focus(); input.select(); }, 100);
+}
+
+function confirmRename() {
+  const input = document.getElementById('rename-input');
+  const newName = input.value.trim();
+  if (!newName) return;
+  const oldName = state.name;
+  state.name = newName;
+  saveState();
+  closeModal('rename-modal');
+  render();
+  showMessage(PETS[state.petType].responses.rename(oldName, newName));
+}
+
+document.getElementById('rename-input').addEventListener('input', function() {
+  document.getElementById('rename-confirm').disabled = !this.value.trim();
+});
+
+document.getElementById('rename-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') confirmRename();
+  if (e.key === 'Escape') closeModal('rename-modal');
+});
+
+// ══════════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════════
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', function(e) {
+    if (e.target === this) closeModal(this.id);
+  });
+});
+
+// ══════════════════════════════════════════
+//  NEW PET
+// ══════════════════════════════════════════
+
+document.getElementById('new-pet-btn').addEventListener('click', () => {
+  openModal('confirm-modal');
+});
+
+function confirmNewPet() {
+  closeModal('confirm-modal');
+  localStorage.removeItem('buddySave');
+  state = null;
+  showScreen('selection');
+}
+
+// ══════════════════════════════════════════
+//  SELECTION SCREEN
+// ══════════════════════════════════════════
+
+let selectedPetType = null;
+
+const PET_CARD_ART = {
+  dog:    `    / \\__\n   (    @\\___\n   /         O\n  /   (_____/\n /_____/   U\n   ~~  ~~   `,
+  cat:    `  /\\     /\\\n (  o   o  )\n =( Y  Y )=\n  )      (\n (_|    |_)\n  |  ^^  |\n  ~~ ~~ ~~`,
+  bird:   `    _   _\n   ( o o )\n    > ^ <\n   /|   |\\\n    |   |\n   _|   |_\n  ~~ ~ ~ ~~`,
+  dragon: `   / \\   / \\\n  ( o ) ( o )\n   \\_/___\\_/\n   |  ^^^  |\n  /|  ~~~  |\\\n / |_______| \\\n~~~~~~~~~~~~~~~~~`,
+};
+
+const PET_CARD_COLORS = {
+  dog:    '#e65100', cat: '#6a1b9a', bird: '#00838f', dragon: '#ff5722',
+};
+
+function buildSelectionCards() {
+  const container = document.getElementById('pet-cards');
+  container.innerHTML = '';
+  Object.entries(PETS).forEach(([type, pet]) => {
+    const card = document.createElement('div');
+    card.className = 'pet-card';
+    card.dataset.type = type;
+    card.innerHTML = `
+      <pre>${PET_CARD_ART[type]}</pre>
+      <div class="pet-card-emoji">${pet.emoji}</div>
+      <div class="pet-card-name">${pet.label}</div>
+    `;
+    card.addEventListener('click', () => selectPetCard(type));
+    container.appendChild(card);
+  });
+}
+
+function selectPetCard(type) {
+  selectedPetType = type;
+  document.querySelectorAll('.pet-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.type === type);
+    c.style.setProperty('--sel-accent', PET_CARD_COLORS[type]);
+  });
+  document.documentElement.style.setProperty('--sel-accent', PET_CARD_COLORS[type]);
+  const nameRow = document.getElementById('name-row');
+  nameRow.style.display = 'flex';
+  document.getElementById('pet-name-input').focus();
+  updateStartBtn();
+}
+
+function updateStartBtn() {
+  const name = document.getElementById('pet-name-input').value.trim();
+  document.getElementById('start-btn').disabled = !name || !selectedPetType;
+}
+
+document.getElementById('pet-name-input').addEventListener('input', updateStartBtn);
+document.getElementById('pet-name-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !document.getElementById('start-btn').disabled) startGame();
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+function startGame() {
+  if (!selectedPetType) return;
+  const name = document.getElementById('pet-name-input').value.trim();
+  if (!name) return;
+  state = {
+    petType: selectedPetType,
+    name,
+    hunger: 80, happiness: 80, energy: 80,
+    age_days: 0, tricks: [],
+    last_seen: Date.now(),
+  };
+  saveState();
+  showScreen('main');
+  showMessage(`${PETS[selectedPetType].responses.feed[0].split('!')[0]}... ${name} is ready to play!`);
+}
+
+// ══════════════════════════════════════════
+//  SCREEN SWITCHING
+// ══════════════════════════════════════════
+
+function showScreen(which) {
+  const sel  = document.getElementById('selection-screen');
+  const main = document.getElementById('main-screen');
+  if (which === 'selection') {
+    sel.style.display  = 'flex';
+    main.style.display = 'none';
+    buildSelectionCards();
+    selectedPetType = null;
+    document.getElementById('name-row').style.display = 'none';
+    document.getElementById('pet-name-input').value = '';
+    document.documentElement.style.removeProperty('--bg-grad');
+    document.getElementById('selection-screen').style.background =
+      'linear-gradient(135deg, #fffde7 0%, #fff9c4 100%)';
+  } else {
+    sel.style.display  = 'none';
+    main.style.display = 'flex';
+    render();
+  }
+}
+
+// ══════════════════════════════════════════
+//  TIMERS
+// ══════════════════════════════════════════
+
+// Frame cycling + mood check every 600ms
+setInterval(() => {
+  if (!state) return;
+  frameIdx++;
+  renderPetArt();
+  renderMoodBadge();
+  renderButtons();
+}, 600);
+
+// Real-time stat decay every 30s
+setInterval(() => {
+  if (!state) return;
+  const tickHours = 30 / 3600;
+  state.hunger    = clamp(state.hunger - tickHours * DECAY.hunger, 0, 100);
+  state.happiness = clamp(state.happiness - tickHours * DECAY.happiness, 0, 100);
+  state.energy    = clamp(state.energy + tickHours * DECAY.energyRegen, 0, 100);
+  state.age_days  = (state.age_days || 0) + tickHours / 24;
+  state.last_seen = Date.now();
+  saveState();
+  renderStats();
+  renderHeader();
+  renderButtons();
+}, 30000);
+
+// ══════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════
+
+(function boot() {
+  state = loadState();
+  if (state) {
+    state = applyTimeDecay(state);
+    saveState();
+    showScreen('main');
+  } else {
+    showScreen('selection');
+  }
+})();
+</script>
+</body>
+</html>
