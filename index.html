@@ -138,6 +138,16 @@
   .petbtn img.a-hatch { animation: hatch 1.4s ease-out; }
   @keyframes hatch { 0% { transform: scale(.7); filter: brightness(3); } 60% { transform: scale(1.06); filter: brightness(1.3); } }
 
+  .soundbtn {
+    position: absolute; z-index: 5; top: 10px; right: 10px;
+    width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: rgba(20, 16, 16, .55); border: 1px solid var(--edge); color: var(--gold);
+  }
+  .soundbtn .cross { display: none; }
+  .soundbtn.off { color: var(--muted); }
+  .soundbtn.off .waves { display: none; }
+  .soundbtn.off .cross { display: inline; }
   .speech {
     position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%);
     max-width: 82%;
@@ -328,6 +338,9 @@
     </button>
     <div class="fx" id="fx"></div>
     <div class="speech" id="speech" aria-live="polite"></div>
+    <button class="soundbtn" id="soundBtn" aria-label="Mute sound">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="cross" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
   </main>
 
   <section class="meters" id="meters" aria-label="How he's doing"></section>
@@ -532,7 +545,7 @@
       if (ok) {
         state.skills.push(k.id);
         state.unseen.push(k.id);
-        if (!quiet) toast('New skill: ' + k.name + '!');
+        if (!quiet) { toast('New skill: ' + k.name + '!'); sfx('unlock'); }
       }
     }
   }
@@ -601,6 +614,165 @@
     els.banner.hidden = !banner;
     setSprite();
   }
+
+  // ---------- Sound (synthesized with Web Audio, no files) ----------
+  const Sound = (() => {
+    let ctx = null, master = null, noiseBuf = null, curve = null;
+    let on = true;
+    try { on = localStorage.getItem('rockfire.sound') !== 'off'; } catch (e) {}
+    function ensure() {
+      if (!on) return null;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = .6;
+        const comp = ctx.createDynamicsCompressor();
+        master.connect(comp); comp.connect(ctx.destination);
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        curve = new Float32Array(1024);
+        for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; curve[i] = (1 + 60) * x / (1 + 60 * Math.abs(x)); }
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    function env(g, t, vol, attack, dur) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    }
+    function tone({ t = 0, f, f2, dur = .2, type = 'sine', vol = .2, attack = .008, vib = 0, cut = 0 }) {
+      const c = ensure(); if (!c) return;
+      const s = c.currentTime + t, o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, s);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + dur);
+      if (vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = vib; lg.gain.value = f * .06; l.connect(lg); lg.connect(o.frequency); l.start(s); l.stop(s + dur + .05); }
+      let out = o;
+      if (cut) { const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cut; o.connect(lp); out = lp; }
+      out.connect(g); g.connect(master);
+      env(g, s, vol, attack, dur);
+      o.start(s); o.stop(s + dur + .05);
+    }
+    function noise({ t = 0, dur = .2, vol = .2, type = 'bandpass', f = 1000, f2, q = 1, attack = .005 }) {
+      const c = ensure(); if (!c) return;
+      const s = c.currentTime + t, src = c.createBufferSource(), bq = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = noiseBuf; src.loop = true;
+      bq.type = type; bq.Q.value = q; bq.frequency.setValueAtTime(f, s);
+      if (f2) bq.frequency.exponentialRampToValueAtTime(f2, s + dur);
+      src.connect(bq); bq.connect(g); g.connect(master);
+      env(g, s, vol, attack, dur);
+      src.start(s, Math.random()); src.stop(s + dur + .05);
+    }
+    // Distorted power chord: root, fifth, octave through a waveshaper.
+    function chord(root, t = 0, dur = .5, vol = .22, bright = 2600) {
+      const c = ensure(); if (!c) return;
+      const s = c.currentTime + t, pre = c.createGain(), ws = c.createWaveShaper(), lp = c.createBiquadFilter(), g = c.createGain();
+      pre.gain.value = .5; ws.curve = curve; ws.oversample = '2x';
+      lp.type = 'lowpass'; lp.frequency.value = bright;
+      pre.connect(ws); ws.connect(lp); lp.connect(g); g.connect(master);
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(vol, s + .008);
+      g.gain.exponentialRampToValueAtTime(vol * .45, s + dur * .35);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + dur);
+      [1, 1.4983, 2].forEach(m => {
+        const o = c.createOscillator(); o.type = 'sawtooth';
+        o.frequency.value = root * m; o.detune.value = Math.random() * 10 - 5;
+        o.connect(pre); o.start(s); o.stop(s + dur + .05);
+      });
+    }
+    const E2 = 82.41, A2 = 110, B2 = 123.47, D3 = 146.83, E3 = 164.81, G2 = 98;
+    const PITCH = { egg: 1, baby: 2.2, teen: 1.4, adult: 1 };
+    const fx = {
+      click: () => noise({ dur: .03, vol: .12, type: 'highpass', f: 2500 }),
+      knock: () => { tone({ f: 190, f2: 90, dur: .14, type: 'triangle', vol: .35 }); noise({ dur: .06, vol: .15, type: 'lowpass', f: 900 }); },
+      crack: () => { for (let i = 0; i < 5; i++) noise({ t: i * .045 + Math.random() * .03, dur: .04, vol: .22, f: 2800 + Math.random() * 1500, q: 4 }); },
+      hatch: () => {
+        fx.crack(); fx.crack();
+        [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ t: .25 + i * .09, f, dur: .5, vol: .16, type: 'triangle' }));
+        chord(E2, .75, 1.4, .2);
+      },
+      chirp: (stage) => {
+        if (stage === 'adult') { tone({ f: 95, dur: .45, type: 'sawtooth', vol: .16, vib: 22, cut: 500 }); return; }
+        const p = PITCH[stage] || 1;
+        tone({ f: 520 * p, f2: 800 * p, dur: .1, vol: .14, type: stage === 'teen' ? 'square' : 'sine', cut: 3000 });
+        tone({ t: .12, f: 600 * p, f2: 950 * p, dur: .12, vol: .12, type: stage === 'teen' ? 'square' : 'sine', cut: 3000 });
+      },
+      crunch: () => { for (let i = 0; i < 3; i++) noise({ t: i * .1, dur: .07, vol: .3, f: 1600 + Math.random() * 900, q: 1.5 }); },
+      sizzle: () => noise({ t: .15, dur: .8, vol: .1, type: 'highpass', f: 4500, attack: .05 }),
+      fire: (big) => {
+        noise({ dur: big ? 1.3 : .8, vol: big ? .5 : .35, type: 'lowpass', f: 300, f2: 3200, attack: .08 });
+        noise({ t: .2, dur: big ? 1.1 : .6, vol: .2, type: 'bandpass', f: 1800, f2: 500, q: .7 });
+        tone({ f: 70, f2: 45, dur: big ? 1.2 : .7, type: 'sawtooth', vol: .18, cut: 220 });
+      },
+      roar: (stage) => {
+        const base = { baby: 520, teen: 240, adult: 130 }[stage] || 240;
+        tone({ f: base, f2: base * .55, dur: .8, type: 'sawtooth', vol: .25, vib: 30, cut: base * 6, attack: .04 });
+        noise({ dur: .7, vol: .18, type: 'bandpass', f: base * 3, q: 2, attack: .04 });
+      },
+      sneeze: () => {
+        tone({ f: 700, f2: 1100, dur: .35, vol: .08, type: 'sine', attack: .2 });
+        noise({ t: .4, dur: .25, vol: .45, f: 2600, q: .8 });
+        fx.crack();
+      },
+      puffs: () => { for (let i = 0; i < 4; i++) noise({ t: i * .45, dur: .3, vol: .22, type: 'lowpass', f: 500, f2: 200, attack: .03 }); },
+      whoosh: () => noise({ dur: 1.6, vol: .3, f: 400, f2: 2400, q: .9, attack: .5 }),
+      strum: (mark) => {
+        if (mark === 'miss') { noise({ dur: .08, vol: .3, type: 'lowpass', f: 450 }); chord(E2 * 1.06, 0, .12, .1, 900); return; }
+        const roots = [E2, G2, A2, B2, D3, E3];
+        chord(roots[(jam ? jam.round : 0) % roots.length], 0, mark === 'perfect' ? .9 : .55, mark === 'perfect' ? .26 : .2, mark === 'perfect' ? 3400 : 2200);
+      },
+      cheer: (big) => {
+        noise({ dur: big ? 2.4 : 1.6, vol: big ? .35 : .25, f: 1100, q: .5, attack: .35 });
+        for (let i = 0; i < (big ? 4 : 2); i++) tone({ t: .2 + i * .3 + Math.random() * .2, f: 1900 + Math.random() * 500, f2: 2700, dur: .35, vol: .06 });
+      },
+      wahwah: () => [392, 370, 349, 311].forEach((f, i) => tone({ t: i * .38, f, f2: f * .97, dur: i === 3 ? .9 : .34, type: 'triangle', vol: .18, vib: i === 3 ? 6 : 0, cut: 1400 })),
+      riff: () => [[E2, 0], [E2, .16], [G2, .32], [A2, .48], [E2, .72]].forEach(([r, t]) => chord(r, t, .3, .2)),
+      solo: () => {
+        chord(E2, 0, .6, .22);
+        [659, 784, 880, 988, 1175, 1319, 1175, 1319].forEach((f, i) => tone({ t: .3 + i * .11, f, dur: .2, type: 'sawtooth', vol: .09, cut: 2600, vib: 7 }));
+        fx.fire(false);
+      },
+      blast: () => { chord(E2, 0, 1.8, .3, 3800); chord(E3, 0, 1.8, .12, 3800); tone({ f: 70, f2: 28, dur: .9, vol: .45, type: 'sine' }); },
+      dive: () => { fx.whoosh(); tone({ t: 1.5, f: 80, f2: 30, dur: .6, vol: .45 }); fx.cheer(true); },
+      pyro: () => {
+        [0, .35, .7, 1.05].forEach((t, i) => { tone({ t, f: 90, f2: 30, dur: .5, vol: .4 }); noise({ t, dur: .45, vol: .25, type: 'lowpass', f: 1200, f2: 200 }); if (i === 3) chord(E2, t, 2, .28, 3600); });
+        fx.fire(true);
+        setTimeout(() => fx.cheer(true), 900);
+      },
+      levelUp: () => { [[E2, 0], [A2, .18], [B2, .36], [E3, .54]].forEach(([r, t], i) => chord(r, t, i === 3 ? 1.6 : .3, .24, 3200)); setTimeout(() => fx.cheer(true), 700); },
+      unlock: () => [784, 988, 1175, 1568].forEach((f, i) => tone({ t: i * .08, f, dur: .4, vol: .12, type: 'triangle' })),
+      lullaby: () => [659, 523, 440, 392].forEach((f, i) => tone({ t: i * .32, f, dur: .5, vol: .1 })),
+      yawn: () => tone({ f: 260, f2: 480, dur: .7, vol: .12, type: 'triangle', vib: 5, attack: .2 }),
+      snore: () => noise({ dur: .9, vol: .07, type: 'lowpass', f: 240, attack: .45 }),
+      hearts: () => [1047, 1319].forEach((f, i) => tone({ t: i * .07, f, dur: .18, vol: .06 })),
+      sad: () => [220, 261.6, 329.6].forEach((f, i) => tone({ t: i * .5, f, dur: 2.4 - i * .5, vol: .1, type: 'triangle', cut: 1200 })),
+    };
+    return {
+      get on() { return on; },
+      unlock: ensure,
+      play(name, ...args) { if (!on) return; try { if (ensure()) fx[name](...args); } catch (e) {} },
+      toggle() {
+        on = !on;
+        try { localStorage.setItem('rockfire.sound', on ? 'on' : 'off'); } catch (e) {}
+        if (!on && ctx) ctx.suspend(); else ensure();
+        return on;
+      },
+    };
+  })();
+  const sfx = (name, ...args) => Sound.play(name, ...args);
+  // Audio can only start from a tap; wake it on the first one.
+  document.addEventListener('pointerdown', () => { if (Sound.on) Sound.unlock(); }, { capture: true });
+  document.querySelectorAll('.pedal').forEach(p => p.addEventListener('pointerdown', () => sfx('click')));
+  function drawSoundBtn() {
+    const b = $('soundBtn');
+    b.setAttribute('aria-label', Sound.on ? 'Mute sound' : 'Turn sound on');
+    b.classList.toggle('off', !Sound.on);
+  }
+  $('soundBtn').addEventListener('click', () => { Sound.toggle(); drawSoundBtn(); if (Sound.on) sfx('chirp', state.stage); });
+  drawSoundBtn();
 
   // ---------- Effects ----------
   function animate(name) {
@@ -699,6 +871,7 @@
     state.heat = Math.min(100, state.heat + 3);
     animate('wobble');
     embers(4, 50, 60, 120, 120, .9);
+    sfx(state.heat >= 50 ? 'crack' : 'knock');
     if (state.heat >= 100) hatch();
     else if (state.heat >= 50 && state.heat < 53) say('Something is moving in there…');
     render();
@@ -709,6 +882,7 @@
     hatching = true;
     render();
     animate('hatch'); flash(); embers(30, 50, 55, 240, 220, 1.3); buzz([60, 40, 160]);
+    sfx('hatch');
     say('!!!', 1500);
     setTimeout(() => { openSheet('nameSheet'); const i = $('nameInput'); i.value = state.name || 'Rockfire'; }, 1600);
   }
@@ -722,7 +896,7 @@
     closeSheets();
     checkSkills(true);
     render();
-    animate('bounce'); fx('sparks');
+    animate('bounce'); fx('sparks'); sfx('chirp', 'baby');
     say('Hey! I\'m ' + n + '. Got any snacks?', 3500);
     save();
   });
@@ -735,11 +909,11 @@
     if (state.stage === 'egg') return tapEgg();
     if (hatching) return;
     const t = now();
-    if (state.asleep) { if (t - lastPet > 1500) { glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
+    if (state.asleep) { if (t - lastPet > 1500) { sfx('snore'); glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
     state.stats.vibe = clamp(state.stats.vibe + (t - lastPet > 2500 ? 4 : 1));
     lastPet = t;
     state.c.pet++;
-    show('happy', 1300); fx('hearts');
+    show('happy', 1300); fx('hearts'); sfx('chirp', state.stage); sfx('hearts');
     if (Math.random() < .25) say(pick(PET_LINES[state.stage]), 1800);
     checkSkills(); render(); save();
   });
@@ -765,6 +939,9 @@
     state.c[b.dataset.food]++;
     show(f.pose, 1800); animate('bounce');
     fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
+    sfx('crunch');
+    if (b.dataset.food === 'pepper') { sfx('sizzle'); setTimeout(() => sfx('fire', false), 350); }
+    else sfx('chirp', state.stage);
     say(pick(f.line));
     checkSkills(); render(); save();
   }));
@@ -773,10 +950,12 @@
     if (state.asleep) {
       state.asleep = false;
       say(state.stats.energy < 40 ? 'Huh? I\'m up… barely.' : 'Rested and ready to rock!');
+      sfx('yawn');
     } else {
       state.asleep = true;
       glyphs(['z', 'Z', 'z'], 3, '#c9d2ff', 55, 25, 'zzz');
       say('Night night…', 1600);
+      sfx('lullaby');
     }
     override = null; render(); save();
   });
@@ -814,6 +993,7 @@
     let mark = 'miss', call = pick(['Clunk.', 'Whoops!', 'Off-beat!']);
     if (d <= jam.w * .16) { mark = 'perfect'; jam.perfect++; jam.hits++; call = pick(['PERFECT!', 'Face-melter!', 'SHRED!']); buzz(40); }
     else if (d <= jam.w / 2) { mark = 'hit'; jam.hits++; call = pick(['Nice!', 'Rockin\'!', 'Yeah!']); buzz(20); }
+    sfx('strum', mark);
     jam.marks.push(mark); jam.round++;
     $('call').textContent = call;
     drawDots();
@@ -832,6 +1012,7 @@
     $('strum').textContent = 'Done';
     show(h >= 3 ? 'happy' : 'idle', 2200); animate(h >= 3 ? 'headbang' : '');
     if (h >= 3) fx('notes');
+    setTimeout(() => sfx(h >= 3 ? 'cheer' : 'wahwah', h >= 5), 500);
     checkSkills(); render(); save();
   }
 
@@ -858,6 +1039,7 @@
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
     armReset(false);
   }
+  const SKILL_SFX = { headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
   let lastPerform = {};
   function perform(id) {
     const k = SKILLS.find(s => s.id === id);
@@ -865,6 +1047,7 @@
     if (state.asleep) { say('He\'s asleep. Wake him first.'); return; }
     show(k.pose, k.anim === 'dive' || k.anim === 'float' ? 2500 : 2200);
     animate(k.anim); fx(k.fx);
+    sfx(SKILL_SFX[k.id], state.stage);
     say(k.line, 2400);
     if (!lastPerform[id] || now() - lastPerform[id] > 30000) {
       state.stats.vibe = clamp(state.stats.vibe + 5);
@@ -893,6 +1076,7 @@
     $('endTitle').textContent = state.name + '\'s flame went out';
     $('endText').textContent = 'He waited three days for a snack and a song. Every legend deserves an encore, and a new egg is already warm.';
     openSheet('endSheet');
+    sfx('sad');
   }
   $('endGo').addEventListener('click', () => newEgg(true));
 
@@ -903,13 +1087,13 @@
     simulate(now());
     while (events.length) {
       const ev = events.shift();
-      if (ev === 'woke') say('Rested and ready to rock!');
-      if (ev === 'passedout') say('Can\'t… keep… eyes… open… zzz');
+      if (ev === 'woke') { say('Rested and ready to rock!'); if (!document.hidden) sfx('yawn'); }
+      if (ev === 'passedout') { say('Can\'t… keep… eyes… open… zzz'); if (!document.hidden) sfx('snore'); }
       if (ev === 'over') showEnd();
     }
     if (state.stage !== wasStage && wasStage !== 'egg') {
       toast('Level up: ' + STAGES[state.stage].title + '!');
-      animate('bounce'); flash(); embers(30, 50, 55, 260, 240, 1.3);
+      animate('bounce'); flash(); embers(30, 50, 55, 260, 240, 1.3); sfx('levelUp');
       say(STAGES[state.stage].sub, 3200);
     }
     if (state.stage !== 'egg') checkSkills();
@@ -917,6 +1101,7 @@
     if (state.over && $('endSheet').hidden) showEnd();
     render();
     if (state.asleep && Math.random() < .12) glyphs(['z', 'Z'], 1, '#c9d2ff', 58, 22, 'zzz');
+    if (state.asleep && state.stage !== 'egg' && !document.hidden && Math.random() < .07) sfx('snore');
     if (now() > chatterAt && !state.asleep && state.stage !== 'egg') {
       chatterAt = now() + 25000 + Math.random() * 20000;
       const s = state.stats;
