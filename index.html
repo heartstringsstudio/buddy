@@ -1,0 +1,956 @@
+<title>Rockfire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Metal+Mania&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  /* Single-look design: a club stage at night. Painted explicitly so it holds on any host theme. */
+  :root {
+    color-scheme: dark;
+    --soot: #141010;
+    --amp: #221917;
+    --tolex: #2c211e;
+    --edge: #3d2e29;
+    --crimson: #c8232c;
+    --flame: #ff7a1a;
+    --gold: #f4b942;
+    --chrome: #ece4dc;
+    --muted: #a8958b;
+    --indigo: #34427a;
+    --paper: #efe6d6;
+    --ink: #1d1714;
+    --display: "Metal Mania", "Impact", "Arial Black", sans-serif;
+    --scrawl: "Permanent Marker", "Comic Sans MS", "Marker Felt", cursive;
+    --ui: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  }
+  html { height: 100%; box-sizing: border-box; background: var(--soot); }
+  *, *::before, *::after { box-sizing: inherit; }
+  [hidden] { display: none !important; }
+  body {
+    height: 100%;
+    background: var(--soot);
+    color: var(--chrome);
+    font-family: var(--ui);
+    font-size: 16px;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  #app {
+    height: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ---------- Marquee header ---------- */
+  .marquee { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .marquee h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(34px, 10vw, 44px);
+    line-height: .9;
+    color: var(--crimson);
+    text-shadow: 0 0 1px var(--gold), 2px 2px 0 #000, 0 0 18px rgba(255, 122, 26, .45);
+    letter-spacing: .5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .billing { text-align: right; flex-shrink: 0; display: grid; gap: 2px; }
+  .billing .tag {
+    font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--soot); background: var(--gold); padding: 2px 8px; border-radius: 3px; justify-self: end;
+  }
+  .billing .age { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+
+  .banner {
+    font-weight: 600; font-size: 15px; letter-spacing: .03em;
+    background: var(--crimson); color: #fff; padding: 8px 12px; border-radius: 8px; text-wrap: balance;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--edge);
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -8%, rgba(255, 170, 70, .38), transparent 70%),
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,.35) 1.2px, transparent 1.6px) 0 0 / 9px 9px,
+      linear-gradient(#1d1513, #171110);
+  }
+  .floor {
+    position: absolute; inset: auto 0 0 0; height: 24%;
+    background:
+      linear-gradient(rgba(255,200,120,.18), transparent 30%),
+      repeating-linear-gradient(90deg, #2c1e16 0 46px, #20150f 46px 48px);
+    border-top: 2px solid #3a281d;
+  }
+  .floor::after {
+    content: ""; position: absolute; left: 18%; right: 18%; top: 10%; height: 40%;
+    background: radial-gradient(ellipse at center, rgba(255, 180, 90, .32), transparent 70%);
+  }
+  .stage.night::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 40%, rgba(20, 26, 70, .25), rgba(8, 10, 30, .62));
+    transition: opacity .6s;
+  }
+  .petbtn {
+    position: absolute; inset: 3% 4% 5% 4%;
+    background: none; border: 0; padding: 0; border-radius: 14px;
+    z-index: 2;
+  }
+  .petbtn img {
+    width: 100%; height: 100%; object-fit: contain; object-position: center bottom;
+    transform-origin: 50% 95%;
+    animation: breathe 3.2s ease-in-out infinite;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .night .petbtn img { animation-duration: 5.5s; }
+  @keyframes breathe { 50% { transform: scale(1.012, 1.028); } }
+  .petbtn img.a-wobble { animation: wobble .45s ease-in-out; }
+  @keyframes wobble { 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+  .petbtn img.a-bounce { animation: bounce .6s ease-out 2; }
+  @keyframes bounce { 40% { transform: translateY(-7%) scale(1.02, .98); } 70% { transform: translateY(0) scale(1.03, .97); } }
+  .petbtn img.a-headbang { animation: headbang .32s ease-in-out 6; }
+  @keyframes headbang { 50% { transform: rotate(-5deg) translateY(2%); } }
+  .petbtn img.a-shake { animation: shake .12s linear 14; }
+  @keyframes shake { 25% { transform: translateX(-2%); } 75% { transform: translateX(2%); } }
+  .petbtn img.a-recoil { animation: recoil .5s ease-out 2; }
+  @keyframes recoil { 30% { transform: translateX(-4%) rotate(-3deg); } }
+  .petbtn img.a-float { animation: float 2.4s ease-in-out; }
+  @keyframes float { 45%, 60% { transform: translateY(-16%) rotate(-3deg); } }
+  .petbtn img.a-dive { animation: dive 2.4s cubic-bezier(.3,.7,.4,1); }
+  @keyframes dive { 30% { transform: translateY(-30%) scale(.9) rotate(-8deg); } 60% { transform: translateY(-34%) scale(.9) rotate(10deg); } 85% { transform: translateY(2%) scale(1.04, .94); } }
+  .petbtn img.a-hatch { animation: hatch 1.4s ease-out; }
+  @keyframes hatch { 0% { transform: scale(.7); filter: brightness(3); } 60% { transform: scale(1.06); filter: brightness(1.3); } }
+
+  .speech {
+    position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%);
+    max-width: 82%;
+    font-family: var(--scrawl); font-size: 17px; line-height: 1.2; text-align: center;
+    color: var(--ink); background: var(--paper);
+    padding: 7px 13px; border-radius: 14px;
+    box-shadow: 2px 3px 0 rgba(0,0,0,.5);
+    opacity: 0; transition: opacity .25s, transform .25s;
+    pointer-events: none;
+  }
+  .speech.show { opacity: 1; transform: translateX(-50%) translateY(2px); }
+
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+  .ember {
+    position: absolute; width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle, #fff6c8 0 20%, var(--gold) 40%, var(--flame) 65%, transparent 72%);
+    animation: ember var(--t, 1.2s) ease-out forwards;
+  }
+  @keyframes ember { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  .glyph {
+    position: absolute; font-size: 26px; line-height: 1; font-weight: 700;
+    animation: rise var(--t, 1.6s) ease-out forwards;
+    text-shadow: 1px 1px 0 #000;
+  }
+  @keyframes rise { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1.1); opacity: 0; } }
+  .zzz { font-family: var(--scrawl); color: #c9d2ff; font-size: 24px; }
+  .ring {
+    position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%;
+    border: 5px solid rgba(220, 220, 220, .75);
+    animation: ring 2.2s ease-out forwards;
+  }
+  @keyframes ring { to { transform: translate(var(--dx), -150px) scale(3.2); opacity: 0; border-width: 1px; } }
+  .wave {
+    position: absolute; left: 50%; top: 55%; width: 40px; height: 40px; margin: -20px; border-radius: 50%;
+    border: 6px solid var(--gold); box-shadow: 0 0 24px var(--flame);
+    animation: wave .9s ease-out forwards;
+  }
+  @keyframes wave { to { transform: scale(14); opacity: 0; border-width: 1px; } }
+  .flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, #fff3c4, rgba(255,122,26,.6) 40%, transparent 75%); animation: flash .7s ease-out forwards; }
+  @keyframes flash { from { opacity: .95; } to { opacity: 0; } }
+
+  /* ---------- Meters ---------- */
+  .meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .meter { display: grid; gap: 4px; }
+  .meter .lab { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .meter .lab b { color: var(--chrome); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .segs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; height: 12px; }
+  .segs i { background: #2e2320; border-radius: 1.5px; }
+  .segs i.on { background: linear-gradient(var(--gold), var(--flame)); box-shadow: 0 0 5px rgba(255,122,26,.5); }
+  .meter.low .segs i.on { background: var(--crimson); box-shadow: 0 0 6px rgba(200,35,44,.7); animation: blink 1.1s steps(2) infinite; }
+  .meter.low .lab { color: #ff8a8f; }
+  @keyframes blink { 50% { opacity: .45; } }
+  .hint { text-align: center; font-family: var(--scrawl); color: var(--gold); font-size: 18px; margin: 2px 0; }
+
+  /* ---------- Stompbox pedals ---------- */
+  .pedals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+  .pedal {
+    position: relative;
+    border: 0; border-radius: 12px;
+    min-height: 92px;
+    padding: 16px 4px 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    background: linear-gradient(160deg, rgba(255,255,255,.28), rgba(255,255,255,0) 45%, rgba(0,0,0,.28)), var(--pc);
+    color: var(--pt, var(--ink));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 4px 0 rgba(0,0,0,.55);
+    transition: transform .06s;
+  }
+  .pedal:active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 0 rgba(0,0,0,.55); }
+  .pedal:disabled { filter: grayscale(.8) brightness(.55); cursor: default; }
+  .pedal .pl { font-weight: 700; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+  .pedal .sw {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #b9b3ad 35%, #6e6862 70%, #3d3935);
+    box-shadow: 0 2px 3px rgba(0,0,0,.6), inset 0 -2px 3px rgba(0,0,0,.35);
+  }
+  .pedal:active .sw { background: radial-gradient(circle at 40% 40%, #ddd, #8d8781 45%, #4a4541); }
+  .pedal .led {
+    position: absolute; top: 5px; left: 50%; margin-left: -4px; width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(0,0,0,.45);
+  }
+  .pedal .led.on { background: #ff3b30; box-shadow: 0 0 8px 2px rgba(255,59,48,.8); }
+  .pedal .led.on.cool { background: #7fd3ff; box-shadow: 0 0 8px 2px rgba(127,211,255,.8); }
+  .p-feed { --pc: var(--flame); }
+  .p-jam { --pc: var(--gold); }
+  .p-sleep { --pc: var(--indigo); --pt: var(--chrome); }
+  .p-set { --pc: #cfc6bd; }
+
+  /* ---------- Sheets ---------- */
+  .sheet { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(5,3,3,.62); }
+  .panel {
+    width: 100%; max-width: 520px; max-height: 88%;
+    overflow-y: auto;
+    background: var(--amp);
+    border-top: 3px solid var(--gold);
+    border-radius: 20px 20px 0 0;
+    padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: grid; gap: 14px;
+    animation: up .22s ease-out;
+  }
+  @keyframes up { from { transform: translateY(30px); opacity: 0; } }
+  .panel h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 30px; color: var(--gold); line-height: 1; }
+  .panel p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.35; }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  .x { background: none; border: 1px solid var(--edge); border-radius: 8px; padding: 6px 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; color: var(--muted); }
+  .big {
+    border: 0; border-radius: 12px; padding: 14px 18px;
+    font-weight: 700; font-size: 20px; letter-spacing: .12em; text-transform: uppercase;
+    background: var(--crimson); color: #fff; box-shadow: 0 4px 0 #6d1016;
+  }
+  .big:active { transform: translateY(3px); box-shadow: 0 1px 0 #6d1016; }
+
+  .foods { display: grid; gap: 10px; }
+  .food {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; text-align: left;
+    background: var(--tolex); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px;
+  }
+  .food strong { font-size: 20px; letter-spacing: .04em; }
+  .food span { color: var(--muted); font-size: 15px; grid-column: 1; }
+  .food em { grid-row: 1 / span 2; grid-column: 2; font-style: normal; font-weight: 700; color: var(--gold); font-size: 15px; letter-spacing: .06em; text-align: right; }
+
+  /* Jam */
+  .track { position: relative; height: 54px; border-radius: 10px; background: #120d0c; border: 1px solid var(--edge); overflow: hidden; }
+  .zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(244,185,66,.25), rgba(255,122,26,.55), rgba(244,185,66,.25)); border-left: 2px solid var(--gold); border-right: 2px solid var(--gold); }
+  .pick { position: absolute; top: 6px; bottom: 6px; width: 8px; margin-left: -4px; border-radius: 4px; background: var(--chrome); box-shadow: 0 0 10px #fff; }
+  .dots { display: flex; gap: 8px; justify-content: center; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: #3a2c28; }
+  .dots i.hit { background: var(--gold); }
+  .dots i.perfect { background: var(--flame); box-shadow: 0 0 8px var(--flame); }
+  .dots i.miss { background: #5a2226; }
+  .call { text-align: center; font-family: var(--scrawl); font-size: 26px; min-height: 34px; color: var(--chrome); }
+
+  /* Setlist */
+  .panel.setlist {
+    background: var(--paper); color: var(--ink); border-top: 0;
+    background-image: repeating-linear-gradient(transparent 0 31px, rgba(60,90,160,.14) 31px 32px);
+  }
+  .setlist h2 { color: var(--crimson); }
+  .setlist .x { color: var(--ink); border-color: rgba(0,0,0,.25); }
+  .setlist h3 { margin: 6px 0 0; font-weight: 700; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: #6d5d52; }
+  .skill { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 4px 0; }
+  .skill .n { font-family: var(--scrawl); font-size: 22px; line-height: 1.15; }
+  .skill .h { font-size: 15px; color: #6d5d52; grid-column: 1; }
+  .skill.locked .n { color: #a3968b; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(0,0,0,.25); }
+  .skill button { grid-row: 1 / span 2; grid-column: 2; border: 2px solid var(--ink); border-radius: 8px; background: var(--ink); color: var(--paper); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 14px; padding: 7px 10px; }
+  .skill.new .n::after { content: " NEW"; font-family: var(--ui); font-weight: 700; font-size: 12px; letter-spacing: .1em; color: #fff; background: var(--crimson); padding: 1px 5px; border-radius: 3px; vertical-align: middle; }
+  .stats { font-size: 15px; color: #6d5d52; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .danger { background: none; border: 1px solid rgba(0,0,0,.3); color: #8a1c22; border-radius: 8px; padding: 8px 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; justify-self: start; }
+
+  input[type="text"] {
+    width: 100%; font-family: var(--display); font-size: 30px; padding: 10px 12px;
+    border-radius: 10px; border: 2px solid var(--edge); background: #120d0c; color: var(--crimson);
+    user-select: text; -webkit-user-select: text;
+  }
+
+  .toast {
+    position: fixed; z-index: 30; left: 50%; bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 20px); opacity: 0; transition: .3s;
+    max-width: calc(100% - 32px); text-align: center;
+    font-family: var(--scrawl); font-size: 20px; color: var(--soot); background: var(--gold);
+    padding: 8px 16px; border-radius: 6px; box-shadow: 3px 3px 0 #000; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0) rotate(-1.5deg); }
+
+  @media (max-height: 640px) {
+    .pedal { min-height: 78px; }
+    .pedal .sw { width: 28px; height: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+  }
+</style>
+
+<div id="app">
+  <header class="marquee">
+    <h1 id="petName">Rockfire</h1>
+    <div class="billing">
+      <span class="tag" id="stageTag">The Egg</span>
+      <span class="age" id="ageLine">Born to roar</span>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <main class="stage" id="stage">
+    <div class="floor"></div>
+    <button class="petbtn" id="petBtn" aria-label="Tap to pet">
+      <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
+    </button>
+    <div class="fx" id="fx"></div>
+    <div class="speech" id="speech" aria-live="polite"></div>
+  </main>
+
+  <section class="meters" id="meters" aria-label="How he's doing"></section>
+  <p class="hint" id="eggHint" hidden>Tap the egg to keep it warm</p>
+
+  <nav class="pedals" id="pedals">
+    <button class="pedal p-feed" id="btnFeed"><span class="pl">Feed</span><span class="sw"></span><span class="led" id="ledFeed"></span></button>
+    <button class="pedal p-jam" id="btnJam"><span class="pl">Jam</span><span class="sw"></span><span class="led" id="ledJam"></span></button>
+    <button class="pedal p-sleep" id="btnSleep"><span class="pl" id="sleepLabel">Sleep</span><span class="sw"></span><span class="led" id="ledSleep"></span></button>
+    <button class="pedal p-set" id="btnSet"><span class="pl">Skills</span><span class="sw"></span><span class="led" id="ledSet"></span></button>
+  </nav>
+</div>
+
+<div class="sheet" id="feedSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Snack Bar</h2><button class="x" data-close>Close</button></div>
+    <div class="foods">
+      <button class="food" data-food="pepper"><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+20 FUEL<br>+6 VIBE</em></button>
+      <button class="food" data-food="coal"><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+35 FUEL</em></button>
+      <button class="food" data-food="pizza"><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+25 FUEL<br>+12 VIBE</em></button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="jamSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Jam Session</h2><button class="x" data-close>Close</button></div>
+    <p>Hit <b>Strum</b> when the pick crosses the hot zone. Six strums, and it speeds up.</p>
+    <div class="track"><div class="zone" id="zone"></div><div class="pick" id="pick"></div></div>
+    <div class="dots" id="dots"></div>
+    <div class="call" id="call"></div>
+    <button class="big" id="strum">Strum</button>
+  </div>
+</div>
+
+<div class="sheet" id="setSheet" hidden>
+  <div class="panel setlist">
+    <div class="row"><h2>Setlist</h2><button class="x" data-close>Close</button></div>
+    <div id="skillList"></div>
+    <div class="stats" id="statsLine"></div>
+    <button class="danger" id="resetBtn">Start over with a new egg</button>
+  </div>
+</div>
+
+<div class="sheet" id="nameSheet" hidden>
+  <div class="panel">
+    <h2>He hatched!</h2>
+    <p>Small dragon. Big attitude. What's his stage name?</p>
+    <input type="text" id="nameInput" maxlength="16" value="Rockfire" autocomplete="off" aria-label="Dragon name">
+    <button class="big" id="nameGo">Let's rock</button>
+  </div>
+</div>
+
+<div class="sheet" id="endSheet" hidden>
+  <div class="panel">
+    <h2 id="endTitle">The flame went out</h2>
+    <p id="endText"></p>
+    <button class="big" id="endGo">Start a new egg</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  // ---------- Tuning ----------
+  // #fast plays at 120x speed on a separate save, for previewing the whole life cycle.
+  const SPEED = location.hash === '#fast' ? 120 : 1;
+  const KEY = SPEED > 1 ? 'rockfire.fast.v1' : 'rockfire.save.v1';
+  const EGG_MINUTES = 8;               // passive warmth alone hatches the egg in 8 minutes
+  const TEEN_AT = 48, ADULT_AT = 144;  // care-hours: ~2 days and ~6 days with decent care
+  const NEGLECT_WARN = 24, NEGLECT_FADE = 48, NEGLECT_END = 72; // hours at zero fuel AND zero vibe
+  const DRAIN = { fuel: 8, vibe: 7, energy: 6 };   // per hour awake: ~12-16 hours from full to empty
+  const SLEEP = { energy: 20, fuel: 3, vibe: 2 };  // per hour asleep
+
+  const STAGES = {
+    egg:   { title: 'The Egg',     sub: 'A fire legend in the making' },
+    baby:  { title: 'Garage Band', sub: 'Tiny wings. Huge personality.' },
+    teen:  { title: 'Opening Act', sub: 'Rebel. Louder. Hotter.' },
+    adult: { title: 'Headliner',   sub: 'Born to roar. Built to rock.' },
+  };
+  const ORDER = ['egg', 'baby', 'teen', 'adult'];
+  const MOUTH = { baby: [74, 42], teen: [74, 30], adult: [76, 26], egg: [50, 50] };
+
+  const SKILLS = [
+    { id: 'headbang', name: 'Headbang', stage: 'baby', hint: 'Hatch him', pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Rock!!' },
+    { id: 'roar', name: 'Tiny Roar', stage: 'baby', hint: 'Pet him 10 times', prog: s => [s.c.pet, 10], pose: 'happy', anim: 'shake', fx: 'roar', line: 'rawr!' },
+    { id: 'sneeze', name: 'Spark Sneeze', stage: 'baby', hint: 'Feed him 3 ghost peppers', prog: s => [s.c.pepper, 3], pose: 'fire', anim: 'recoil', fx: 'sparks', line: 'ah… ah… CHOO!' },
+    { id: 'smoke', name: 'Smoke Rings', stage: 'teen', hint: 'Grow into an Opening Act', pose: 'idle', anim: '', fx: 'rings', line: 'Pretty cool, huh?' },
+    { id: 'airguitar', name: 'Air Guitar', stage: 'teen', hint: 'Jam 5 times', prog: s => [s.c.jam, 5], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Wheedly-wheedly-WAAAH!' },
+    { id: 'firebreath', name: 'Fire Breath', stage: 'teen', hint: 'Eat 10 ghost peppers', prog: s => [s.c.pepper, 10], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'FWOOOSH!' },
+    { id: 'glide', name: 'Glide', stage: 'teen', hint: 'Pet him 40 times', prog: s => [s.c.pet, 40], pose: 'happy', anim: 'float', fx: 'sparks', line: 'Look, no feet!' },
+    { id: 'solo', name: 'Flame Solo', stage: 'adult', hint: 'Jam 20 times', prog: s => [s.c.jam, 20], pose: 'happy', anim: 'headbang', fx: 'solo', line: 'Take it away!' },
+    { id: 'chord', name: 'Power Chord Blast', stage: 'adult', hint: 'Land a perfect 6/6 jam', prog: s => [s.best, 6], pose: 'happy', anim: 'shake', fx: 'wave', line: 'KERRRANG!' },
+    { id: 'dive', name: 'Stage Dive', stage: 'adult', hint: 'Grow into a Headliner', pose: 'happy', anim: 'dive', fx: 'sparks', line: 'Catch me!' },
+    { id: 'pyro', name: 'Pyro Show', stage: 'adult', hint: 'Unlock every other skill', pose: 'fire', anim: 'shake', fx: 'pyro', line: 'GOODNIGHT, WEST VIRGINIA!' },
+  ];
+
+  const $ = id => document.getElementById(id);
+  const now = () => Date.now();
+  const clamp = v => Math.max(0, Math.min(100, v));
+
+  // ---------- State ----------
+  function fresh(hall) {
+    const t = now();
+    return {
+      v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
+      stats: { fuel: 85, energy: 90, vibe: 85 }, asleep: false,
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, jam: 0, perform: 0 }, best: 0,
+      skills: [], unseen: [], neglectH: 0, over: false,
+      lastTick: t, savedAt: 0, hall: hall || [],
+    };
+  }
+  function migrate(s) {
+    const base = fresh(s.hall);
+    return Object.assign(base, s, { stats: Object.assign(base.stats, s.stats), c: Object.assign(base.c, s.c) });
+  }
+  let state;
+  try { const raw = localStorage.getItem(KEY); state = raw ? migrate(JSON.parse(raw)) : fresh(); } catch (e) { state = fresh(); }
+
+  // ---------- Cloud backup (private per viewer) ----------
+  let cloud = null, cloudBusy = false, cloudDirty = false, cloudTimer = null;
+  function saveLocal() {
+    state.savedAt = now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function save() { saveLocal(); cloudDirty = true; if (cloud) { clearTimeout(cloudTimer); cloudTimer = setTimeout(flushCloud, 3000); } }
+  async function flushCloud() {
+    if (!cloud || cloudBusy || !cloudDirty) return;
+    cloudBusy = true; cloudDirty = false;
+    try { await cloud.set(JSON.parse(JSON.stringify(state))); }
+    catch (e) { if (e && e.code === 'invalid_argument') cloud = null; else cloudDirty = true; }
+    cloudBusy = false;
+  }
+  async function initCloud() {
+    if (SPEED > 1 || !window.claude || !window.claude.use) return;
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const id = await user.id();
+      if (!id) return;
+      const ref = db.doc('data/users/' + id + '/rockfire');
+      const snap = await ref.get();
+      cloud = ref;
+      const remote = snap.exists ? snap.data() : null;
+      if (remote && remote.v === 1 && (remote.savedAt || 0) > (state.savedAt || 0)) {
+        state = migrate(remote);
+        saveLocal();
+        hatching = false;
+        closeSheets();
+        tick();
+        if (state.stage === 'egg' && state.heat >= 100) hatch();
+      } else if (state.savedAt) {
+        cloudDirty = true; flushCloud();
+      }
+    } catch (e) {}
+  }
+
+  // ---------- Simulation ----------
+  function simulate(t) {
+    let hours = (t - state.lastTick) / 3.6e6 * SPEED;
+    state.lastTick = t;
+    if (hours <= 0 || state.over) return;
+    if (state.stage === 'egg') { state.heat = Math.min(100, state.heat + hours * 6000 / EGG_MINUTES); return; }
+    while (hours > 0) {
+      const h = Math.min(hours, 1 / 12);
+      hours -= h;
+      step(h);
+      if (state.over) return;
+    }
+  }
+  function step(h) {
+    const s = state.stats;
+    if (state.asleep) {
+      s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h;
+      if (s.energy >= 100) { s.energy = 100; state.asleep = false; events.push('woke'); }
+    } else {
+      s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h; s.energy -= DRAIN.energy * h;
+      if (s.energy <= 0) { s.energy = 0; state.asleep = true; events.push('passedout'); }
+    }
+    s.fuel = clamp(s.fuel); s.vibe = clamp(s.vibe); s.energy = clamp(s.energy);
+    const care = (s.fuel + s.vibe + s.energy) / 300;
+    const rate = (s.fuel === 0 && s.vibe === 0) ? 0 : care > 0.4 ? 1 : care > 0.15 ? 0.6 : 0.25;
+    state.age += h * rate;
+    if (s.fuel === 0 && s.vibe === 0) {
+      state.neglectH += h;
+      if (state.neglectH >= NEGLECT_END) { state.over = true; events.push('over'); }
+    } else state.neglectH = 0;
+    if (state.stage === 'baby' && state.age >= TEEN_AT) { state.stage = 'teen'; events.push('grow'); }
+    if (state.stage === 'teen' && state.age >= ADULT_AT) { state.stage = 'adult'; events.push('grow'); }
+  }
+  const events = [];
+
+  function checkSkills(quiet) {
+    const si = ORDER.indexOf(state.stage);
+    for (const k of SKILLS) {
+      if (state.skills.includes(k.id) || ORDER.indexOf(k.stage) > si) continue;
+      let ok;
+      if (k.id === 'pyro') ok = SKILLS.every(o => o.id === 'pyro' || state.skills.includes(o.id));
+      else if (k.prog) { const [a, b] = k.prog(state); ok = a >= b; }
+      else ok = true;
+      if (ok) {
+        state.skills.push(k.id);
+        state.unseen.push(k.id);
+        if (!quiet) toast('New skill: ' + k.name + '!');
+      }
+    }
+  }
+
+  // ---------- Rendering ----------
+  const els = {
+    name: $('petName'), tag: $('stageTag'), age: $('ageLine'), banner: $('banner'), stage: $('stage'),
+    sprite: $('sprite'), fx: $('fx'), speech: $('speech'), meters: $('meters'), hint: $('eggHint'),
+    pedals: $('pedals'),
+  };
+  const METERS = [['fuel', 'Fuel'], ['energy', 'Energy'], ['vibe', 'Vibe']];
+  els.meters.innerHTML = METERS.map(([k, l]) =>
+    `<div class="meter" id="m-${k}"><div class="lab"><span>${l}</span><b></b></div><div class="segs">${'<i></i>'.repeat(10)}</div></div>`
+  ).join('');
+
+  let override = null; // { pose, until }
+  let currentSrc = '';
+  function pose() {
+    if (state.stage === 'egg') return state.heat >= 100 ? 'egg-hatch' : state.heat >= 50 ? 'egg-cracked' : 'egg-idle';
+    if (override && override.until > now()) return state.stage + '-' + override.pose;
+    override = null;
+    if (state.asleep) return state.stage + '-sleep';
+    const s = state.stats;
+    if (Math.min(s.fuel, s.vibe) < 25 || s.energy < 12) return state.stage + '-sad';
+    return state.stage + '-idle';
+  }
+  function setSprite() {
+    const src = 'sprites/' + pose() + '.webp';
+    if (src !== currentSrc) { currentSrc = src; els.sprite.src = src; }
+  }
+  function render() {
+    const s = state.stats, egg = state.stage === 'egg', st = STAGES[state.stage];
+    els.name.textContent = state.name;
+    els.tag.textContent = st.title;
+    if (egg) {
+      els.age.textContent = 'Warmth ' + Math.floor(state.heat) + '%';
+    } else {
+      const day = Math.floor((now() - state.hatchedAt) * SPEED / 864e5) + 1;
+      let next = '';
+      if (state.stage === 'baby') next = ' · Opening Act ' + Math.floor(state.age / TEEN_AT * 100) + '%';
+      else if (state.stage === 'teen') next = ' · Headliner ' + Math.floor((state.age - TEEN_AT) / (ADULT_AT - TEEN_AT) * 100) + '%';
+      else next = ' · ' + state.skills.length + '/' + SKILLS.length + ' skills';
+      els.age.textContent = 'Day ' + day + next;
+    }
+    for (const [k] of METERS) {
+      const m = $('m-' + k), v = egg ? 0 : Math.round(s[k]);
+      m.querySelector('b').textContent = egg ? '–' : v;
+      m.classList.toggle('low', !egg && v < 25);
+      const on = Math.ceil(v / 10);
+      m.querySelectorAll('i').forEach((seg, i) => seg.classList.toggle('on', i < on));
+    }
+    els.meters.hidden = egg;
+    els.hint.hidden = !egg;
+    els.pedals.hidden = egg;
+    els.stage.classList.toggle('night', state.asleep && !egg);
+    $('sleepLabel').textContent = state.asleep ? 'Wake' : 'Sleep';
+    $('ledFeed').className = 'led' + (s.fuel < 25 ? ' on' : '');
+    $('ledJam').className = 'led' + (s.vibe < 25 ? ' on' : '');
+    $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
+    $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
+    $('btnFeed').disabled = $('btnJam').disabled = state.asleep;
+    let banner = '';
+    if (!egg && state.neglectH >= NEGLECT_FADE) banner = state.name + ' is fading. Feed him and play with him now, or you could lose him.';
+    else if (!egg && state.neglectH >= NEGLECT_WARN) banner = state.name + ' is sick from hunger and boredom. A snack and a jam will fix it.';
+    els.banner.textContent = banner;
+    els.banner.hidden = !banner;
+    setSprite();
+  }
+
+  // ---------- Effects ----------
+  function animate(name) {
+    const img = els.sprite;
+    img.className = '';
+    void img.offsetWidth;
+    if (name) img.className = 'a-' + name;
+  }
+  els.sprite.addEventListener('animationend', () => { els.sprite.className = ''; });
+  function spawn(el, ms) { els.fx.appendChild(el); setTimeout(() => el.remove(), ms); }
+  function embers(n, x, y, spreadX, spreadY, t = 1.2) {
+    for (let i = 0; i < n; i++) {
+      const e = document.createElement('span');
+      e.className = 'ember';
+      e.style.left = x + '%'; e.style.top = y + '%';
+      e.style.setProperty('--dx', (Math.random() * spreadX - spreadX * .25) + 'px');
+      e.style.setProperty('--dy', (Math.random() * spreadY - spreadY * .7) + 'px');
+      e.style.setProperty('--t', (t * (.6 + Math.random() * .6)) + 's');
+      spawn(e, t * 1300);
+    }
+  }
+  function glyphs(chars, n, color, x = 50, y = 45, cls = '') {
+    for (let i = 0; i < n; i++) {
+      const g = document.createElement('span');
+      g.className = 'glyph ' + cls;
+      g.textContent = chars[i % chars.length];
+      g.style.color = color;
+      g.style.left = (x + Math.random() * 30 - 15) + '%'; g.style.top = (y + Math.random() * 12) + '%';
+      g.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
+      g.style.setProperty('--dy', (-80 - Math.random() * 80) + 'px');
+      g.style.animationDelay = (i * .12) + 's';
+      spawn(g, 2200 + i * 120);
+    }
+  }
+  function rings(n) {
+    const [x, y] = MOUTH[state.stage];
+    for (let i = 0; i < n; i++) {
+      const r = document.createElement('span');
+      r.className = 'ring';
+      r.style.left = x + '%'; r.style.top = y + '%';
+      r.style.setProperty('--dx', (20 + i * 12) + 'px');
+      r.style.animationDelay = (i * .45) + 's';
+      spawn(r, 2400 + i * 450);
+    }
+  }
+  function flash() { const f = document.createElement('div'); f.className = 'flash'; spawn(f, 800); }
+  function wave() { const w = document.createElement('div'); w.className = 'wave'; spawn(w, 1000); }
+  function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+  function fx(kind) {
+    const [x, y] = MOUTH[state.stage];
+    if (kind === 'notes') glyphs(['♪', '♫', '♬'], 6, 'var(--gold)');
+    if (kind === 'roar') { glyphs(['!'], 3, 'var(--crimson)', 60, 30); buzz(120); }
+    if (kind === 'sparks') embers(16, x, y, 140, 120, 1);
+    if (kind === 'flames') { embers(40, x, y, 260, 140, 1.3); flash(); buzz([60, 40, 120]); }
+    if (kind === 'rings') rings(4);
+    if (kind === 'solo') { glyphs(['♪', '♫', '♬'], 8, 'var(--gold)'); embers(30, 50, 55, 240, 260, 1.4); }
+    if (kind === 'wave') { wave(); flash(); buzz(200); }
+    if (kind === 'pyro') {
+      flash(); wave(); buzz([80, 60, 80, 60, 200]);
+      for (let i = 0; i < 6; i++) setTimeout(() => embers(18, 10 + i * 16, 92, 60, 520, 1.6), i * 180);
+      embers(40, x, y, 280, 160, 1.4);
+    }
+    if (kind === 'hearts') glyphs(['♥'], 3, 'var(--crimson)', 50, 35);
+  }
+
+  let speechTimer = null;
+  function say(text, ms = 2800) {
+    els.speech.textContent = text;
+    els.speech.classList.add('show');
+    clearTimeout(speechTimer);
+    speechTimer = setTimeout(() => els.speech.classList.remove('show'), ms);
+  }
+  let toastTimer = null;
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+  function show(p, ms) { override = { pose: p, until: now() + ms }; setSprite(); }
+
+  // ---------- Sheets ----------
+  function openSheet(id) { closeSheets(); $(id).hidden = false; }
+  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); }
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+  document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => {
+    if (e.target === s && s.id !== 'nameSheet' && s.id !== 'endSheet') closeSheets();
+  }));
+
+  // ---------- Egg + hatching ----------
+  let lastEggTap = 0, hatching = false;
+  function tapEgg() {
+    const t = now();
+    if (t - lastEggTap < 120) return;
+    lastEggTap = t;
+    state.heat = Math.min(100, state.heat + 3);
+    animate('wobble');
+    embers(4, 50, 60, 120, 120, .9);
+    if (state.heat >= 100) hatch();
+    else if (state.heat >= 50 && state.heat < 53) say('Something is moving in there…');
+    render();
+    saveLocal();
+  }
+  function hatch() {
+    if (hatching) return;
+    hatching = true;
+    render();
+    animate('hatch'); flash(); embers(30, 50, 55, 240, 220, 1.3); buzz([60, 40, 160]);
+    say('!!!', 1500);
+    setTimeout(() => { openSheet('nameSheet'); const i = $('nameInput'); i.value = state.name || 'Rockfire'; }, 1600);
+  }
+  $('nameGo').addEventListener('click', () => {
+    const n = $('nameInput').value.trim().slice(0, 16) || 'Rockfire';
+    state.name = n;
+    state.stage = 'baby';
+    state.hatchedAt = now();
+    state.lastTick = now();
+    hatching = false;
+    closeSheets();
+    checkSkills(true);
+    render();
+    animate('bounce'); fx('sparks');
+    say('Hey! I\'m ' + n + '. Got any snacks?', 3500);
+    save();
+  });
+
+  // ---------- Care actions ----------
+  let lastPet = 0;
+  $('petBtn').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (state.over) return;
+    if (state.stage === 'egg') return tapEgg();
+    if (hatching) return;
+    const t = now();
+    if (state.asleep) { if (t - lastPet > 1500) { glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
+    state.stats.vibe = clamp(state.stats.vibe + (t - lastPet > 2500 ? 4 : 1));
+    lastPet = t;
+    state.c.pet++;
+    show('happy', 1300); fx('hearts');
+    if (Math.random() < .25) say(pick(PET_LINES[state.stage]), 1800);
+    checkSkills(); render(); save();
+  });
+  const PET_LINES = {
+    baby: ['hehe!', 'Again!', 'That tickles!', 'Purrrr… wait, dragons don\'t purr.'],
+    teen: ['Ugh, fine. That\'s nice.', 'Don\'t mess up the hair.', 'OK that\'s actually rad.'],
+    adult: ['Respect.', 'Thanks, boss.', 'You\'re my number one fan.'],
+  };
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+  $('btnFeed').addEventListener('click', () => { if (!state.asleep) openSheet('feedSheet'); });
+  const FOODS = {
+    pepper: { fuel: 20, vibe: 6, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
+    coal: { fuel: 35, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
+    pizza: { fuel: 25, vibe: 12, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
+  };
+  document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', () => {
+    const f = FOODS[b.dataset.food];
+    closeSheets();
+    if (state.stats.fuel >= 95) { say('I\'m stuffed. Maybe later?'); return; }
+    state.stats.fuel = clamp(state.stats.fuel + f.fuel);
+    state.stats.vibe = clamp(state.stats.vibe + f.vibe);
+    state.c[b.dataset.food]++;
+    show(f.pose, 1800); animate('bounce');
+    fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
+    say(pick(f.line));
+    checkSkills(); render(); save();
+  }));
+
+  $('btnSleep').addEventListener('click', () => {
+    if (state.asleep) {
+      state.asleep = false;
+      say(state.stats.energy < 40 ? 'Huh? I\'m up… barely.' : 'Rested and ready to rock!');
+    } else {
+      state.asleep = true;
+      glyphs(['z', 'Z', 'z'], 3, '#c9d2ff', 55, 25, 'zzz');
+      say('Night night…', 1600);
+    }
+    override = null; render(); save();
+  });
+
+  // ---------- Jam mini-game ----------
+  let jam = null, raf = 0;
+  $('btnJam').addEventListener('click', () => {
+    if (state.asleep) return;
+    if (state.stats.energy < 10) { say('Too tired to jam… need sleep.'); return; }
+    openSheet('jamSheet');
+    jam = { round: 0, hits: 0, perfect: 0, pos: 0, dir: 1, speed: .8, w: .26, l: 0, done: false, last: performance.now(), marks: [] };
+    newZone();
+    $('call').textContent = 'Ready…';
+    $('strum').textContent = 'Strum';
+    drawDots();
+    raf = requestAnimationFrame(jamLoop);
+  });
+  function newZone() { jam.l = .08 + Math.random() * (.84 - jam.w); const z = $('zone'); z.style.left = jam.l * 100 + '%'; z.style.width = jam.w * 100 + '%'; }
+  function drawDots() { $('dots').innerHTML = Array.from({ length: 6 }, (_, i) => `<i class="${jam.marks[i] || ''}"></i>`).join(''); }
+  function jamLoop(t) {
+    if (!jam || jam.done) return;
+    const dt = Math.min(.05, (t - jam.last) / 1000); jam.last = t;
+    jam.pos += jam.dir * jam.speed * dt;
+    if (jam.pos > 1) { jam.pos = 1; jam.dir = -1; }
+    if (jam.pos < 0) { jam.pos = 0; jam.dir = 1; }
+    $('pick').style.left = jam.pos * 100 + '%';
+    raf = requestAnimationFrame(jamLoop);
+  }
+  function stopJam() { cancelAnimationFrame(raf); jam = null; }
+  $('strum').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (!jam) return;
+    if (jam.done) { closeSheets(); return; }
+    const c = jam.l + jam.w / 2, d = Math.abs(jam.pos - c);
+    let mark = 'miss', call = pick(['Clunk.', 'Whoops!', 'Off-beat!']);
+    if (d <= jam.w * .16) { mark = 'perfect'; jam.perfect++; jam.hits++; call = pick(['PERFECT!', 'Face-melter!', 'SHRED!']); buzz(40); }
+    else if (d <= jam.w / 2) { mark = 'hit'; jam.hits++; call = pick(['Nice!', 'Rockin\'!', 'Yeah!']); buzz(20); }
+    jam.marks.push(mark); jam.round++;
+    $('call').textContent = call;
+    drawDots();
+    if (jam.round >= 6) return finishJam();
+    jam.speed *= 1.14; jam.w = Math.max(.1, jam.w * .88);
+    newZone();
+  });
+  function finishJam() {
+    jam.done = true;
+    const h = jam.hits, p = jam.perfect;
+    state.stats.vibe = clamp(state.stats.vibe + 6 + h * 5 + p * 3);
+    state.stats.energy = clamp(state.stats.energy - 8);
+    state.c.jam++;
+    state.best = Math.max(state.best, h);
+    $('call').textContent = h + '/6 — ' + (h === 6 ? 'Legendary!' : h >= 4 ? 'The crowd went wild!' : h >= 2 ? 'Solid set.' : 'Rough night. Try again!');
+    $('strum').textContent = 'Done';
+    show(h >= 3 ? 'happy' : 'idle', 2200); animate(h >= 3 ? 'headbang' : '');
+    if (h >= 3) fx('notes');
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Setlist ----------
+  $('btnSet').addEventListener('click', () => { drawSetlist(); openSheet('setSheet'); state.unseen = []; render(); save(); });
+  function drawSetlist() {
+    const si = ORDER.indexOf(state.stage);
+    let html = '';
+    for (const stg of ['baby', 'teen', 'adult']) {
+      html += `<h3>${STAGES[stg].title}</h3>`;
+      for (const k of SKILLS.filter(s => s.stage === stg)) {
+        const has = state.skills.includes(k.id);
+        let hint = k.hint;
+        if (!has && ORDER.indexOf(stg) > si) hint = 'Unlocks as ' + STAGES[stg].title;
+        else if (!has && k.prog) { const [a, b] = k.prog(state); hint += ` (${Math.min(a, b)}/${b})`; }
+        else if (has) hint = 'Tap Play to perform';
+        html += `<div class="skill${has ? '' : ' locked'}${state.unseen.includes(k.id) ? ' new' : ''}"><span class="n">${k.name}</span><span class="h">${hint}</span>${has ? `<button data-skill="${k.id}">Play</button>` : ''}</div>`;
+      }
+    }
+    $('skillList').innerHTML = html;
+    $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
+    const c = state.c;
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Jams ${c.jam} · Best jam ${state.best}/6 · Pets ${c.pet}` +
+      (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
+    armReset(false);
+  }
+  let lastPerform = {};
+  function perform(id) {
+    const k = SKILLS.find(s => s.id === id);
+    closeSheets();
+    if (state.asleep) { say('He\'s asleep. Wake him first.'); return; }
+    show(k.pose, k.anim === 'dive' || k.anim === 'float' ? 2500 : 2200);
+    animate(k.anim); fx(k.fx);
+    say(k.line, 2400);
+    if (!lastPerform[id] || now() - lastPerform[id] > 30000) {
+      state.stats.vibe = clamp(state.stats.vibe + 5);
+      state.stats.energy = clamp(state.stats.energy - 3);
+    }
+    lastPerform[id] = now();
+    state.c.perform++;
+    render(); save();
+  }
+  let resetArmed = false;
+  function armReset(on) { resetArmed = on; $('resetBtn').textContent = on ? 'Tap again to say goodbye to ' + state.name : 'Start over with a new egg'; }
+  $('resetBtn').addEventListener('click', () => {
+    if (!resetArmed) return armReset(true);
+    newEgg(false);
+  });
+  function newEgg(fromEnd) {
+    const hall = state.hall.slice(-9);
+    if (state.stage !== 'egg') hall.push({ name: state.name, stage: state.stage, skills: state.skills.length, end: fromEnd ? 'faded' : 'retired' });
+    state = fresh(hall);
+    hatching = false;
+    closeSheets(); override = null; render(); save();
+    say('A new egg… it\'s warm.', 2500);
+  }
+
+  function showEnd() {
+    $('endTitle').textContent = state.name + '\'s flame went out';
+    $('endText').textContent = 'He waited three days for a snack and a song. Every legend deserves an encore, and a new egg is already warm.';
+    openSheet('endSheet');
+  }
+  $('endGo').addEventListener('click', () => newEgg(true));
+
+  // ---------- Loop ----------
+  let chatterAt = now() + 20000;
+  function tick() {
+    const wasStage = state.stage;
+    simulate(now());
+    while (events.length) {
+      const ev = events.shift();
+      if (ev === 'woke') say('Rested and ready to rock!');
+      if (ev === 'passedout') say('Can\'t… keep… eyes… open… zzz');
+      if (ev === 'over') showEnd();
+    }
+    if (state.stage !== wasStage && wasStage !== 'egg') {
+      toast('Level up: ' + STAGES[state.stage].title + '!');
+      animate('bounce'); flash(); embers(30, 50, 55, 260, 240, 1.3);
+      say(STAGES[state.stage].sub, 3200);
+    }
+    if (state.stage !== 'egg') checkSkills();
+    if (state.stage === 'egg' && state.heat >= 100 && !hatching) hatch();
+    if (state.over && $('endSheet').hidden) showEnd();
+    render();
+    if (state.asleep && Math.random() < .12) glyphs(['z', 'Z'], 1, '#c9d2ff', 58, 22, 'zzz');
+    if (now() > chatterAt && !state.asleep && state.stage !== 'egg') {
+      chatterAt = now() + 25000 + Math.random() * 20000;
+      const s = state.stats;
+      if (s.fuel < 25) say(pick(['I\'m starving…', 'Got a pepper? Anything?', 'Tummy\'s rumbling like a bass amp.']));
+      else if (s.vibe < 25) say(pick(['Bored. Play me something.', 'Let\'s jam!', 'Is the show cancelled?']));
+      else if (s.energy < 20) say(pick(['*yawn*', 'Need a nap…']));
+      else say(pick(IDLE_LINES[state.stage]));
+    }
+  }
+  const IDLE_LINES = {
+    baby: ['Is it showtime yet?', 'I can almost breathe fire!', 'Rawr! (that was scary, right?)', 'Can I have a guitar?'],
+    teen: ['Turn it up!', 'I\'m basically famous.', 'Whatever. Wanna jam?', 'Smells like smoke in here. Nice.'],
+    adult: ['Born to roar.', 'Sound check, one two…', 'Rock never dies.', 'Who wants an encore?'],
+  };
+
+  // Catch up on time away before first paint.
+  const away = (now() - state.lastTick) * SPEED;
+  tick();
+  if (state.stage !== 'egg' && !state.over && away > 2 * 3.6e6) say('You\'re back! I missed you.', 3000);
+  else if (state.stage === 'egg' && state.heat < 3) say('An egg! Tap it to keep it warm.', 3500);
+  checkSkills(true);
+  render();
+  saveLocal();
+  setInterval(tick, 1000);
+  setInterval(saveLocal, 15000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { saveLocal(); flushCloud(); }
+    else tick();
+  });
+
+  // Preload every pose so swaps are instant.
+  ['egg-idle', 'egg-cracked', 'egg-hatch', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire'].map(p => s + '-' + p))]
+    .forEach(n => { const i = new Image(); i.src = 'sprites/' + n + '.webp'; });
+
+  initCloud();
+})();
+</script>
