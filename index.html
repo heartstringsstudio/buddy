@@ -105,7 +105,7 @@
   }
   .stage.night::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse at 50% 40%, rgba(20, 26, 70, .25), rgba(8, 10, 30, .62));
+    background: radial-gradient(ellipse at 50% 55%, rgba(20, 26, 70, .42), rgba(8, 10, 30, .75));
     transition: opacity .6s;
   }
   .stage.fetching .floor { height: 46%; }
@@ -179,6 +179,8 @@
   .bub.gone { transition: opacity .5s, transform .5s; opacity: 0; transform: scale(1.4); }
   .drop { position: absolute; top: -20px; width: 6px; height: 14px; border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%; background: rgba(127, 211, 255, .85); animation: fall var(--t, .9s) ease-in forwards; }
   @keyframes fall { to { transform: translateY(var(--dy, 600px)); opacity: .2; } }
+  .bed { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
+  .fig { transition: translate .5s ease, scale .5s ease; }
   .tub { position: absolute; left: 4%; right: 4%; bottom: 1%; z-index: 3; pointer-events: none; }
   .stage.bathing, .stage.fetching { touch-action: none; }
   @keyframes breathe { 50% { transform: scale(1.012, 1.028); } }
@@ -429,6 +431,7 @@
   <main class="stage" id="stage">
     <div class="floor"></div>
     <button class="petbtn" id="petBtn" aria-label="Tap to pet">
+      <img class="bed" id="bed" alt="" hidden>
       <div class="fig" id="fig">
         <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
         <div class="dirt" id="dirt"></div>
@@ -771,6 +774,9 @@
     fEl.classList.toggle('urgent', !!(fc && fc.urgent));
     els.pedals.hidden = egg;
     els.stage.classList.toggle('night', state.asleep && !egg);
+    const inBed = state.asleep && !egg && !override;
+    $('bed').hidden = !inBed;
+    if (inBed) placeBed(); else if (els.fig.style.translate) { els.fig.style.translate = ''; els.fig.style.scale = ''; }
     const scene = SCENE[state.stage];
     if (els.stage.dataset.scene !== scene) {
       els.stage.classList.remove('scene-garage', 'scene-club', 'scene-arena');
@@ -1465,6 +1471,23 @@
     checkSkills(); render(); save();
   }
 
+  // ---------- Bed ----------
+  const BED_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 110"><rect x="6" y="40" width="188" height="66" rx="8" fill="#1c1917" stroke="#0b0908" stroke-width="4"/><rect x="16" y="54" width="168" height="42" rx="4" fill="#2e2724"/><path d="M16 61h168M16 68h168M16 75h168M16 82h168M16 89h168" stroke="#3a322e" stroke-width="2"/><rect x="10" y="45" width="180" height="3" fill="#f4b942"/><path d="M104 60 94 76h8l-5 13 13-18h-8z" fill="#f4b942"/><rect x="10" y="22" width="180" height="22" rx="10" fill="#efe6d6" stroke="#3a2a22" stroke-width="3"/><ellipse cx="38" cy="24" rx="26" ry="11" fill="#fff" stroke="#3a2a22" stroke-width="3"/><path d="M74 26h116v20c-10 8-19-6-29 2s-19-6-29 2-19-6-29 2-19-6-29 2z" fill="#c8232c" stroke="#3a2a22" stroke-width="3"/><path d="M132 30l-6 9h5l-3 7 8-10h-5z" fill="#f4b942"/></svg>');
+  // How high the mattress top sits, as a fraction of the bed's height from the bottom.
+  const BED_TOP = { art: .45, svg: .5 };
+  function placeBed() {
+    const bedEl = $('bed'), art = !!HAVE.bed, src = art ? 'sprites/bed.webp' : BED_SVG;
+    if (bedEl.dataset.src !== src) { bedEl.src = src; bedEl.dataset.src = src; }
+    const b = $('petBtn'), W = b.clientWidth, H = b.clientHeight, img = els.sprite;
+    if (!img.naturalWidth || !W) return;
+    const rw = img.naturalWidth * Math.min(W / img.naturalWidth, H / img.naturalHeight);
+    const ar = art ? (bedEl.naturalHeight / bedEl.naturalWidth || .6) : 110 / 200;
+    const bw = Math.min(W * .96, rw * .82), lift = bw * ar * (art ? BED_TOP.art : BED_TOP.svg);
+    bedEl.style.width = bw + 'px';
+    els.fig.style.translate = `0 ${-lift}px`;
+    els.fig.style.scale = '.85';
+  }
+
   // ---------- Bath ----------
   const TUB_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 104"><g fill="#fff" stroke="#9cc9dc" stroke-width="2"><circle cx="30" cy="30" r="14"/><circle cx="52" cy="22" r="17"/><circle cx="78" cy="28" r="13"/><circle cx="104" cy="20" r="18"/><circle cx="130" cy="27" r="14"/><circle cx="154" cy="21" r="16"/><circle cx="174" cy="30" r="12"/></g><rect x="4" y="34" width="192" height="12" rx="6" fill="#fbf8f2" stroke="#3a2a22" stroke-width="4"/><path d="M12 46h176c0 28-22 44-52 44H64C34 90 12 74 12 46z" fill="#f2efe9" stroke="#3a2a22" stroke-width="4"/><path d="M30 54c4 16 16 26 36 28" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/><g fill="#f4b942" stroke="#3a2a22" stroke-width="3"><path d="M44 86l-8 14h16z"/><path d="M156 86l-8 14h16z"/></g></svg>');
   function drawBathBar() { $('bathLeft').textContent = 'Scrub! ' + Math.floor(state.stats.clean) + '%'; }
@@ -1708,7 +1731,7 @@
   });
 
   // Preload every pose so swaps are instant.
-  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'food-drink', 'bg-garage', 'bg-club', 'bg-arena', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch', 'bath'].map(p => s + '-' + p))]
+  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'food-drink', 'bg-garage', 'bg-club', 'bg-arena', 'bed', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch', 'bath'].map(p => s + '-' + p))]
     .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
 
   initCloud();
