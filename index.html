@@ -176,6 +176,8 @@
     display: grid; place-items: center;
     background: rgba(20, 16, 16, .55); border: 1px solid var(--edge); color: var(--gold);
   }
+  .soundbtn.left { right: auto; left: 10px; }
+  .fetching .soundbtn.left { display: none; }
   .soundbtn .cross { display: none; }
   .soundbtn.off { color: var(--muted); }
   .soundbtn.off .waves { display: none; }
@@ -246,6 +248,17 @@
   .meter.low .segs i.on { background: var(--crimson); box-shadow: 0 0 6px rgba(200,35,44,.7); animation: blink 1.1s steps(2) infinite; }
   .meter.low .lab { color: #ff8a8f; }
   @keyframes blink { 50% { opacity: .45; } }
+  .forecast { margin: 0; text-align: center; font-size: 15px; letter-spacing: .03em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .forecast.urgent { color: #ff8a8f; font-weight: 700; }
+  .bs { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--edge); }
+  .bs h3 { margin: 0; font-weight: 700; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .bs p { font-size: 17px; }
+  .bs .small { font-size: 15px; }
+  .bs ul { margin: 0; padding-left: 18px; color: var(--chrome); font-size: 17px; line-height: 1.45; }
+  .bs .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill { border: 1px solid var(--edge); background: var(--tolex); border-radius: 999px; padding: 8px 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 15px; }
+  .pill[aria-pressed="true"] { background: var(--gold); color: var(--soot); border-color: var(--gold); }
+  .pill.warn { background: var(--crimson); color: #fff; border-color: var(--crimson); }
   .hint { text-align: center; font-family: var(--scrawl); color: var(--gold); font-size: 18px; margin: 2px 0; }
 
   /* ---------- Stompbox pedals ---------- */
@@ -390,6 +403,9 @@
     <div class="fetchbar" id="fetchBar" hidden><span id="fetchLeft">5 throws left</span><button id="fetchDone">Done</button></div>
     <div class="fx" id="fx"></div>
     <div class="speech" id="speech" aria-live="polite"></div>
+    <button class="soundbtn left" id="menuBtn" aria-label="Backstage menu">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
     <button class="soundbtn" id="soundBtn" aria-label="Mute sound">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="cross" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
@@ -397,6 +413,7 @@
 
   <section class="meters" id="meters" aria-label="How he's doing"></section>
   <p class="hint" id="eggHint" hidden>Tap the egg to keep it warm</p>
+  <p class="forecast" id="forecast" hidden></p>
 
   <nav class="pedals" id="pedals">
     <button class="pedal p-feed" id="btnFeed"><span class="pl">Feed</span><span class="sw"></span><span class="led" id="ledFeed"></span></button>
@@ -414,6 +431,7 @@
       <button class="food" data-food="pepper"><img data-food-img="pepper" alt=""><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+20 FUEL<br>+6 VIBE</em></button>
       <button class="food" data-food="coal"><img data-food-img="coal" alt=""><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+35 FUEL</em></button>
       <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+25 FUEL<br>+12 VIBE</em></button>
+      <button class="food" data-food="drink"><img data-food-img="drink" alt=""><strong>Amp Juice</strong><span>Energy drink. Two per six hours, tops.</span><em>+30 ENERGY<br>+4 VIBE</em></button>
     </div>
   </div>
 </div>
@@ -434,7 +452,6 @@
     <div class="row"><h2>Setlist</h2><button class="x" data-close>Close</button></div>
     <div id="skillList"></div>
     <div class="stats" id="statsLine"></div>
-    <button class="danger" id="resetBtn">Start over with a new egg</button>
   </div>
 </div>
 
@@ -444,6 +461,36 @@
     <p>Small dragon. Big attitude. What's his stage name?</p>
     <input type="text" id="nameInput" maxlength="16" value="Rockfire" autocomplete="off" aria-label="Dragon name">
     <button class="big" id="nameGo">Let's rock</button>
+  </div>
+</div>
+
+<div class="sheet" id="backSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Backstage</h2><button class="x" data-close>Close</button></div>
+    <section class="bs">
+      <h3>Next check-in</h3>
+      <p id="bsForecast"></p>
+      <p class="small">This page can't send alerts to your phone, so this is when he'll next need you.</p>
+    </section>
+    <section class="bs">
+      <h3>Sound</h3>
+      <div class="btns"><button class="pill" id="bsSoundOn">On</button><button class="pill" id="bsSoundOff">Off</button></div>
+    </section>
+    <section class="bs">
+      <h3>Hall of Fame</h3>
+      <ul id="bsHall"></ul>
+      <p id="bsHallEmpty">Empty so far. Every dragon you raise ends up here.</p>
+    </section>
+    <section class="bs">
+      <h3>New game</h3>
+      <p id="bsNewText"></p>
+      <div class="btns" id="bsNewStart"><button class="pill" id="newGameBtn">Start a new game</button></div>
+      <div class="btns" id="bsNewConfirm" hidden>
+        <p style="flex-basis:100%">Are you sure? This can't be undone.</p>
+        <button class="pill warn" id="newGameYes">Yes, new egg</button>
+        <button class="pill" id="newGameNo">Keep him</button>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -504,7 +551,7 @@
     return {
       v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
       stats: { fuel: 85, energy: 90, vibe: 85 }, asleep: false,
-      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0,
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0, drinks: [],
       skills: [], unseen: [], neglectH: 0, over: false,
       lastTick: t, savedAt: 0, hall: hall || [],
     };
@@ -663,6 +710,10 @@
     }
     els.meters.hidden = egg;
     els.hint.hidden = !egg;
+    const fc = egg ? null : forecastText(), fEl = $('forecast');
+    fEl.hidden = !fc;
+    if (fc && fEl.textContent !== fc.text) fEl.textContent = fc.text;
+    fEl.classList.toggle('urgent', !!(fc && fc.urgent));
     els.pedals.hidden = egg;
     els.stage.classList.toggle('night', state.asleep && !egg);
     const scene = SCENE[state.stage];
@@ -828,6 +879,9 @@
       lullaby: () => [659, 523, 440, 392].forEach((f, i) => tone({ t: i * .32, f, dur: .5, vol: .1 })),
       yawn: () => tone({ f: 260, f2: 480, dur: .7, vol: .12, type: 'triangle', vib: 5, attack: .2 }),
       snore: () => noise({ dur: .9, vol: .07, type: 'lowpass', f: 240, attack: .45 }),
+      pop: () => { noise({ dur: .05, vol: .3, type: 'highpass', f: 2000 }); noise({ t: .04, dur: .5, vol: .12, type: 'highpass', f: 5000, attack: .02 }); },
+      gulp: () => tone({ f: 180, f2: 90, dur: .14, type: 'sine', vol: .3, attack: .01 }),
+      zap: () => { [440, 660, 880, 1320].forEach((f, i) => tone({ t: i * .06, f, dur: .15, type: 'square', vol: .06, cut: 3000 })); fx.cheer(false); },
       toss: () => noise({ dur: .35, vol: .22, f: 700, f2: 2600, q: 1.2, attack: .03 }),
       thud: () => { tone({ f: 150, f2: 60, dur: .16, vol: .35, type: 'triangle' }); noise({ dur: .1, vol: .15, type: 'lowpass', f: 600 }); },
       patter: (ms, stage) => {
@@ -1019,7 +1073,8 @@
     coal: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="18,62 27,36 50,24 75,31 87,53 78,77 52,85 27,79" fill="#26211f" stroke="#0d0b0a" stroke-width="3"/><polygon points="27,36 50,24 52,46 33,55" fill="#3b3431"/><polygon points="50,24 75,31 70,50 52,46" fill="#312a27"/><polyline points="40,43 50,54 46,64 58,72" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"/><polyline points="64,40 67,52 76,58" fill="none" stroke="#f4b942" stroke-width="2.5" stroke-linecap="round"/><circle cx="36" cy="40" r="2" fill="#fff" opacity=".35"/></svg>'),
     pizza: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M14 24Q50 8 86 24L50 94z" fill="#f6c34a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><path d="M11 24Q50 2 89 24l-4 9Q50 14 15 33z" fill="#d99a4a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><circle cx="39" cy="42" r="7" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="61" cy="44" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="50" cy="64" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><path d="M30 52q2 8 0 12M66 58q1 6-1 9" fill="none" stroke="#f6c34a" stroke-width="4" stroke-linecap="round"/></svg>'),
   };
-  const CRUMB = { pepper: ['#d7261e', '#ff7a1a'], coal: ['#26211f', '#3b3431', '#ff7a1a'], pizza: ['#f6c34a', '#d99a4a', '#b3261e'] };
+  FOOD_SVG.drink = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="30" y="16" width="40" height="70" rx="7" fill="#1d1a22" stroke="#0b090e" stroke-width="3"/><rect x="33" y="12" width="34" height="8" rx="3" fill="#b9b3ad" stroke="#6e6862" stroke-width="2"/><rect x="30" y="80" width="40" height="7" rx="3" fill="#b9b3ad" stroke="#6e6862" stroke-width="2"/><path d="M55 26 40 52h11l-6 22 17-30h-11z" fill="#9dff3a" stroke="#0b090e" stroke-width="2" stroke-linejoin="round"/><path d="M35 22v54" stroke="#fff" stroke-width="3" opacity=".25" stroke-linecap="round"/></svg>');
+  const CRUMB = { pepper: ['#d7261e', '#ff7a1a'], coal: ['#26211f', '#3b3431', '#ff7a1a'], pizza: ['#f6c34a', '#d99a4a', '#b3261e'], drink: ['#9dff3a', '#d9ffe0', '#7fd3ff'] };
   const foodSrc = k => HAVE['food-' + k] ? 'sprites/food-' + k + '.webp' : FOOD_SVG[k];
   function drawFoodMenu() { document.querySelectorAll('[data-food-img]').forEach(i => { i.src = foodSrc(i.dataset.foodImg); }); }
   // Where his mouth is, as a fraction of each stage's standing pose.
@@ -1057,12 +1112,13 @@
       frames.push({ transform: `translate(${sx + (ex - sx) * t}px, ${sy + (ey - sy) * t - lift}px) rotate(${t * 360}deg) scale(${1 - t * .15})` });
     }
     sfx('toss');
+    if (kind === 'drink') setTimeout(() => sfx('pop'), 500);
     await el.animate(frames, { duration: 650, easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
     // Three bites.
     for (const sc of [.65, .35, 0]) {
       el.getAnimations().forEach(a => a.cancel());
       el.style.transform = `translate(${ex}px, ${ey}px) scale(${Math.max(sc, .01) * .85}) rotate(${sc * 40 - 20}deg)`;
-      sfx('chomp'); animate('shake');
+      sfx(kind === 'drink' ? 'gulp' : 'chomp'); if (kind !== 'drink') animate('shake');
       crumbs(kind, mx, my);
       if (kind === 'pepper') embers(5, mx / sr.width * 100, my / sr.height * 100, 60, 60, .7);
       await wait(260);
@@ -1073,23 +1129,33 @@
     pepper: { fuel: 20, vibe: 6, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
     coal: { fuel: 35, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
     pizza: { fuel: 25, vibe: 12, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
+    drink: { fuel: 0, vibe: 4, energy: 30, pose: 'happy', fx: 'sparks', line: ['WIDE AWAKE!', 'Let\'s ROCK!', 'I can hear colors!'] },
   };
   document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', async () => {
     const f = FOODS[b.dataset.food];
     closeSheets();
     if (feeding) return;
-    if (state.stats.fuel >= 95) { say('I\'m stuffed. Maybe later?'); return; }
+    const kind = b.dataset.food;
+    if (kind === 'drink') {
+      // Two cans per six hours, so sleep still matters.
+      state.drinks = (state.drinks || []).filter(t => (now() - t) * SPEED < 6 * 3.6e6);
+      if (state.drinks.length >= 2) { say('I\'m buzzing. I need actual sleep.'); return; }
+      if (state.stats.energy >= 95) { say('Already fully charged!'); return; }
+      state.drinks.push(now());
+    } else if (state.stats.fuel >= 95) { say('I\'m stuffed. Maybe later?'); return; }
     feeding = true; render();
     override = { pose: 'idle', until: Infinity }; setSprite();
-    say(pick(['Ooh, snack!', 'Gimme!', 'Is that for me?']), 1200);
+    say(kind === 'drink' ? pick(['Is that Amp Juice?!', 'Ooh, fizzy!']) : pick(['Ooh, snack!', 'Gimme!', 'Is that for me?']), 1200);
     await serveFood(b.dataset.food);
     feeding = false; override = null;
     state.stats.fuel = clamp(state.stats.fuel + f.fuel);
     state.stats.vibe = clamp(state.stats.vibe + f.vibe);
-    state.c[b.dataset.food]++;
+    state.stats.energy = clamp(state.stats.energy + (f.energy || 0));
+    state.c[kind] = (state.c[kind] || 0) + 1;
     show(f.pose, 1800); animate('bounce');
     fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
-    if (b.dataset.food === 'pepper') { sfx('sizzle'); setTimeout(() => sfx('fire', false), 350); }
+    if (kind === 'pepper') { sfx('sizzle'); setTimeout(() => sfx('fire', false), 350); }
+    else if (kind === 'drink') { sfx('zap'); animate('shake'); }
     else sfx('chirp', state.stage);
     say(pick(f.line));
     checkSkills(); render(); save();
@@ -1338,9 +1404,8 @@
     $('skillList').innerHTML = html;
     $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
     const c = state.c;
-    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Air catches ${c.catch} · Pets ${c.pet}` +
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
-    armReset(false);
   }
   const SKILL_SFX = { aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
   let lastPerform = {};
@@ -1360,12 +1425,65 @@
     state.c.perform++;
     render(); save();
   }
-  let resetArmed = false;
-  function armReset(on) { resetArmed = on; $('resetBtn').textContent = on ? 'Tap again to say goodbye to ' + state.name : 'Start over with a new egg'; }
-  $('resetBtn').addEventListener('click', () => {
-    if (!resetArmed) return armReset(true);
-    newEgg(false);
-  });
+  // ---------- Backstage: check-in forecast, sound, hall of fame, new game ----------
+  function forecast() {
+    if (state.stage === 'egg' || state.over) return null;
+    const s = { ...state.stats }, h = 1 / 12;
+    let asleep = state.asleep;
+    const low = () => s.fuel < 25 ? 'hungry' : s.vibe < 25 ? 'bored' : null;
+    if (low()) return { now: true, what: low() };
+    for (let t = h; t <= 72; t += h) {
+      if (asleep) {
+        s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h;
+        if (s.energy >= 100) { s.energy = 100; asleep = false; }
+      } else {
+        s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h; s.energy -= DRAIN.energy * h;
+        if (s.energy <= 0) { s.energy = 0; asleep = true; }
+      }
+      if (low()) return { hours: t, what: low() };
+    }
+    return null;
+  }
+  function whenText(hours) {
+    const d = new Date(Math.round((now() + hours * 3.6e6 / SPEED) / 3e5) * 3e5);
+    const tm = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const today = new Date(), tmrw = new Date(); tmrw.setDate(today.getDate() + 1);
+    if (d.toDateString() === today.toDateString()) return tm;
+    if (d.toDateString() === tmrw.toDateString()) return 'tomorrow ' + tm;
+    return d.toLocaleDateString([], { weekday: 'long' }) + ' ' + tm;
+  }
+  function forecastText() {
+    const f = forecast();
+    if (!f) return null;
+    if (f.now) return { text: 'He needs you now: he\'s ' + f.what + '.', urgent: true };
+    return { text: 'Check back by ' + whenText(f.hours) + ' · he\'ll be ' + f.what, urgent: false };
+  }
+  function drawBackstage() {
+    const fc = forecastText();
+    $('bsForecast').textContent = state.stage === 'egg' ? 'Nothing yet. Eggs just need warmth.' : fc ? fc.text : 'He\'s all set for now.';
+    $('bsSoundOn').setAttribute('aria-pressed', String(Sound.on));
+    $('bsSoundOff').setAttribute('aria-pressed', String(!Sound.on));
+    const ul = $('bsHall');
+    ul.textContent = '';
+    for (const h of state.hall.slice().reverse()) {
+      const li = document.createElement('li');
+      li.textContent = h.name + ' · ' + (STAGES[h.stage] ? STAGES[h.stage].title : h.stage) + ' · ' + h.skills + ' skill' + (h.skills === 1 ? '' : 's') + (h.end === 'faded' ? ' · faded' : '');
+      ul.appendChild(li);
+    }
+    ul.hidden = !state.hall.length;
+    $('bsHallEmpty').hidden = !!state.hall.length;
+    $('bsNewText').textContent = state.stage === 'egg'
+      ? 'Swap this egg for a fresh one.'
+      : 'Say goodbye to ' + state.name + ' and start over with a fresh egg. He\'ll join the Hall of Fame.';
+    $('bsNewStart').hidden = false;
+    $('bsNewConfirm').hidden = true;
+  }
+  $('menuBtn').addEventListener('click', () => { if (fetchS || feeding || hatching) return; drawBackstage(); openSheet('backSheet'); });
+  $('bsSoundOn').addEventListener('click', () => { if (!Sound.on) { Sound.toggle(); drawSoundBtn(); sfx('chirp', state.stage); } drawBackstage(); });
+  $('bsSoundOff').addEventListener('click', () => { if (Sound.on) { Sound.toggle(); drawSoundBtn(); } drawBackstage(); });
+  $('newGameBtn').addEventListener('click', () => { $('bsNewStart').hidden = true; $('bsNewConfirm').hidden = false; });
+  $('newGameNo').addEventListener('click', () => { $('bsNewStart').hidden = false; $('bsNewConfirm').hidden = true; });
+  $('newGameYes').addEventListener('click', () => newEgg(false));
   function newEgg(fromEnd) {
     const hall = state.hall.slice(-9);
     if (state.stage !== 'egg') hall.push({ name: state.name, stage: state.stage, skills: state.skills.length, end: fromEnd ? 'faded' : 'retired' });
@@ -1436,7 +1554,7 @@
   });
 
   // Preload every pose so swaps are instant.
-  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'bg-garage', 'bg-club', 'bg-arena', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch'].map(p => s + '-' + p))]
+  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'food-drink', 'bg-garage', 'bg-club', 'bg-arena', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch'].map(p => s + '-' + p))]
     .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
 
   initCloud();
