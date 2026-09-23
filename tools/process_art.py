@@ -53,7 +53,7 @@ def save(a, box, name):
     im.save(f"sprites/{name}.webp", "WEBP", quality=86, method=6)
 
 
-EXTRAS = ("run", "fetch")  # action poses fitted into the stage's standing box
+EXTRAS = ("run", "fetch", "bath")  # action poses fitted into the stage's standing box
 
 
 def fit_into(a, box):

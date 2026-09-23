@@ -140,34 +140,67 @@
     background: none; border: 0; padding: 0; border-radius: 14px;
     z-index: 2;
   }
-  .petbtn img {
-    width: 100%; height: 100%; object-fit: contain; object-position: center bottom;
+  .petbtn .fig {
+    position: absolute; inset: 0;
     transform-origin: 50% 95%;
     animation: breathe 3.2s ease-in-out infinite;
     pointer-events: none;
+  }
+  .petbtn #sprite {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: contain; object-position: center bottom;
+    pointer-events: none;
     -webkit-user-drag: none;
   }
-  .night .petbtn img { animation-duration: 5.5s; }
+  .night .petbtn .fig { animation-duration: 5.5s; }
+  /* Mud spots, masked to his silhouette; opacity follows how dirty he is. */
+  .dirt {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background:
+      radial-gradient(circle, rgba(70, 45, 22, .8) 0 17%, transparent 20%) 0 0 / 38px 34px,
+      radial-gradient(circle, rgba(95, 65, 32, .65) 0 13%, transparent 16%) 17px 15px / 47px 41px,
+      linear-gradient(rgba(90, 62, 35, .28), rgba(90, 62, 35, .28));
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center bottom; mask-position: center bottom;
+    transition: opacity .6s;
+  }
+  .fly { position: absolute; left: 50%; top: 22%; width: 6px; height: 6px; border-radius: 50%; background: #111; box-shadow: 0 0 0 1px rgba(255,255,255,.25); animation: orbit 1.6s linear infinite; }
+  .fly.f2 { top: 30%; animation-duration: 2.3s; animation-direction: reverse; }
+  @keyframes orbit { from { transform: rotate(0) translateX(34px) rotate(0); } to { transform: rotate(360deg) translateX(34px) rotate(-360deg); } }
+  .bub {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 32% 30%, rgba(255,255,255,.95) 0 12%, rgba(210,235,255,.35) 30%, rgba(255,255,255,.15) 65%);
+    border: 1.5px solid rgba(255,255,255,.8);
+    animation: pop-in .18s ease-out;
+  }
+  @keyframes pop-in { from { transform: scale(.2); } }
+  .bub.rise { animation: rise var(--t, 1.8s) ease-out forwards; }
+  .bub.gone { transition: opacity .5s, transform .5s; opacity: 0; transform: scale(1.4); }
+  .drop { position: absolute; top: -20px; width: 6px; height: 14px; border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%; background: rgba(127, 211, 255, .85); animation: fall var(--t, .9s) ease-in forwards; }
+  @keyframes fall { to { transform: translateY(var(--dy, 600px)); opacity: .2; } }
+  .tub { position: absolute; left: 4%; right: 4%; bottom: 1%; z-index: 3; pointer-events: none; }
+  .stage.bathing, .stage.fetching { touch-action: none; }
   @keyframes breathe { 50% { transform: scale(1.012, 1.028); } }
-  .petbtn img.a-wobble { animation: wobble .45s ease-in-out; }
+  .petbtn .fig.a-wobble { animation: wobble .45s ease-in-out; }
   @keyframes wobble { 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
-  .petbtn img.a-bounce { animation: bounce .6s ease-out 2; }
+  .petbtn .fig.a-bounce { animation: bounce .6s ease-out 2; }
   @keyframes bounce { 40% { transform: translateY(-7%) scale(1.02, .98); } 70% { transform: translateY(0) scale(1.03, .97); } }
-  .petbtn img.a-headbang { animation: headbang .32s ease-in-out 6; }
+  .petbtn .fig.a-headbang { animation: headbang .32s ease-in-out 6; }
   @keyframes headbang { 50% { transform: rotate(-5deg) translateY(2%); } }
-  .petbtn img.a-shake { animation: shake .12s linear 14; }
+  .petbtn .fig.a-shake { animation: shake .12s linear 14; }
   @keyframes shake { 25% { transform: translateX(-2%); } 75% { transform: translateX(2%); } }
-  .petbtn img.a-recoil { animation: recoil .5s ease-out 2; }
+  .petbtn .fig.a-recoil { animation: recoil .5s ease-out 2; }
   @keyframes recoil { 30% { transform: translateX(-4%) rotate(-3deg); } }
-  .petbtn img.a-float { animation: float 2.4s ease-in-out; }
+  .petbtn .fig.a-float { animation: float 2.4s ease-in-out; }
   @keyframes float { 45%, 60% { transform: translateY(-16%) rotate(-3deg); } }
-  .petbtn img.a-dive { animation: dive 2.4s cubic-bezier(.3,.7,.4,1); }
+  .petbtn .fig.a-dive { animation: dive 2.4s cubic-bezier(.3,.7,.4,1); }
   @keyframes dive { 30% { transform: translateY(-30%) scale(.9) rotate(-8deg); } 60% { transform: translateY(-34%) scale(.9) rotate(10deg); } 85% { transform: translateY(2%) scale(1.04, .94); } }
-  .petbtn img.a-run { animation: run .24s ease-in-out infinite; }
+  .petbtn .fig.a-run { animation: run .24s ease-in-out infinite; }
   @keyframes run { 50% { transform: translateY(-5%) rotate(-3deg); } }
-  .petbtn img.a-catch { animation: catchj .6s ease-out; }
+  .petbtn .fig.a-catch { animation: catchj .6s ease-out; }
   @keyframes catchj { 40% { transform: translateY(-32%) rotate(-6deg); } }
-  .petbtn img.a-hatch { animation: hatch 1.4s ease-out; }
+  .petbtn .fig.a-hatch { animation: hatch 1.4s ease-out; }
   @keyframes hatch { 0% { transform: scale(.7); filter: brightness(3); } 60% { transform: scale(1.06); filter: brightness(1.3); } }
 
   .soundbtn {
@@ -177,7 +210,7 @@
     background: rgba(20, 16, 16, .55); border: 1px solid var(--edge); color: var(--gold);
   }
   .soundbtn.left { right: auto; left: 10px; }
-  .fetching .soundbtn.left { display: none; }
+  .fetching .soundbtn.left, .bathing .soundbtn.left { display: none; }
   .soundbtn .cross { display: none; }
   .soundbtn.off { color: var(--muted); }
   .soundbtn.off .waves { display: none; }
@@ -195,7 +228,7 @@
     background: rgba(20,16,16,.6); border: 1px solid var(--edge); border-radius: 999px; padding: 6px 10px; color: var(--chrome);
   }
   .fetchbar button { border: 0; border-radius: 999px; padding: 7px 12px; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; background: var(--gold); color: var(--soot); }
-  .fetching .speech { top: 54px; }
+  .fetching .speech, .bathing .speech { top: 54px; }
   .speech {
     position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%);
     max-width: 82%;
@@ -238,9 +271,9 @@
   @keyframes flash { from { opacity: .95; } to { opacity: 0; } }
 
   /* ---------- Meters ---------- */
-  .meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .meters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .meter { display: grid; gap: 4px; }
-  .meter .lab { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .meter .lab { display: flex; justify-content: space-between; gap: 4px; font-weight: 700; font-size: 12px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
   .meter .lab b { color: var(--chrome); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
   .segs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; height: 12px; }
   .segs i { background: #2e2320; border-radius: 1.5px; }
@@ -262,12 +295,12 @@
   .hint { text-align: center; font-family: var(--scrawl); color: var(--gold); font-size: 18px; margin: 2px 0; }
 
   /* ---------- Stompbox pedals ---------- */
-  .pedals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+  .pedals { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .pedal {
     position: relative;
     border: 0; border-radius: 12px;
     min-height: 92px;
-    padding: 16px 4px 10px;
+    padding: 16px 2px 10px;
     display: flex; flex-direction: column; align-items: center; justify-content: space-between;
     background: linear-gradient(160deg, rgba(255,255,255,.28), rgba(255,255,255,0) 45%, rgba(0,0,0,.28)), var(--pc);
     color: var(--pt, var(--ink));
@@ -276,7 +309,7 @@
   }
   .pedal:active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 0 rgba(0,0,0,.55); }
   .pedal:disabled { filter: grayscale(.8) brightness(.55); cursor: default; }
-  .pedal .pl { font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; }
+  .pedal .pl { font-weight: 700; font-size: 14px; letter-spacing: .03em; text-transform: uppercase; }
   .pedal .sw {
     width: 34px; height: 34px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff, #b9b3ad 35%, #6e6862 70%, #3d3935);
@@ -294,6 +327,7 @@
   .p-sleep { --pc: var(--indigo); --pt: var(--chrome); }
   .p-set { --pc: #cfc6bd; }
   .p-fetch { --pc: var(--crimson); --pt: #fff; }
+  .p-bath { --pc: #5fb8d9; }
 
   /* ---------- Sheets ---------- */
   .sheet { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(5,3,3,.62); }
@@ -395,11 +429,17 @@
   <main class="stage" id="stage">
     <div class="floor"></div>
     <button class="petbtn" id="petBtn" aria-label="Tap to pet">
-      <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
+      <div class="fig" id="fig">
+        <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
+        <div class="dirt" id="dirt"></div>
+      </div>
+      <span class="fly" hidden></span><span class="fly f2" hidden></span>
       <img class="mouthbone" id="mouthBone" alt="" hidden>
     </button>
     <img class="bone" id="bone" alt="Bone" hidden>
     <img class="snack" id="snack" alt="" hidden>
+    <img class="tub" id="tub" alt="" hidden>
+    <div class="fetchbar" id="bathBar" hidden><span id="bathLeft">Scrub!</span><button id="bathDone">Done</button></div>
     <div class="fetchbar" id="fetchBar" hidden><span id="fetchLeft">5 throws left</span><button id="fetchDone">Done</button></div>
     <div class="fx" id="fx"></div>
     <div class="speech" id="speech" aria-live="polite"></div>
@@ -419,6 +459,7 @@
     <button class="pedal p-feed" id="btnFeed"><span class="pl">Feed</span><span class="sw"></span><span class="led" id="ledFeed"></span></button>
     <button class="pedal p-jam" id="btnJam"><span class="pl">Jam</span><span class="sw"></span><span class="led" id="ledJam"></span></button>
     <button class="pedal p-fetch" id="btnFetch"><span class="pl">Fetch</span><span class="sw"></span><span class="led" id="ledFetch"></span></button>
+    <button class="pedal p-bath" id="btnBath"><span class="pl">Bath</span><span class="sw"></span><span class="led" id="ledBath"></span></button>
     <button class="pedal p-sleep" id="btnSleep"><span class="pl" id="sleepLabel">Sleep</span><span class="sw"></span><span class="led" id="ledSleep"></span></button>
     <button class="pedal p-set" id="btnSet"><span class="pl">Skills</span><span class="sw"></span><span class="led" id="ledSet"></span></button>
   </nav>
@@ -513,8 +554,9 @@
   const EGG_MINUTES = 8;               // passive warmth alone hatches the egg in 8 minutes
   const TEEN_AT = 48, ADULT_AT = 144;  // care-hours: ~2 days and ~6 days with decent care
   const NEGLECT_WARN = 24, NEGLECT_FADE = 48, NEGLECT_END = 72; // hours at zero fuel AND zero vibe
-  const DRAIN = { fuel: 8, vibe: 7, energy: 6 };   // per hour awake: ~12-16 hours from full to empty
-  const SLEEP = { energy: 20, fuel: 3, vibe: 2 };  // per hour asleep
+  const DRAIN = { fuel: 8, vibe: 7, energy: 6, clean: 4 };   // per hour awake: ~12-16 hours from full to empty (clean ~25)
+  const SLEEP = { energy: 20, fuel: 3, vibe: 2, clean: 1 };   // per hour asleep
+  const STINKY = 1.5;  // vibe drains this much faster when he's filthy
 
   const STAGES = {
     egg:   { title: 'The Egg',     sub: 'A fire legend in the making' },
@@ -534,6 +576,7 @@
     { id: 'airguitar', name: 'Air Guitar', stage: 'teen', hint: 'Jam 5 times', prog: s => [s.c.jam, 5], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Wheedly-wheedly-WAAAH!' },
     { id: 'firebreath', name: 'Fire Breath', stage: 'teen', hint: 'Eat 10 ghost peppers', prog: s => [s.c.pepper, 10], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'FWOOOSH!' },
     { id: 'aircatch', name: 'Air Catch', stage: 'teen', hint: 'Catch 5 bones mid-air', prog: s => [s.c.catch, 5], pose: 'run', anim: 'catch', fx: 'sparks', line: 'Nothing gets past me!' },
+    { id: 'bubbles', name: 'Bubble Breath', stage: 'baby', hint: 'Take 3 baths', prog: s => [s.c.bath || 0, 3], pose: 'happy', anim: 'bounce', fx: 'bubbles', line: 'Blub blub!' },
     { id: 'glide', name: 'Glide', stage: 'teen', hint: 'Pet him 40 times', prog: s => [s.c.pet, 40], pose: 'happy', anim: 'float', fx: 'sparks', line: 'Look, no feet!' },
     { id: 'solo', name: 'Flame Solo', stage: 'adult', hint: 'Jam 20 times', prog: s => [s.c.jam, 20], pose: 'happy', anim: 'headbang', fx: 'solo', line: 'Take it away!' },
     { id: 'chord', name: 'Power Chord Blast', stage: 'adult', hint: 'Land a perfect 6/6 jam', prog: s => [s.best, 6], pose: 'happy', anim: 'shake', fx: 'wave', line: 'KERRRANG!' },
@@ -550,8 +593,8 @@
     const t = now();
     return {
       v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
-      stats: { fuel: 85, energy: 90, vibe: 85 }, asleep: false,
-      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0, drinks: [],
+      stats: { fuel: 85, energy: 90, vibe: 85, clean: 100 }, asleep: false,
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0, drinks: [],
       skills: [], unseen: [], neglectH: 0, over: false,
       lastTick: t, savedAt: 0, hall: hall || [],
     };
@@ -614,16 +657,24 @@
       if (state.over) return;
     }
   }
+  // Drain one slice of time. Returns 'woke' / 'passedout' when sleep flips.
+  function drain(s, asleep, h) {
+    const stink = s.clean < 25 ? STINKY : 1;
+    let flip = null;
+    if (asleep) {
+      s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h * stink; s.clean -= SLEEP.clean * h;
+      if (s.energy >= 100) { s.energy = 100; flip = 'woke'; }
+    } else {
+      s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h * stink; s.energy -= DRAIN.energy * h; s.clean -= DRAIN.clean * h;
+      if (s.energy <= 0) { s.energy = 0; flip = 'passedout'; }
+    }
+    s.fuel = clamp(s.fuel); s.vibe = clamp(s.vibe); s.energy = clamp(s.energy); s.clean = clamp(s.clean);
+    return flip;
+  }
   function step(h) {
     const s = state.stats;
-    if (state.asleep) {
-      s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h;
-      if (s.energy >= 100) { s.energy = 100; state.asleep = false; events.push('woke'); }
-    } else {
-      s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h; s.energy -= DRAIN.energy * h;
-      if (s.energy <= 0) { s.energy = 0; state.asleep = true; events.push('passedout'); }
-    }
-    s.fuel = clamp(s.fuel); s.vibe = clamp(s.vibe); s.energy = clamp(s.energy);
+    const flip = drain(s, state.asleep, h);
+    if (flip) { state.asleep = flip === 'passedout'; events.push(flip); }
     const care = (s.fuel + s.vibe + s.energy) / 300;
     const rate = (s.fuel === 0 && s.vibe === 0) ? 0 : care > 0.4 ? 1 : care > 0.15 ? 0.6 : 0.25;
     state.age += h * rate;
@@ -655,10 +706,10 @@
   // ---------- Rendering ----------
   const els = {
     name: $('petName'), tag: $('stageTag'), age: $('ageLine'), banner: $('banner'), stage: $('stage'),
-    sprite: $('sprite'), fx: $('fx'), speech: $('speech'), meters: $('meters'), hint: $('eggHint'),
+    sprite: $('sprite'), fig: $('fig'), dirt: $('dirt'), fx: $('fx'), speech: $('speech'), meters: $('meters'), hint: $('eggHint'),
     pedals: $('pedals'),
   };
-  const METERS = [['fuel', 'Fuel'], ['energy', 'Energy'], ['vibe', 'Vibe']];
+  const METERS = [['fuel', 'Fuel'], ['energy', 'Energy'], ['vibe', 'Vibe'], ['clean', 'Clean']];
   els.meters.innerHTML = METERS.map(([k, l]) =>
     `<div class="meter" id="m-${k}"><div class="lab"><span>${l}</span><b></b></div><div class="segs">${'<i></i>'.repeat(10)}</div></div>`
   ).join('');
@@ -667,9 +718,10 @@
   let currentSrc = '';
   let fetchS = null;   // active fetch round
   let feeding = false; // a snack is on its way to his mouth
+  let bathS = null;    // active bath
   // Optional poses fall back to existing art until their images are uploaded.
   const HAVE = {};
-  const FALLBACK = { run: 'happy', fetch: 'happy' };
+  const FALLBACK = { run: 'happy', fetch: 'happy', bath: 'idle' };
   const BONE_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 52"><g stroke="#3a2a22" stroke-width="6"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#f3e7cf"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#5a3b2c" opacity=".55"><circle cx="11" cy="12" r="5"/><circle cx="113" cy="40" r="5"/></g><path d="M66 17 55 28h8l-5 9 12-12h-8z" fill="#f4b942" stroke="#3a2a22" stroke-width="1.5"/></svg>');
   function pose() {
     if (state.stage === 'egg') return state.heat >= 100 ? 'egg-hatch' : state.heat >= 50 ? 'egg-cracked' : 'egg-idle';
@@ -685,7 +737,10 @@
     const [stg, p] = name.split('-');
     if (FALLBACK[p] && !HAVE[name]) name = stg + '-' + FALLBACK[p];
     const src = 'sprites/' + name + '.webp';
-    if (src !== currentSrc) { currentSrc = src; els.sprite.src = src; }
+    if (src !== currentSrc) {
+      currentSrc = src; els.sprite.src = src;
+      els.dirt.style.webkitMaskImage = els.dirt.style.maskImage = `url(${src})`;
+    }
   }
   function render() {
     const s = state.stats, egg = state.stage === 'egg', st = STAGES[state.stage];
@@ -737,8 +792,14 @@
     $('ledJam').className = 'led' + (s.vibe < 25 ? ' on' : '');
     $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
     $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
-    $('btnFeed').disabled = $('btnJam').disabled = $('btnFetch').disabled = state.asleep || !!fetchS || feeding;
-    $('btnSleep').disabled = $('btnSet').disabled = !!fetchS;
+    $('ledBath').className = 'led' + (s.clean < 25 ? ' on' : '');
+    const grime = egg || bathS ? 0 : Math.max(0, (60 - s.clean) / 60);
+    els.dirt.style.opacity = (grime * .9).toFixed(2);
+    const flyTop = { baby: 42, teen: 36, adult: 33 }[state.stage] || 36;
+    document.querySelectorAll('.fly').forEach((f, i) => { f.hidden = egg || !!bathS || s.clean >= 25; f.style.top = (flyTop + i * 7) + '%'; });
+    $('btnFeed').disabled = $('btnJam').disabled = $('btnFetch').disabled = state.asleep || !!fetchS || feeding || !!bathS;
+    $('btnSleep').disabled = $('btnSet').disabled = !!fetchS || !!bathS;
+    $('btnBath').disabled = state.asleep || !!fetchS || feeding || !!bathS;
     let banner = '';
     if (!egg && state.neglectH >= NEGLECT_FADE) banner = state.name + ' is fading. Feed him and play with him now, or you could lose him.';
     else if (!egg && state.neglectH >= NEGLECT_WARN) banner = state.name + ' is sick from hunger and boredom. A snack and a jam will fix it.';
@@ -879,6 +940,10 @@
       lullaby: () => [659, 523, 440, 392].forEach((f, i) => tone({ t: i * .32, f, dur: .5, vol: .1 })),
       yawn: () => tone({ f: 260, f2: 480, dur: .7, vol: .12, type: 'triangle', vib: 5, attack: .2 }),
       snore: () => noise({ dur: .9, vol: .07, type: 'lowpass', f: 240, attack: .45 }),
+      bubble: () => { const f = 500 + Math.random() * 700; tone({ f, f2: f * 1.7, dur: .07, vol: .08 }); },
+      bubbles: () => { for (let i = 0; i < 8; i++) { const f = 500 + Math.random() * 700; tone({ t: i * .09, f, f2: f * 1.7, dur: .07, vol: .08 }); } },
+      splash: () => { noise({ dur: .7, vol: .35, type: 'lowpass', f: 3000, f2: 500, attack: .02 }); for (let i = 0; i < 6; i++) noise({ t: .1 + i * .08, dur: .05, vol: .12, f: 1500 + Math.random() * 2000, q: 3 }); },
+      sparkle: () => [1568, 2093, 2637, 3136].forEach((f, i) => tone({ t: i * .07, f, dur: .25, vol: .06, type: 'triangle' })),
       pop: () => { noise({ dur: .05, vol: .3, type: 'highpass', f: 2000 }); noise({ t: .04, dur: .5, vol: .12, type: 'highpass', f: 5000, attack: .02 }); },
       gulp: () => tone({ f: 180, f2: 90, dur: .14, type: 'sine', vol: .3, attack: .01 }),
       zap: () => { [440, 660, 880, 1320].forEach((f, i) => tone({ t: i * .06, f, dur: .15, type: 'square', vol: .06, cut: 3000 })); fx.cheer(false); },
@@ -919,12 +984,12 @@
 
   // ---------- Effects ----------
   function animate(name) {
-    const img = els.sprite;
-    img.className = '';
-    void img.offsetWidth;
-    if (name) img.className = 'a-' + name;
+    const f = els.fig;
+    f.className = 'fig';
+    void f.offsetWidth;
+    if (name) f.className = 'fig a-' + name;
   }
-  els.sprite.addEventListener('animationend', () => { els.sprite.className = ''; });
+  els.fig.addEventListener('animationend', e => { if (e.target === els.fig) els.fig.className = 'fig'; });
   function spawn(el, ms) { els.fx.appendChild(el); setTimeout(() => el.remove(), ms); }
   function embers(n, x, y, spreadX, spreadY, t = 1.2) {
     for (let i = 0; i < n; i++) {
@@ -979,6 +1044,17 @@
       embers(40, x, y, 280, 160, 1.4);
     }
     if (kind === 'hearts') glyphs(['♥'], 3, 'var(--crimson)', 50, 35);
+    if (kind === 'bubbles') for (let i = 0; i < 12; i++) {
+      const b = document.createElement('span'), d = 10 + Math.random() * 22;
+      b.className = 'bub rise';
+      b.style.width = b.style.height = d + 'px';
+      b.style.left = x + '%'; b.style.top = y + '%';
+      b.style.setProperty('--dx', (20 + Math.random() * 120) + 'px');
+      b.style.setProperty('--dy', (-60 - Math.random() * 160) + 'px');
+      b.style.setProperty('--t', (1.4 + Math.random()) + 's');
+      b.style.animationDelay = (i * .08) + 's';
+      spawn(b, 3000);
+    }
   }
 
   let speechTimer = null;
@@ -1050,7 +1126,7 @@
     e.preventDefault();
     if (state.over) return;
     if (state.stage === 'egg') return tapEgg();
-    if (hatching || fetchS) return;
+    if (hatching || fetchS || bathS) return;
     const t = now();
     if (state.asleep) { if (t - lastPet > 1500) { sfx('snore'); glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
     state.stats.vibe = clamp(state.stats.vibe + (t - lastPet > 2500 ? 4 : 1));
@@ -1126,9 +1202,9 @@
     el.hidden = true; el.style.transform = '';
   }
   const FOODS = {
-    pepper: { fuel: 20, vibe: 6, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
+    pepper: { fuel: 20, vibe: 6, mess: 3, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
     coal: { fuel: 35, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
-    pizza: { fuel: 25, vibe: 12, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
+    pizza: { fuel: 25, vibe: 12, mess: 4, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
     drink: { fuel: 0, vibe: 4, energy: 30, pose: 'happy', fx: 'sparks', line: ['WIDE AWAKE!', 'Let\'s ROCK!', 'I can hear colors!'] },
   };
   document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', async () => {
@@ -1151,6 +1227,7 @@
     state.stats.fuel = clamp(state.stats.fuel + f.fuel);
     state.stats.vibe = clamp(state.stats.vibe + f.vibe);
     state.stats.energy = clamp(state.stats.energy + (f.energy || 0));
+    state.stats.clean = clamp(state.stats.clean - (f.mess || 0));
     state.c[kind] = (state.c[kind] || 0) + 1;
     show(f.pose, 1800); animate('bounce');
     fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
@@ -1222,6 +1299,7 @@
     state.stats.vibe = clamp(state.stats.vibe + 6 + h * 5 + p * 3);
     state.stats.energy = clamp(state.stats.energy - 8);
     state.c.jam++;
+    state.stats.clean = clamp(state.stats.clean - 2);
     state.best = Math.max(state.best, h);
     $('call').textContent = h + '/6 — ' + (h === 6 ? 'Legendary!' : h >= 4 ? 'The crowd went wild!' : h >= 2 ? 'Solid set.' : 'Rough night. Try again!');
     $('strum').textContent = 'Done';
@@ -1266,12 +1344,12 @@
     const ms = Math.max(250, dist / RUN_SPEED[state.stage] * 1000);
     facing = x < dpos.x - 1 ? -1 : x > dpos.x + 1 ? 1 : facing;
     override = { pose: 'run', until: Infinity }; setSprite();
-    els.sprite.className = 'a-run';
+    els.fig.className = 'fig a-run';
     placeDragon(x, y, ms);
     sfx('patter', ms, state.stage);
     return wait(ms);
   }
-  function stopRun(p) { els.sprite.className = ''; override = { pose: p, until: Infinity }; setSprite(); }
+  function stopRun(p) { els.fig.className = 'fig'; override = { pose: p, until: Infinity }; setSprite(); }
   function drawFetchBar() { const left = 5 - fetchS.throws; $('fetchLeft').textContent = left + (left === 1 ? ' throw left' : ' throws left'); }
 
   $('btnFetch').addEventListener('click', () => {
@@ -1324,7 +1402,7 @@
     const anim = flyBone({ x: tx, y: ty }, 16 + power * 26, flight);
     if (catching) {
       facing = tx < dpos.x ? -1 : 1;
-      override = { pose: 'run', until: Infinity }; setSprite(); els.sprite.className = 'a-run';
+      override = { pose: 'run', until: Infinity }; setSprite(); els.fig.className = 'fig a-run';
       placeDragon(tx, ty, flight - 120);
       sfx('patter', flight - 120, state.stage);
       await wait(flight - 120);
@@ -1360,6 +1438,7 @@
     state.stats.energy = clamp(state.stats.energy - 3);
     state.stats.fuel = clamp(state.stats.fuel - 1);
     state.c.fetch++;
+    state.stats.clean = clamp(state.stats.clean - 4);
     checkSkills(); render(); save();
     await wait(700);
     if (!fetchS) return;
@@ -1373,7 +1452,7 @@
     fetchS = null;
     els.stage.classList.remove('fetching');
     boneEl.hidden = true; mouthEl.hidden = true; $('fetchBar').hidden = true;
-    els.sprite.className = '';
+    els.fig.className = 'fig';
     facing = 1;
     const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = ''; b.style.scale = '';
     dpos = { x: 50, y: 95 };
@@ -1382,6 +1461,84 @@
       toast('Fetched ' + throws + (catches ? ' · ' + catches + ' air catch' + (catches > 1 ? 'es' : '') : ''));
       say(pick(['Again tomorrow?', 'Best. Game. Ever.', 'I\'m a good dragon.']));
     }
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Bath ----------
+  const TUB_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 104"><g fill="#fff" stroke="#9cc9dc" stroke-width="2"><circle cx="30" cy="30" r="14"/><circle cx="52" cy="22" r="17"/><circle cx="78" cy="28" r="13"/><circle cx="104" cy="20" r="18"/><circle cx="130" cy="27" r="14"/><circle cx="154" cy="21" r="16"/><circle cx="174" cy="30" r="12"/></g><rect x="4" y="34" width="192" height="12" rx="6" fill="#fbf8f2" stroke="#3a2a22" stroke-width="4"/><path d="M12 46h176c0 28-22 44-52 44H64C34 90 12 74 12 46z" fill="#f2efe9" stroke="#3a2a22" stroke-width="4"/><path d="M30 54c4 16 16 26 36 28" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/><g fill="#f4b942" stroke="#3a2a22" stroke-width="3"><path d="M44 86l-8 14h16z"/><path d="M156 86l-8 14h16z"/></g></svg>');
+  function drawBathBar() { $('bathLeft').textContent = 'Scrub! ' + Math.floor(state.stats.clean) + '%'; }
+  $('btnBath').addEventListener('click', () => {
+    if (state.asleep || bathS || fetchS || feeding) return;
+    if (state.stats.clean >= 95) { say(pick(['Already squeaky clean!', 'I just had a bath!'])); return; }
+    bathS = { last: null, moved: 0, n: 0, done: false };
+    els.stage.classList.add('bathing');
+    const tub = $('tub');
+    tub.src = TUB_SVG; tub.hidden = !!HAVE[state.stage + '-bath'];
+    $('bathBar').hidden = false; drawBathBar();
+    override = { pose: 'bath', until: Infinity }; setSprite();
+    say(pick(['Bath time?! Fine…', 'Is the water warm?', 'No shampoo in the eyes!']), 2200);
+    sfx('splash');
+    render();
+  });
+  $('bathDone').addEventListener('click', () => { if (bathS && !bathS.done) endBath(); });
+  function scrubAt(x, y) {
+    state.stats.clean = clamp(state.stats.clean + 1.5);
+    bathS.n++;
+    if (els.fx.querySelectorAll('.bub.foam').length < 45) {
+      const b = document.createElement('span'), d = 14 + Math.random() * 26;
+      b.className = 'bub foam';
+      b.style.width = b.style.height = d + 'px';
+      b.style.left = (x - d / 2) + 'px'; b.style.top = (y - d / 2) + 'px';
+      els.fx.appendChild(b);
+    }
+    if (bathS.n % 2) sfx('bubble');
+    drawBathBar(); render();
+    if (state.stats.clean >= 100) rinse();
+  }
+  els.stage.addEventListener('pointerdown', e => {
+    if (!bathS || bathS.done || e.target.closest('.soundbtn, .fetchbar')) return;
+    bathS.last = { x: e.clientX, y: e.clientY };
+  });
+  els.stage.addEventListener('pointermove', e => {
+    if (!bathS || bathS.done || !bathS.last) return;
+    bathS.moved += Math.hypot(e.clientX - bathS.last.x, e.clientY - bathS.last.y);
+    bathS.last = { x: e.clientX, y: e.clientY };
+    const r = els.stage.getBoundingClientRect();
+    while (bathS.moved >= 34 && !bathS.done) { bathS.moved -= 34; scrubAt(e.clientX - r.left, e.clientY - r.top); }
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => els.stage.addEventListener(t, () => { if (bathS) bathS.last = null; }));
+  async function rinse() {
+    bathS.done = true;
+    $('bathBar').hidden = true;
+    sfx('splash');
+    const r = els.stage.getBoundingClientRect();
+    for (let i = 0; i < 26; i++) {
+      const d = document.createElement('span');
+      d.className = 'drop';
+      d.style.left = (Math.random() * 100) + '%';
+      d.style.setProperty('--dy', (r.height + 40) + 'px');
+      d.style.setProperty('--t', (.6 + Math.random() * .5) + 's');
+      d.style.animationDelay = (Math.random() * .5) + 's';
+      spawn(d, 1700);
+    }
+    await wait(700);
+    els.fx.querySelectorAll('.bub.foam').forEach(b => { b.classList.add('gone'); setTimeout(() => b.remove(), 550); });
+    $('tub').hidden = true;
+    override = { pose: 'happy', until: Infinity }; setSprite();
+    animate('shake'); sfx('sparkle'); fx('sparks');
+    state.stats.vibe = clamp(state.stats.vibe + 8);
+    state.c.bath = (state.c.bath || 0) + 1;
+    say(pick(['Squeaky clean!', 'I\'m shining like a Flying V!', 'Fresh as a new set of strings.']), 2400);
+    await wait(1500);
+    endBath();
+  }
+  function endBath() {
+    if (!bathS) return;
+    bathS = null;
+    els.stage.classList.remove('bathing');
+    $('tub').hidden = true; $('bathBar').hidden = true;
+    els.fx.querySelectorAll('.bub.foam').forEach(b => b.remove());
+    override = null;
     checkSkills(); render(); save();
   }
 
@@ -1404,10 +1561,10 @@
     $('skillList').innerHTML = html;
     $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
     const c = state.c;
-    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Air catches ${c.catch} · Pets ${c.pet}` +
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
   }
-  const SKILL_SFX = { aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
+  const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
   let lastPerform = {};
   function perform(id) {
     const k = SKILLS.find(s => s.id === id);
@@ -1430,16 +1587,11 @@
     if (state.stage === 'egg' || state.over) return null;
     const s = { ...state.stats }, h = 1 / 12;
     let asleep = state.asleep;
-    const low = () => s.fuel < 25 ? 'hungry' : s.vibe < 25 ? 'bored' : null;
+    const low = () => s.fuel < 25 ? 'hungry' : s.vibe < 25 ? 'bored' : s.clean < 25 ? 'grimy' : null;
     if (low()) return { now: true, what: low() };
     for (let t = h; t <= 72; t += h) {
-      if (asleep) {
-        s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h;
-        if (s.energy >= 100) { s.energy = 100; asleep = false; }
-      } else {
-        s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h; s.energy -= DRAIN.energy * h;
-        if (s.energy <= 0) { s.energy = 0; asleep = true; }
-      }
+      const flip = drain(s, asleep, h);
+      if (flip) asleep = flip === 'passedout';
       if (low()) return { hours: t, what: low() };
     }
     return null;
@@ -1478,7 +1630,7 @@
     $('bsNewStart').hidden = false;
     $('bsNewConfirm').hidden = true;
   }
-  $('menuBtn').addEventListener('click', () => { if (fetchS || feeding || hatching) return; drawBackstage(); openSheet('backSheet'); });
+  $('menuBtn').addEventListener('click', () => { if (fetchS || feeding || hatching || bathS) return; drawBackstage(); openSheet('backSheet'); });
   $('bsSoundOn').addEventListener('click', () => { if (!Sound.on) { Sound.toggle(); drawSoundBtn(); sfx('chirp', state.stage); } drawBackstage(); });
   $('bsSoundOff').addEventListener('click', () => { if (Sound.on) { Sound.toggle(); drawSoundBtn(); } drawBackstage(); });
   $('newGameBtn').addEventListener('click', () => { $('bsNewStart').hidden = true; $('bsNewConfirm').hidden = false; });
@@ -1528,6 +1680,7 @@
       const s = state.stats;
       if (s.fuel < 25) say(pick(['I\'m starving…', 'Got a pepper? Anything?', 'Tummy\'s rumbling like a bass amp.']));
       else if (s.vibe < 25) say(pick(['Bored. Play me something.', 'Let\'s jam!', 'Is the show cancelled?']));
+      else if (s.clean < 25) say(pick(['I smell like a tour bus.', 'Bath? Maybe?', 'These flies are my fans now.']));
       else if (s.energy < 20) say(pick(['*yawn*', 'Need a nap…']));
       else say(pick(IDLE_LINES[state.stage]));
     }
@@ -1554,7 +1707,7 @@
   });
 
   // Preload every pose so swaps are instant.
-  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'food-drink', 'bg-garage', 'bg-club', 'bg-arena', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch'].map(p => s + '-' + p))]
+  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'food-drink', 'bg-garage', 'bg-club', 'bg-arena', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch', 'bath'].map(p => s + '-' + p))]
     .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
 
   initCloud();
