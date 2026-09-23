@@ -588,6 +588,28 @@
   ];
 
   const $ = id => document.getElementById(id);
+
+  // ---------- Fit ----------
+  // Some phones hand the page a desktop-width frame (~980px). Instead of a skinny
+  // column with black bars, lay out at phone width and scale the whole page up.
+  const DESIGN_W = 420;
+  let K = 1; // current page scale; screen px / layout px
+  function fit() {
+    const html = document.documentElement, b = document.body, cs = getComputedStyle(html);
+    const W = html.clientWidth, H = html.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (W > 560 && H / W > 1.2) {
+      K = W / DESIGN_W;
+      b.style.width = DESIGN_W + 'px';
+      b.style.height = (H / K) + 'px';
+      b.style.transformOrigin = '0 0';
+      b.style.transform = `scale(${K})`;
+    } else {
+      K = 1;
+      b.style.width = b.style.height = b.style.transform = '';
+    }
+  }
+  fit();
+  addEventListener('resize', fit);
   const now = () => Date.now();
   const clamp = v => Math.max(0, Math.min(100, v));
 
@@ -1167,7 +1189,7 @@
     const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1, k = Math.min(br.width / nw, br.height / nh);
     const w = nw * k, h = nh * k, left = br.left + (br.width - w) / 2, top = br.top + br.height - h;
     const [fx, fy] = MOUTH_AT[state.stage] || [.55, .4];
-    return [left + w * fx - sr.left, top + h * fy - sr.top];
+    return [(left + w * fx - sr.left) / K, (top + h * fy - sr.top) / K];
   }
   function crumbs(kind, x, y) {
     const cs = CRUMB[kind];
@@ -1183,7 +1205,7 @@
     }
   }
   async function serveFood(kind) {
-    const el = $('snack'), sr = els.stage.getBoundingClientRect();
+    const el = $('snack'), sr = { width: els.stage.offsetWidth, height: els.stage.offsetHeight };
     el.src = foodSrc(kind); el.hidden = false;
     await new Promise(r => requestAnimationFrame(r));
     const w = el.offsetWidth, h = el.offsetHeight || w;
@@ -1325,19 +1347,19 @@
   let facing = 1, dpos = { x: 50, y: 95 };
   function depth(y) { return .32 + (y - 58) / 37 * .34; }
   function placeDragon(x, y, ms) {
-    const r = els.stage.getBoundingClientRect(), s = depth(y), b = $('petBtn');
+    const r = { width: els.stage.offsetWidth, height: els.stage.offsetHeight }, s = depth(y), b = $('petBtn');
     b.style.transition = ms ? `transform ${ms}ms linear` : 'transform .35s ease';
     b.style.transform = `translate(${(x - 50) / 100 * r.width}px, ${(y - 95) / 100 * r.height}px) scale(${s})`;
     b.style.scale = facing < 0 ? '-1 1' : '1 1';  // separate property, so turning around is instant
     dpos = { x, y };
   }
   function bonePx(x, y) {
-    const r = els.stage.getBoundingClientRect();
+    const r = { width: els.stage.offsetWidth, height: els.stage.offsetHeight };
     return [x / 100 * r.width - boneEl.offsetWidth / 2, y / 100 * r.height - boneEl.offsetHeight / 2];
   }
   function placeBone(x, y, rot, sc) { const [px, py] = bonePx(x, y); boneEl.style.transform = `translate(${px}px, ${py}px) rotate(${rot}deg) scale(${sc})`; }
   function flyBone(to, apexPct, ms) {
-    const r = els.stage.getBoundingClientRect(), frames = [], N = 18, endScale = depth(to.y) / depth(HAND.y);
+    const r = { width: els.stage.offsetWidth, height: els.stage.offsetHeight }, frames = [], N = 18, endScale = depth(to.y) / depth(HAND.y);
     for (let i = 0; i <= N; i++) {
       const t = i / N, x = HAND.x + (to.x - HAND.x) * t, y = HAND.y + (to.y - HAND.y) * t;
       const [px, py] = bonePx(x, y), lift = 4 * apexPct / 100 * r.height * t * (1 - t);
@@ -1385,7 +1407,7 @@
     if (!fetchS || fetchS.busy || !fetchS.start) return;
     const st = fetchS.start; fetchS.start = null;
     const r = els.stage.getBoundingClientRect();
-    const dx = e.clientX - st.x, dy = e.clientY - st.y, dt = Math.max(16, performance.now() - st.t);
+    const dx = (e.clientX - st.x) / K, dy = (e.clientY - st.y) / K, dt = Math.max(16, performance.now() - st.t);
     let tx, ty, power;
     if (Math.hypot(dx, dy) > 25 && dy < 0) {
       power = Math.max(.25, Math.min(1, (Math.hypot(dx, dy) / dt - .2) / 1.3));
@@ -1525,17 +1547,17 @@
   });
   els.stage.addEventListener('pointermove', e => {
     if (!bathS || bathS.done || !bathS.last) return;
-    bathS.moved += Math.hypot(e.clientX - bathS.last.x, e.clientY - bathS.last.y);
+    bathS.moved += Math.hypot(e.clientX - bathS.last.x, e.clientY - bathS.last.y) / K;
     bathS.last = { x: e.clientX, y: e.clientY };
     const r = els.stage.getBoundingClientRect();
-    while (bathS.moved >= 34 && !bathS.done) { bathS.moved -= 34; scrubAt(e.clientX - r.left, e.clientY - r.top); }
+    while (bathS.moved >= 34 && !bathS.done) { bathS.moved -= 34; scrubAt((e.clientX - r.left) / K, (e.clientY - r.top) / K); }
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => els.stage.addEventListener(t, () => { if (bathS) bathS.last = null; }));
   async function rinse() {
     bathS.done = true;
     $('bathBar').hidden = true;
     sfx('splash');
-    const r = els.stage.getBoundingClientRect();
+    const r = { height: els.stage.offsetHeight };
     for (let i = 0; i < 26; i++) {
       const d = document.createElement('span');
       d.className = 'drop';
