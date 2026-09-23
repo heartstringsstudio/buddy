@@ -93,6 +93,7 @@
   }
   .floor {
     position: absolute; inset: auto 0 0 0; height: 24%;
+    transition: height .5s ease;
     background:
       linear-gradient(rgba(255,200,120,.18), transparent 30%),
       repeating-linear-gradient(90deg, #2c1e16 0 46px, #20150f 46px 48px);
@@ -107,8 +108,10 @@
     background: radial-gradient(ellipse at 50% 40%, rgba(20, 26, 70, .25), rgba(8, 10, 30, .62));
     transition: opacity .6s;
   }
+  .stage.fetching .floor { height: 46%; }
   .petbtn {
     position: absolute; inset: 3% 4% 5% 4%;
+    transform-origin: 50% 100%;
     background: none; border: 0; padding: 0; border-radius: 14px;
     z-index: 2;
   }
@@ -135,6 +138,10 @@
   @keyframes float { 45%, 60% { transform: translateY(-16%) rotate(-3deg); } }
   .petbtn img.a-dive { animation: dive 2.4s cubic-bezier(.3,.7,.4,1); }
   @keyframes dive { 30% { transform: translateY(-30%) scale(.9) rotate(-8deg); } 60% { transform: translateY(-34%) scale(.9) rotate(10deg); } 85% { transform: translateY(2%) scale(1.04, .94); } }
+  .petbtn img.a-run { animation: run .24s ease-in-out infinite; }
+  @keyframes run { 50% { transform: translateY(-5%) rotate(-3deg); } }
+  .petbtn img.a-catch { animation: catchj .6s ease-out; }
+  @keyframes catchj { 40% { transform: translateY(-32%) rotate(-6deg); } }
   .petbtn img.a-hatch { animation: hatch 1.4s ease-out; }
   @keyframes hatch { 0% { transform: scale(.7); filter: brightness(3); } 60% { transform: scale(1.06); filter: brightness(1.3); } }
 
@@ -148,6 +155,18 @@
   .soundbtn.off { color: var(--muted); }
   .soundbtn.off .waves { display: none; }
   .soundbtn.off .cross { display: inline; }
+  .bone { position: absolute; left: 0; top: 0; width: 16%; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 3px rgba(0,0,0,.45)); }
+  .mouthbone { position: absolute; left: 56%; top: 30%; width: 30%; transform: rotate(-14deg); pointer-events: none; }
+  .fetchbar {
+    position: absolute; z-index: 5; top: 10px; left: 10px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .fetchbar span {
+    font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase;
+    background: rgba(20,16,16,.6); border: 1px solid var(--edge); border-radius: 999px; padding: 6px 10px; color: var(--chrome);
+  }
+  .fetchbar button { border: 0; border-radius: 999px; padding: 7px 12px; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; background: var(--gold); color: var(--soot); }
+  .fetching .speech { top: 54px; }
   .speech {
     position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%);
     max-width: 82%;
@@ -203,7 +222,7 @@
   .hint { text-align: center; font-family: var(--scrawl); color: var(--gold); font-size: 18px; margin: 2px 0; }
 
   /* ---------- Stompbox pedals ---------- */
-  .pedals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+  .pedals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
   .pedal {
     position: relative;
     border: 0; border-radius: 12px;
@@ -217,7 +236,7 @@
   }
   .pedal:active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 0 rgba(0,0,0,.55); }
   .pedal:disabled { filter: grayscale(.8) brightness(.55); cursor: default; }
-  .pedal .pl { font-weight: 700; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+  .pedal .pl { font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; }
   .pedal .sw {
     width: 34px; height: 34px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff, #b9b3ad 35%, #6e6862 70%, #3d3935);
@@ -234,6 +253,7 @@
   .p-jam { --pc: var(--gold); }
   .p-sleep { --pc: var(--indigo); --pt: var(--chrome); }
   .p-set { --pc: #cfc6bd; }
+  .p-fetch { --pc: var(--crimson); --pt: #fff; }
 
   /* ---------- Sheets ---------- */
   .sheet { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(5,3,3,.62); }
@@ -335,7 +355,10 @@
     <div class="floor"></div>
     <button class="petbtn" id="petBtn" aria-label="Tap to pet">
       <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
+      <img class="mouthbone" id="mouthBone" alt="" hidden>
     </button>
+    <img class="bone" id="bone" alt="Bone" hidden>
+    <div class="fetchbar" id="fetchBar" hidden><span id="fetchLeft">5 throws left</span><button id="fetchDone">Done</button></div>
     <div class="fx" id="fx"></div>
     <div class="speech" id="speech" aria-live="polite"></div>
     <button class="soundbtn" id="soundBtn" aria-label="Mute sound">
@@ -349,6 +372,7 @@
   <nav class="pedals" id="pedals">
     <button class="pedal p-feed" id="btnFeed"><span class="pl">Feed</span><span class="sw"></span><span class="led" id="ledFeed"></span></button>
     <button class="pedal p-jam" id="btnJam"><span class="pl">Jam</span><span class="sw"></span><span class="led" id="ledJam"></span></button>
+    <button class="pedal p-fetch" id="btnFetch"><span class="pl">Fetch</span><span class="sw"></span><span class="led" id="ledFetch"></span></button>
     <button class="pedal p-sleep" id="btnSleep"><span class="pl" id="sleepLabel">Sleep</span><span class="sw"></span><span class="led" id="ledSleep"></span></button>
     <button class="pedal p-set" id="btnSet"><span class="pl">Skills</span><span class="sw"></span><span class="led" id="ledSet"></span></button>
   </nav>
@@ -432,6 +456,7 @@
     { id: 'smoke', name: 'Smoke Rings', stage: 'teen', hint: 'Grow into an Opening Act', pose: 'idle', anim: '', fx: 'rings', line: 'Pretty cool, huh?' },
     { id: 'airguitar', name: 'Air Guitar', stage: 'teen', hint: 'Jam 5 times', prog: s => [s.c.jam, 5], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Wheedly-wheedly-WAAAH!' },
     { id: 'firebreath', name: 'Fire Breath', stage: 'teen', hint: 'Eat 10 ghost peppers', prog: s => [s.c.pepper, 10], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'FWOOOSH!' },
+    { id: 'aircatch', name: 'Air Catch', stage: 'teen', hint: 'Catch 5 bones mid-air', prog: s => [s.c.catch, 5], pose: 'run', anim: 'catch', fx: 'sparks', line: 'Nothing gets past me!' },
     { id: 'glide', name: 'Glide', stage: 'teen', hint: 'Pet him 40 times', prog: s => [s.c.pet, 40], pose: 'happy', anim: 'float', fx: 'sparks', line: 'Look, no feet!' },
     { id: 'solo', name: 'Flame Solo', stage: 'adult', hint: 'Jam 20 times', prog: s => [s.c.jam, 20], pose: 'happy', anim: 'headbang', fx: 'solo', line: 'Take it away!' },
     { id: 'chord', name: 'Power Chord Blast', stage: 'adult', hint: 'Land a perfect 6/6 jam', prog: s => [s.best, 6], pose: 'happy', anim: 'shake', fx: 'wave', line: 'KERRRANG!' },
@@ -449,7 +474,7 @@
     return {
       v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
       stats: { fuel: 85, energy: 90, vibe: 85 }, asleep: false,
-      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, jam: 0, perform: 0 }, best: 0,
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0,
       skills: [], unseen: [], neglectH: 0, over: false,
       lastTick: t, savedAt: 0, hall: hall || [],
     };
@@ -563,6 +588,11 @@
 
   let override = null; // { pose, until }
   let currentSrc = '';
+  let fetchS = null;   // active fetch round
+  // Optional poses fall back to existing art until their images are uploaded.
+  const HAVE = {};
+  const FALLBACK = { run: 'happy', fetch: 'happy' };
+  const BONE_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 52"><g stroke="#3a2a22" stroke-width="6"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#f3e7cf"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#5a3b2c" opacity=".55"><circle cx="11" cy="12" r="5"/><circle cx="113" cy="40" r="5"/></g><path d="M66 17 55 28h8l-5 9 12-12h-8z" fill="#f4b942" stroke="#3a2a22" stroke-width="1.5"/></svg>');
   function pose() {
     if (state.stage === 'egg') return state.heat >= 100 ? 'egg-hatch' : state.heat >= 50 ? 'egg-cracked' : 'egg-idle';
     if (override && override.until > now()) return state.stage + '-' + override.pose;
@@ -573,7 +603,10 @@
     return state.stage + '-idle';
   }
   function setSprite() {
-    const src = 'sprites/' + pose() + '.webp';
+    let name = pose();
+    const [stg, p] = name.split('-');
+    if (FALLBACK[p] && !HAVE[name]) name = stg + '-' + FALLBACK[p];
+    const src = 'sprites/' + name + '.webp';
     if (src !== currentSrc) { currentSrc = src; els.sprite.src = src; }
   }
   function render() {
@@ -606,7 +639,8 @@
     $('ledJam').className = 'led' + (s.vibe < 25 ? ' on' : '');
     $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
     $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
-    $('btnFeed').disabled = $('btnJam').disabled = state.asleep;
+    $('btnFeed').disabled = $('btnJam').disabled = $('btnFetch').disabled = state.asleep || !!fetchS;
+    $('btnSleep').disabled = $('btnSet').disabled = !!fetchS;
     let banner = '';
     if (!egg && state.neglectH >= NEGLECT_FADE) banner = state.name + ' is fading. Feed him and play with him now, or you could lose him.';
     else if (!egg && state.neglectH >= NEGLECT_WARN) banner = state.name + ' is sick from hunger and boredom. A snack and a jam will fix it.';
@@ -747,6 +781,14 @@
       lullaby: () => [659, 523, 440, 392].forEach((f, i) => tone({ t: i * .32, f, dur: .5, vol: .1 })),
       yawn: () => tone({ f: 260, f2: 480, dur: .7, vol: .12, type: 'triangle', vib: 5, attack: .2 }),
       snore: () => noise({ dur: .9, vol: .07, type: 'lowpass', f: 240, attack: .45 }),
+      toss: () => noise({ dur: .35, vol: .22, f: 700, f2: 2600, q: 1.2, attack: .03 }),
+      thud: () => { tone({ f: 150, f2: 60, dur: .16, vol: .35, type: 'triangle' }); noise({ dur: .1, vol: .15, type: 'lowpass', f: 600 }); },
+      patter: (ms, stage) => {
+        const gap = { baby: .11, teen: .15, adult: .19 }[stage] || .15;
+        for (let t = 0; t < ms / 1000 - .05; t += gap) noise({ t, dur: .035, vol: stage === 'adult' ? .16 : .1, type: 'lowpass', f: stage === 'adult' ? 500 : 1100 });
+      },
+      chomp: () => { noise({ dur: .06, vol: .3, f: 1300, q: 1.5 }); noise({ t: .09, dur: .06, vol: .25, f: 1100, q: 1.5 }); tone({ f: 220, f2: 130, dur: .12, type: 'square', vol: .06, cut: 900 }); },
+      catch: () => { fx.chomp(); fx.unlock(); fx.cheer(false); },
       hearts: () => [1047, 1319].forEach((f, i) => tone({ t: i * .07, f, dur: .18, vol: .06 })),
       sad: () => [220, 261.6, 329.6].forEach((f, i) => tone({ t: i * .5, f, dur: 2.4 - i * .5, vol: .1, type: 'triangle', cut: 1200 })),
     };
@@ -907,7 +949,7 @@
     e.preventDefault();
     if (state.over) return;
     if (state.stage === 'egg') return tapEgg();
-    if (hatching) return;
+    if (hatching || fetchS) return;
     const t = now();
     if (state.asleep) { if (t - lastPet > 1500) { sfx('snore'); glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
     state.stats.vibe = clamp(state.stats.vibe + (t - lastPet > 2500 ? 4 : 1));
@@ -1016,6 +1058,159 @@
     checkSkills(); render(); save();
   }
 
+  // ---------- Fetch mini-game ----------
+  const HAND = { x: 36, y: 92 }, WAIT = { x: 70, y: 80 };
+  const RUN_SPEED = { baby: 42, teen: 60, adult: 75 };   // stage-% per second
+  const CATCH_ODDS = { baby: .25, teen: .45, adult: .6 };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const boneEl = $('bone'), mouthEl = $('mouthBone');
+  let facing = 1, dpos = { x: 50, y: 95 };
+  function depth(y) { return .32 + (y - 58) / 37 * .34; }
+  function placeDragon(x, y, ms) {
+    const r = els.stage.getBoundingClientRect(), s = depth(y), b = $('petBtn');
+    b.style.transition = ms ? `transform ${ms}ms linear` : 'transform .35s ease';
+    b.style.transform = `translate(${(x - 50) / 100 * r.width}px, ${(y - 95) / 100 * r.height}px) scale(${s * facing}, ${s})`;
+    dpos = { x, y };
+  }
+  function bonePx(x, y) {
+    const r = els.stage.getBoundingClientRect();
+    return [x / 100 * r.width - boneEl.offsetWidth / 2, y / 100 * r.height - boneEl.offsetHeight / 2];
+  }
+  function placeBone(x, y, rot, sc) { const [px, py] = bonePx(x, y); boneEl.style.transform = `translate(${px}px, ${py}px) rotate(${rot}deg) scale(${sc})`; }
+  function flyBone(to, apexPct, ms) {
+    const r = els.stage.getBoundingClientRect(), frames = [], N = 18, endScale = depth(to.y) / depth(HAND.y);
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, x = HAND.x + (to.x - HAND.x) * t, y = HAND.y + (to.y - HAND.y) * t;
+      const [px, py] = bonePx(x, y), lift = 4 * apexPct / 100 * r.height * t * (1 - t);
+      frames.push({ transform: `translate(${px}px, ${py - lift}px) rotate(${t * 900}deg) scale(${1 + (endScale - 1) * t})` });
+    }
+    const a = boneEl.animate(frames, { duration: ms, easing: 'linear', fill: 'forwards' });
+    return a;
+  }
+  function runTo(x, y) {
+    const dist = Math.hypot(x - dpos.x, (y - dpos.y) * .7);
+    const ms = Math.max(250, dist / RUN_SPEED[state.stage] * 1000);
+    facing = x < dpos.x - 1 ? -1 : x > dpos.x + 1 ? 1 : facing;
+    override = { pose: 'run', until: Infinity }; setSprite();
+    els.sprite.className = 'a-run';
+    placeDragon(x, y, ms);
+    sfx('patter', ms, state.stage);
+    return wait(ms);
+  }
+  function stopRun(p) { els.sprite.className = ''; override = { pose: p, until: Infinity }; setSprite(); }
+  function drawFetchBar() { const left = 5 - fetchS.throws; $('fetchLeft').textContent = left + (left === 1 ? ' throw left' : ' throws left'); }
+
+  $('btnFetch').addEventListener('click', () => {
+    if (state.asleep || fetchS) return;
+    if (state.stats.energy < 10) { say('Too tired to run… need sleep.'); return; }
+    fetchS = { throws: 0, catches: 0, busy: false, start: null };
+    els.stage.classList.add('fetching');
+    boneEl.src = HAVE.bone ? 'sprites/bone.webp' : BONE_SVG;
+    mouthEl.src = boneEl.src;
+    boneEl.hidden = false; $('fetchBar').hidden = false;
+    drawFetchBar();
+    facing = 1; stopRun('idle');
+    placeDragon(WAIT.x, WAIT.y);
+    placeBone(HAND.x, HAND.y, -20, 1);
+    say('Swipe up to throw!', 2200);
+    sfx('chirp', state.stage);
+    render();
+  });
+  $('fetchDone').addEventListener('click', () => { if (fetchS && !fetchS.busy) endFetch(); });
+
+  els.stage.addEventListener('pointerdown', e => {
+    if (!fetchS || fetchS.busy || e.target.closest('.soundbtn, .fetchbar')) return;
+    fetchS.start = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  els.stage.addEventListener('pointerup', e => {
+    if (!fetchS || fetchS.busy || !fetchS.start) return;
+    const st = fetchS.start; fetchS.start = null;
+    const r = els.stage.getBoundingClientRect();
+    const dx = e.clientX - st.x, dy = e.clientY - st.y, dt = Math.max(16, performance.now() - st.t);
+    let tx, ty, power;
+    if (Math.hypot(dx, dy) > 25 && dy < 0) {
+      power = Math.max(.25, Math.min(1, (Math.hypot(dx, dy) / dt - .2) / 1.3));
+      ty = 90 - power * 31;
+      tx = HAND.x + dx / Math.max(40, -dy) * 38;
+    } else {
+      tx = (e.clientX - r.left) / r.width * 100;
+      ty = Math.max(60, Math.min(92, (e.clientY - r.top) / r.height * 100));
+      power = Math.max(.25, Math.min(1, (93 - ty) / 30));
+    }
+    doThrow(Math.max(8, Math.min(92, tx)), ty, power);
+  });
+  els.stage.addEventListener('pointercancel', () => { if (fetchS) fetchS.start = null; });
+
+  async function doThrow(tx, ty, power) {
+    if (state.stats.energy < 6) { endFetch(); say('Too tired… need sleep.'); return; }
+    fetchS.busy = true; fetchS.throws++; drawFetchBar();
+    const flight = 520 + power * 560;
+    const catching = power > .55 && Math.random() < CATCH_ODDS[state.stage] * (state.stats.energy > 30 ? 1 : .6);
+    sfx('toss');
+    const anim = flyBone({ x: tx, y: ty }, 16 + power * 26, flight);
+    if (catching) {
+      facing = tx < dpos.x ? -1 : 1;
+      override = { pose: 'run', until: Infinity }; setSprite(); els.sprite.className = 'a-run';
+      placeDragon(tx, ty, flight - 120);
+      sfx('patter', flight - 120, state.stage);
+      await wait(flight - 120);
+      stopRun('run'); animate('catch');
+      await wait(110);
+      anim.cancel(); boneEl.hidden = true;
+      fetchS.catches++; state.c.catch++;
+      sfx('catch'); fx('sparks');
+      say(pick(['CAUGHT IT!', 'Mid-air!', 'Too easy.']), 1600);
+      await wait(450);
+    } else {
+      await anim.finished.catch(() => {});
+      placeBone(tx, ty, 0, depth(ty) / depth(HAND.y)); anim.cancel();
+      sfx('thud');
+      say(pick(['!', 'Mine!', 'Bone!!']), 900);
+      await wait(280);
+      await runTo(tx, ty);
+      boneEl.hidden = true;
+      sfx('chomp');
+    }
+    stopRun('fetch');
+    mouthEl.hidden = HAVE[state.stage + '-fetch'];
+    await wait(380);
+    await runTo(WAIT.x, WAIT.y);
+    // Drop it at your feet.
+    mouthEl.hidden = true;
+    facing = 1; placeDragon(WAIT.x, WAIT.y);
+    stopRun('happy'); animate('bounce');
+    boneEl.hidden = false;
+    placeBone(HAND.x, HAND.y, -20, 1);
+    sfx('thud'); fx('hearts'); sfx('chirp', state.stage);
+    state.stats.vibe = clamp(state.stats.vibe + 5 + (catching ? 4 : 0));
+    state.stats.energy = clamp(state.stats.energy - 3);
+    state.stats.fuel = clamp(state.stats.fuel - 1);
+    state.c.fetch++;
+    checkSkills(); render(); save();
+    await wait(700);
+    if (!fetchS) return;
+    fetchS.busy = false;
+    override = { pose: 'idle', until: Infinity }; setSprite();
+    if (fetchS.throws >= 5) endFetch();
+  }
+  function endFetch() {
+    if (!fetchS) return;
+    const { throws, catches } = fetchS;
+    fetchS = null;
+    els.stage.classList.remove('fetching');
+    boneEl.hidden = true; mouthEl.hidden = true; $('fetchBar').hidden = true;
+    els.sprite.className = '';
+    facing = 1;
+    const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = '';
+    dpos = { x: 50, y: 95 };
+    override = null;
+    if (throws) {
+      toast('Fetched ' + throws + (catches ? ' · ' + catches + ' air catch' + (catches > 1 ? 'es' : '') : ''));
+      say(pick(['Again tomorrow?', 'Best. Game. Ever.', 'I\'m a good dragon.']));
+    }
+    checkSkills(); render(); save();
+  }
+
   // ---------- Setlist ----------
   $('btnSet').addEventListener('click', () => { drawSetlist(); openSheet('setSheet'); state.unseen = []; render(); save(); });
   function drawSetlist() {
@@ -1035,11 +1230,11 @@
     $('skillList').innerHTML = html;
     $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
     const c = state.c;
-    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Jams ${c.jam} · Best jam ${state.best}/6 · Pets ${c.pet}` +
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
     armReset(false);
   }
-  const SKILL_SFX = { headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
+  const SKILL_SFX = { aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
   let lastPerform = {};
   function perform(id) {
     const k = SKILLS.find(s => s.id === id);
@@ -1133,8 +1328,8 @@
   });
 
   // Preload every pose so swaps are instant.
-  ['egg-idle', 'egg-cracked', 'egg-hatch', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire'].map(p => s + '-' + p))]
-    .forEach(n => { const i = new Image(); i.src = 'sprites/' + n + '.webp'; });
+  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch'].map(p => s + '-' + p))]
+    .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
 
   initCloud();
 })();
