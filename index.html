@@ -1069,7 +1069,8 @@
   function placeDragon(x, y, ms) {
     const r = els.stage.getBoundingClientRect(), s = depth(y), b = $('petBtn');
     b.style.transition = ms ? `transform ${ms}ms linear` : 'transform .35s ease';
-    b.style.transform = `translate(${(x - 50) / 100 * r.width}px, ${(y - 95) / 100 * r.height}px) scale(${s * facing}, ${s})`;
+    b.style.transform = `translate(${(x - 50) / 100 * r.width}px, ${(y - 95) / 100 * r.height}px) scale(${s})`;
+    b.style.scale = facing < 0 ? '-1 1' : '1 1';  // separate property, so turning around is instant
     dpos = { x, y };
   }
   function bonePx(x, y) {
@@ -1201,7 +1202,7 @@
     boneEl.hidden = true; mouthEl.hidden = true; $('fetchBar').hidden = true;
     els.sprite.className = '';
     facing = 1;
-    const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = '';
+    const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = ''; b.style.scale = '';
     dpos = { x: 50, y: 95 };
     override = null;
     if (throws) {
