@@ -1,0 +1,1739 @@
+<title>Rockfire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Metal+Mania&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  /* Single-look design: a club stage at night. Painted explicitly so it holds on any host theme. */
+  :root {
+    color-scheme: dark;
+    --soot: #141010;
+    --amp: #221917;
+    --tolex: #2c211e;
+    --edge: #3d2e29;
+    --crimson: #c8232c;
+    --flame: #ff7a1a;
+    --gold: #f4b942;
+    --chrome: #ece4dc;
+    --muted: #a8958b;
+    --indigo: #34427a;
+    --paper: #efe6d6;
+    --ink: #1d1714;
+    --display: "Metal Mania", "Impact", "Arial Black", sans-serif;
+    --scrawl: "Permanent Marker", "Comic Sans MS", "Marker Felt", cursive;
+    --ui: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  }
+  html { height: 100%; box-sizing: border-box; background: var(--soot); }
+  *, *::before, *::after { box-sizing: inherit; }
+  [hidden] { display: none !important; }
+  body {
+    height: 100%;
+    background: var(--soot);
+    color: var(--chrome);
+    font-family: var(--ui);
+    font-size: 16px;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  #app {
+    height: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ---------- Marquee header ---------- */
+  .marquee { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .marquee h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(30px, 9vw, 44px);
+    line-height: .9;
+    color: var(--crimson);
+    text-shadow: 0 0 1px var(--gold), 2px 2px 0 #000, 0 0 18px rgba(255, 122, 26, .45);
+    letter-spacing: .5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .billing { text-align: right; flex-shrink: 0; display: grid; gap: 2px; }
+  .billing .tag {
+    font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--soot); background: var(--gold); padding: 2px 8px; border-radius: 3px; justify-self: end;
+  }
+  .billing .age { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+
+  .banner {
+    font-weight: 600; font-size: 15px; letter-spacing: .03em;
+    background: var(--crimson); color: #fff; padding: 8px 12px; border-radius: 8px; text-wrap: balance;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--edge);
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -8%, rgba(255, 170, 70, .38), transparent 70%),
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,.35) 1.2px, transparent 1.6px) 0 0 / 9px 9px,
+      linear-gradient(#1d1513, #171110);
+  }
+  .floor {
+    position: absolute; inset: auto 0 0 0; height: 24%;
+    transition: height .5s ease;
+    background:
+      linear-gradient(rgba(255,200,120,.18), transparent 30%),
+      repeating-linear-gradient(90deg, #2c1e16 0 46px, #20150f 46px 48px);
+    border-top: 2px solid #3a281d;
+  }
+  .floor::after {
+    content: ""; position: absolute; left: 18%; right: 18%; top: 10%; height: 40%;
+    background: radial-gradient(ellipse at center, rgba(255, 180, 90, .32), transparent 70%);
+  }
+  .stage.night::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 55%, rgba(20, 26, 70, .42), rgba(8, 10, 30, .75));
+    transition: opacity .6s;
+  }
+  .stage.fetching .floor { height: 46%; }
+  /* Scenes: garage (egg, baby), club (teen, the default look above), arena (adult).
+     Drawn stand-ins until bg-*.png art is uploaded; then the art covers the stage. */
+  .stage.scene-garage {
+    background:
+      radial-gradient(ellipse 60% 42% at 50% 0%, rgba(255, 232, 170, .32), transparent 70%),
+      radial-gradient(circle, rgba(0,0,0,.42) 1.6px, transparent 2.1px) 0 0 / 14px 14px,
+      linear-gradient(#5b4d44, #3a302a);
+  }
+  .scene-garage .floor {
+    background: linear-gradient(rgba(255,255,255,.08), transparent 40%), linear-gradient(#5e5a55, #3f3c38);
+    border-top: 3px solid #2b2826;
+  }
+  .stage.scene-arena {
+    background:
+      conic-gradient(from 160deg at 18% -6%, transparent 0 8deg, rgba(120, 140, 255, .26) 12deg, transparent 18deg),
+      conic-gradient(from 176deg at 82% -6%, transparent 0 6deg, rgba(255, 90, 60, .26) 10deg, transparent 16deg),
+      conic-gradient(from 168deg at 50% -9%, transparent 0 9deg, rgba(244, 185, 66, .3) 13deg, transparent 19deg),
+      radial-gradient(ellipse at 50% 100%, #2a1540, #0c0812 72%);
+  }
+  .scene-arena .floor {
+    background: linear-gradient(rgba(244,185,66,.22), transparent 25%), linear-gradient(#17121c, #0b090e);
+    border-top: 3px solid var(--gold);
+  }
+  .stage.has-art { background-size: cover; background-position: center bottom; background-repeat: no-repeat; }
+  .stage.has-art .floor { background: none; border-top: 0; }
+  .petbtn {
+    position: absolute; inset: 3% 4% 5% 4%;
+    transform-origin: 50% 100%;
+    background: none; border: 0; padding: 0; border-radius: 14px;
+    z-index: 2;
+  }
+  .petbtn .fig {
+    position: absolute; inset: 0;
+    transform-origin: 50% 95%;
+    animation: breathe 3.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .petbtn #sprite {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: contain; object-position: center bottom;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .night .petbtn .fig { animation-duration: 5.5s; }
+  /* Mud spots, masked to his silhouette; opacity follows how dirty he is. */
+  .dirt {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background:
+      radial-gradient(circle, rgba(70, 45, 22, .8) 0 17%, transparent 20%) 0 0 / 38px 34px,
+      radial-gradient(circle, rgba(95, 65, 32, .65) 0 13%, transparent 16%) 17px 15px / 47px 41px,
+      linear-gradient(rgba(90, 62, 35, .28), rgba(90, 62, 35, .28));
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center bottom; mask-position: center bottom;
+    transition: opacity .6s;
+  }
+  .fly { position: absolute; left: 50%; top: 22%; width: 6px; height: 6px; border-radius: 50%; background: #111; box-shadow: 0 0 0 1px rgba(255,255,255,.25); animation: orbit 1.6s linear infinite; }
+  .fly.f2 { top: 30%; animation-duration: 2.3s; animation-direction: reverse; }
+  @keyframes orbit { from { transform: rotate(0) translateX(34px) rotate(0); } to { transform: rotate(360deg) translateX(34px) rotate(-360deg); } }
+  .bub {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 32% 30%, rgba(255,255,255,.95) 0 12%, rgba(210,235,255,.35) 30%, rgba(255,255,255,.15) 65%);
+    border: 1.5px solid rgba(255,255,255,.8);
+    animation: pop-in .18s ease-out;
+  }
+  @keyframes pop-in { from { transform: scale(.2); } }
+  .bub.rise { animation: rise var(--t, 1.8s) ease-out forwards; }
+  .bub.gone { transition: opacity .5s, transform .5s; opacity: 0; transform: scale(1.4); }
+  .drop { position: absolute; top: -20px; width: 6px; height: 14px; border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%; background: rgba(127, 211, 255, .85); animation: fall var(--t, .9s) ease-in forwards; }
+  @keyframes fall { to { transform: translateY(var(--dy, 600px)); opacity: .2; } }
+  .bed { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
+  .fig { transition: translate .5s ease, scale .5s ease; }
+  .tub { position: absolute; left: 4%; right: 4%; bottom: 1%; z-index: 3; pointer-events: none; }
+  .stage.bathing, .stage.fetching { touch-action: none; }
+  @keyframes breathe { 50% { transform: scale(1.012, 1.028); } }
+  .petbtn .fig.a-wobble { animation: wobble .45s ease-in-out; }
+  @keyframes wobble { 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+  .petbtn .fig.a-bounce { animation: bounce .6s ease-out 2; }
+  @keyframes bounce { 40% { transform: translateY(-7%) scale(1.02, .98); } 70% { transform: translateY(0) scale(1.03, .97); } }
+  .petbtn .fig.a-headbang { animation: headbang .32s ease-in-out 6; }
+  @keyframes headbang { 50% { transform: rotate(-5deg) translateY(2%); } }
+  .petbtn .fig.a-shake { animation: shake .12s linear 14; }
+  @keyframes shake { 25% { transform: translateX(-2%); } 75% { transform: translateX(2%); } }
+  .petbtn .fig.a-recoil { animation: recoil .5s ease-out 2; }
+  @keyframes recoil { 30% { transform: translateX(-4%) rotate(-3deg); } }
+  .petbtn .fig.a-float { animation: float 2.4s ease-in-out; }
+  @keyframes float { 45%, 60% { transform: translateY(-16%) rotate(-3deg); } }
+  .petbtn .fig.a-dive { animation: dive 2.4s cubic-bezier(.3,.7,.4,1); }
+  @keyframes dive { 30% { transform: translateY(-30%) scale(.9) rotate(-8deg); } 60% { transform: translateY(-34%) scale(.9) rotate(10deg); } 85% { transform: translateY(2%) scale(1.04, .94); } }
+  .petbtn .fig.a-run { animation: run .24s ease-in-out infinite; }
+  @keyframes run { 50% { transform: translateY(-5%) rotate(-3deg); } }
+  .petbtn .fig.a-catch { animation: catchj .6s ease-out; }
+  @keyframes catchj { 40% { transform: translateY(-32%) rotate(-6deg); } }
+  .petbtn .fig.a-hatch { animation: hatch 1.4s ease-out; }
+  @keyframes hatch { 0% { transform: scale(.7); filter: brightness(3); } 60% { transform: scale(1.06); filter: brightness(1.3); } }
+
+  .soundbtn {
+    position: absolute; z-index: 5; top: 10px; right: 10px;
+    width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: rgba(20, 16, 16, .55); border: 1px solid var(--edge); color: var(--gold);
+  }
+  .soundbtn.left { right: auto; left: 10px; }
+  .fetching .soundbtn.left, .bathing .soundbtn.left { display: none; }
+  .soundbtn .cross { display: none; }
+  .soundbtn.off { color: var(--muted); }
+  .soundbtn.off .waves { display: none; }
+  .soundbtn.off .cross { display: inline; }
+  .bone { position: absolute; left: 0; top: 0; width: 16%; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 3px rgba(0,0,0,.45)); }
+  .snack { position: absolute; left: 0; top: 0; width: 20%; max-height: 17%; object-fit: contain; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); }
+  .crumb { position: absolute; width: 7px; height: 7px; border-radius: 2px; background: var(--c); animation: ember var(--t, 1s) ease-in forwards; }
+  .mouthbone { position: absolute; left: 56%; top: 30%; width: 30%; transform: rotate(-14deg); pointer-events: none; }
+  .fetchbar {
+    position: absolute; z-index: 5; top: 10px; left: 10px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .fetchbar span {
+    font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase;
+    background: rgba(20,16,16,.6); border: 1px solid var(--edge); border-radius: 999px; padding: 6px 10px; color: var(--chrome);
+  }
+  .fetchbar button { border: 0; border-radius: 999px; padding: 7px 12px; font-weight: 700; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; background: var(--gold); color: var(--soot); }
+  .fetching .speech, .bathing .speech { top: 54px; }
+  .speech {
+    position: absolute; z-index: 4; left: 50%; top: 10px; transform: translateX(-50%);
+    max-width: 82%;
+    font-family: var(--scrawl); font-size: 17px; line-height: 1.2; text-align: center;
+    color: var(--ink); background: var(--paper);
+    padding: 7px 13px; border-radius: 14px;
+    box-shadow: 2px 3px 0 rgba(0,0,0,.5);
+    opacity: 0; transition: opacity .25s, transform .25s;
+    pointer-events: none;
+  }
+  .speech.show { opacity: 1; transform: translateX(-50%) translateY(2px); }
+
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+  .ember {
+    position: absolute; width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle, #fff6c8 0 20%, var(--gold) 40%, var(--flame) 65%, transparent 72%);
+    animation: ember var(--t, 1.2s) ease-out forwards;
+  }
+  @keyframes ember { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  .glyph {
+    position: absolute; font-size: 26px; line-height: 1; font-weight: 700;
+    animation: rise var(--t, 1.6s) ease-out forwards;
+    text-shadow: 1px 1px 0 #000;
+  }
+  @keyframes rise { 0% { transform: translate(0,0) scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(1.1); opacity: 0; } }
+  .zzz { font-family: var(--scrawl); color: #c9d2ff; font-size: 24px; }
+  .ring {
+    position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%;
+    border: 5px solid rgba(220, 220, 220, .75);
+    animation: ring 2.2s ease-out forwards;
+  }
+  @keyframes ring { to { transform: translate(var(--dx), -150px) scale(3.2); opacity: 0; border-width: 1px; } }
+  .wave {
+    position: absolute; left: 50%; top: 55%; width: 40px; height: 40px; margin: -20px; border-radius: 50%;
+    border: 6px solid var(--gold); box-shadow: 0 0 24px var(--flame);
+    animation: wave .9s ease-out forwards;
+  }
+  @keyframes wave { to { transform: scale(14); opacity: 0; border-width: 1px; } }
+  .flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, #fff3c4, rgba(255,122,26,.6) 40%, transparent 75%); animation: flash .7s ease-out forwards; }
+  @keyframes flash { from { opacity: .95; } to { opacity: 0; } }
+
+  /* ---------- Meters ---------- */
+  .meters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .meter { display: grid; gap: 4px; }
+  .meter .lab { display: flex; justify-content: space-between; gap: 4px; font-weight: 700; font-size: 12px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+  .meter .lab b { color: var(--chrome); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .segs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; height: 12px; }
+  .segs i { background: #2e2320; border-radius: 1.5px; }
+  .segs i.on { background: linear-gradient(var(--gold), var(--flame)); box-shadow: 0 0 5px rgba(255,122,26,.5); }
+  .meter.low .segs i.on { background: var(--crimson); box-shadow: 0 0 6px rgba(200,35,44,.7); animation: blink 1.1s steps(2) infinite; }
+  .meter.low .lab { color: #ff8a8f; }
+  @keyframes blink { 50% { opacity: .45; } }
+  .forecast { margin: 0; text-align: center; font-size: 15px; letter-spacing: .03em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .forecast.urgent { color: #ff8a8f; font-weight: 700; }
+  .bs { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--edge); }
+  .bs h3 { margin: 0; font-weight: 700; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .bs p { font-size: 17px; }
+  .bs .small { font-size: 15px; }
+  .bs ul { margin: 0; padding-left: 18px; color: var(--chrome); font-size: 17px; line-height: 1.45; }
+  .bs .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill { border: 1px solid var(--edge); background: var(--tolex); border-radius: 999px; padding: 8px 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 15px; }
+  .pill[aria-pressed="true"] { background: var(--gold); color: var(--soot); border-color: var(--gold); }
+  .pill.warn { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+  .hint { text-align: center; font-family: var(--scrawl); color: var(--gold); font-size: 18px; margin: 2px 0; }
+
+  /* ---------- Stompbox pedals ---------- */
+  .pedals { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .pedal {
+    position: relative;
+    border: 0; border-radius: 12px;
+    min-height: 92px;
+    padding: 16px 2px 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    background: linear-gradient(160deg, rgba(255,255,255,.28), rgba(255,255,255,0) 45%, rgba(0,0,0,.28)), var(--pc);
+    color: var(--pt, var(--ink));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 4px 0 rgba(0,0,0,.55);
+    transition: transform .06s;
+  }
+  .pedal:active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 0 rgba(0,0,0,.55); }
+  .pedal:disabled { filter: grayscale(.8) brightness(.55); cursor: default; }
+  .pedal .pl { font-weight: 700; font-size: 14px; letter-spacing: .03em; text-transform: uppercase; }
+  .pedal .sw {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, #b9b3ad 35%, #6e6862 70%, #3d3935);
+    box-shadow: 0 2px 3px rgba(0,0,0,.6), inset 0 -2px 3px rgba(0,0,0,.35);
+  }
+  .pedal:active .sw { background: radial-gradient(circle at 40% 40%, #ddd, #8d8781 45%, #4a4541); }
+  .pedal .led {
+    position: absolute; top: 5px; left: 50%; margin-left: -4px; width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(0,0,0,.45);
+  }
+  .pedal .led.on { background: #ff3b30; box-shadow: 0 0 8px 2px rgba(255,59,48,.8); }
+  .pedal .led.on.cool { background: #7fd3ff; box-shadow: 0 0 8px 2px rgba(127,211,255,.8); }
+  .p-feed { --pc: var(--flame); }
+  .p-jam { --pc: var(--gold); }
+  .p-sleep { --pc: var(--indigo); --pt: var(--chrome); }
+  .p-set { --pc: #cfc6bd; }
+  .p-fetch { --pc: var(--crimson); --pt: #fff; }
+  .p-bath { --pc: #5fb8d9; }
+
+  /* ---------- Sheets ---------- */
+  .sheet { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(5,3,3,.62); }
+  .panel {
+    width: 100%; max-width: 520px; max-height: 88%;
+    overflow-y: auto;
+    background: var(--amp);
+    border-top: 3px solid var(--gold);
+    border-radius: 20px 20px 0 0;
+    padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: grid; gap: 14px;
+    animation: up .22s ease-out;
+  }
+  @keyframes up { from { transform: translateY(30px); opacity: 0; } }
+  .panel h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 30px; color: var(--gold); line-height: 1; }
+  .panel p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.35; }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+  .x { background: none; border: 1px solid var(--edge); border-radius: 8px; padding: 6px 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; color: var(--muted); }
+  .big {
+    border: 0; border-radius: 12px; padding: 14px 18px;
+    font-weight: 700; font-size: 20px; letter-spacing: .12em; text-transform: uppercase;
+    background: var(--crimson); color: #fff; box-shadow: 0 4px 0 #6d1016;
+  }
+  .big:active { transform: translateY(3px); box-shadow: 0 1px 0 #6d1016; }
+
+  .foods { display: grid; gap: 10px; }
+  .food {
+    display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 2px 12px; text-align: left;
+    background: var(--tolex); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px;
+  }
+  .food img { grid-row: 1 / span 2; grid-column: 1; width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+  .food strong { font-size: 20px; letter-spacing: .04em; grid-column: 2; }
+  .food span { color: var(--muted); font-size: 15px; grid-column: 2; }
+  .food em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-weight: 700; color: var(--gold); font-size: 15px; letter-spacing: .06em; text-align: right; }
+
+  /* Jam */
+  .track { position: relative; height: 54px; border-radius: 10px; background: #120d0c; border: 1px solid var(--edge); overflow: hidden; }
+  .zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(244,185,66,.25), rgba(255,122,26,.55), rgba(244,185,66,.25)); border-left: 2px solid var(--gold); border-right: 2px solid var(--gold); }
+  .pick { position: absolute; top: 6px; bottom: 6px; width: 8px; margin-left: -4px; border-radius: 4px; background: var(--chrome); box-shadow: 0 0 10px #fff; }
+  .dots { display: flex; gap: 8px; justify-content: center; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: #3a2c28; }
+  .dots i.hit { background: var(--gold); }
+  .dots i.perfect { background: var(--flame); box-shadow: 0 0 8px var(--flame); }
+  .dots i.miss { background: #5a2226; }
+  .call { text-align: center; font-family: var(--scrawl); font-size: 26px; min-height: 34px; color: var(--chrome); }
+
+  /* Setlist */
+  .panel.setlist {
+    background: var(--paper); color: var(--ink); border-top: 0;
+    background-image: repeating-linear-gradient(transparent 0 31px, rgba(60,90,160,.14) 31px 32px);
+  }
+  .setlist h2 { color: var(--crimson); }
+  .setlist .x { color: var(--ink); border-color: rgba(0,0,0,.25); }
+  .setlist h3 { margin: 6px 0 0; font-weight: 700; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: #6d5d52; }
+  .skill { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 4px 0; }
+  .skill .n { font-family: var(--scrawl); font-size: 22px; line-height: 1.15; }
+  .skill .h { font-size: 15px; color: #6d5d52; grid-column: 1; }
+  .skill.locked .n { color: #a3968b; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(0,0,0,.25); }
+  .skill button { grid-row: 1 / span 2; grid-column: 2; border: 2px solid var(--ink); border-radius: 8px; background: var(--ink); color: var(--paper); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-size: 14px; padding: 7px 10px; }
+  .skill.new .n::after { content: " NEW"; font-family: var(--ui); font-weight: 700; font-size: 12px; letter-spacing: .1em; color: #fff; background: var(--crimson); padding: 1px 5px; border-radius: 3px; vertical-align: middle; }
+  .stats { font-size: 15px; color: #6d5d52; line-height: 1.5; font-variant-numeric: tabular-nums; }
+  .danger { background: none; border: 1px solid rgba(0,0,0,.3); color: #8a1c22; border-radius: 8px; padding: 8px 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 14px; justify-self: start; }
+
+  input[type="text"] {
+    width: 100%; font-family: var(--display); font-size: 30px; padding: 10px 12px;
+    border-radius: 10px; border: 2px solid var(--edge); background: #120d0c; color: var(--crimson);
+    user-select: text; -webkit-user-select: text;
+  }
+
+  .toast {
+    position: fixed; z-index: 30; left: 50%; bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 20px); opacity: 0; transition: .3s;
+    max-width: calc(100% - 32px); text-align: center;
+    font-family: var(--scrawl); font-size: 20px; color: var(--soot); background: var(--gold);
+    padding: 8px 16px; border-radius: 6px; box-shadow: 3px 3px 0 #000; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0) rotate(-1.5deg); }
+
+  @media (max-height: 640px) {
+    .pedal { min-height: 78px; }
+    .pedal .sw { width: 28px; height: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+  }
+</style>
+
+<div id="app">
+  <header class="marquee">
+    <h1 id="petName">Rockfire</h1>
+    <div class="billing">
+      <span class="tag" id="stageTag">The Egg</span>
+      <span class="age" id="ageLine">Born to roar</span>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <main class="stage" id="stage">
+    <div class="floor"></div>
+    <button class="petbtn" id="petBtn" aria-label="Tap to pet">
+      <img class="bed" id="bed" alt="" hidden>
+      <div class="fig" id="fig">
+        <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
+        <div class="dirt" id="dirt"></div>
+      </div>
+      <span class="fly" hidden></span><span class="fly f2" hidden></span>
+      <img class="mouthbone" id="mouthBone" alt="" hidden>
+    </button>
+    <img class="bone" id="bone" alt="Bone" hidden>
+    <img class="snack" id="snack" alt="" hidden>
+    <img class="tub" id="tub" alt="" hidden>
+    <div class="fetchbar" id="bathBar" hidden><span id="bathLeft">Scrub!</span><button id="bathDone">Done</button></div>
+    <div class="fetchbar" id="fetchBar" hidden><span id="fetchLeft">5 throws left</span><button id="fetchDone">Done</button></div>
+    <div class="fx" id="fx"></div>
+    <div class="speech" id="speech" aria-live="polite"></div>
+    <button class="soundbtn left" id="menuBtn" aria-label="Backstage menu">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="soundbtn" id="soundBtn" aria-label="Mute sound">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="cross" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </main>
+
+  <section class="meters" id="meters" aria-label="How he's doing"></section>
+  <p class="hint" id="eggHint" hidden>Tap the egg to keep it warm</p>
+  <p class="forecast" id="forecast" hidden></p>
+
+  <nav class="pedals" id="pedals">
+    <button class="pedal p-feed" id="btnFeed"><span class="pl">Feed</span><span class="sw"></span><span class="led" id="ledFeed"></span></button>
+    <button class="pedal p-jam" id="btnJam"><span class="pl">Jam</span><span class="sw"></span><span class="led" id="ledJam"></span></button>
+    <button class="pedal p-fetch" id="btnFetch"><span class="pl">Fetch</span><span class="sw"></span><span class="led" id="ledFetch"></span></button>
+    <button class="pedal p-bath" id="btnBath"><span class="pl">Bath</span><span class="sw"></span><span class="led" id="ledBath"></span></button>
+    <button class="pedal p-sleep" id="btnSleep"><span class="pl" id="sleepLabel">Sleep</span><span class="sw"></span><span class="led" id="ledSleep"></span></button>
+    <button class="pedal p-set" id="btnSet"><span class="pl">Skills</span><span class="sw"></span><span class="led" id="ledSet"></span></button>
+  </nav>
+</div>
+
+<div class="sheet" id="feedSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Snack Bar</h2><button class="x" data-close>Close</button></div>
+    <div class="foods">
+      <button class="food" data-food="pepper"><img data-food-img="pepper" alt=""><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+20 FUEL<br>+6 VIBE</em></button>
+      <button class="food" data-food="coal"><img data-food-img="coal" alt=""><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+35 FUEL</em></button>
+      <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+25 FUEL<br>+12 VIBE</em></button>
+      <button class="food" data-food="drink"><img data-food-img="drink" alt=""><strong>Amp Juice</strong><span>Energy drink. Two per six hours, tops.</span><em>+30 ENERGY<br>+4 VIBE</em></button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="jamSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Jam Session</h2><button class="x" data-close>Close</button></div>
+    <p>Hit <b>Strum</b> when the pick crosses the hot zone. Six strums, and it speeds up.</p>
+    <div class="track"><div class="zone" id="zone"></div><div class="pick" id="pick"></div></div>
+    <div class="dots" id="dots"></div>
+    <div class="call" id="call"></div>
+    <button class="big" id="strum">Strum</button>
+  </div>
+</div>
+
+<div class="sheet" id="setSheet" hidden>
+  <div class="panel setlist">
+    <div class="row"><h2>Setlist</h2><button class="x" data-close>Close</button></div>
+    <div id="skillList"></div>
+    <div class="stats" id="statsLine"></div>
+  </div>
+</div>
+
+<div class="sheet" id="nameSheet" hidden>
+  <div class="panel">
+    <h2>He hatched!</h2>
+    <p>Small dragon. Big attitude. What's his stage name?</p>
+    <input type="text" id="nameInput" maxlength="16" value="Rockfire" autocomplete="off" aria-label="Dragon name">
+    <button class="big" id="nameGo">Let's rock</button>
+  </div>
+</div>
+
+<div class="sheet" id="backSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Backstage</h2><button class="x" data-close>Close</button></div>
+    <section class="bs">
+      <h3>Next check-in</h3>
+      <p id="bsForecast"></p>
+      <p class="small">This page can't send alerts to your phone, so this is when he'll next need you.</p>
+    </section>
+    <section class="bs">
+      <h3>Sound</h3>
+      <div class="btns"><button class="pill" id="bsSoundOn">On</button><button class="pill" id="bsSoundOff">Off</button></div>
+    </section>
+    <section class="bs">
+      <h3>Hall of Fame</h3>
+      <ul id="bsHall"></ul>
+      <p id="bsHallEmpty">Empty so far. Every dragon you raise ends up here.</p>
+    </section>
+    <section class="bs">
+      <h3>New game</h3>
+      <p id="bsNewText"></p>
+      <div class="btns" id="bsNewStart"><button class="pill" id="newGameBtn">Start a new game</button></div>
+      <div class="btns" id="bsNewConfirm" hidden>
+        <p style="flex-basis:100%">Are you sure? This can't be undone.</p>
+        <button class="pill warn" id="newGameYes">Yes, new egg</button>
+        <button class="pill" id="newGameNo">Keep him</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="sheet" id="endSheet" hidden>
+  <div class="panel">
+    <h2 id="endTitle">The flame went out</h2>
+    <p id="endText"></p>
+    <button class="big" id="endGo">Start a new egg</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  // ---------- Tuning ----------
+  // #fast plays at 120x speed on a separate save, for previewing the whole life cycle.
+  const SPEED = location.hash === '#fast' ? 120 : 1;
+  const KEY = SPEED > 1 ? 'rockfire.fast.v1' : 'rockfire.save.v1';
+  const EGG_MINUTES = 8;               // passive warmth alone hatches the egg in 8 minutes
+  const TEEN_AT = 48, ADULT_AT = 144;  // care-hours: ~2 days and ~6 days with decent care
+  const NEGLECT_WARN = 24, NEGLECT_FADE = 48, NEGLECT_END = 72; // hours at zero fuel AND zero vibe
+  const DRAIN = { fuel: 8, vibe: 7, energy: 6, clean: 4 };   // per hour awake: ~12-16 hours from full to empty (clean ~25)
+  const SLEEP = { energy: 20, fuel: 3, vibe: 2, clean: 1 };   // per hour asleep
+  const STINKY = 1.5;  // vibe drains this much faster when he's filthy
+
+  const STAGES = {
+    egg:   { title: 'The Egg',     sub: 'A fire legend in the making' },
+    baby:  { title: 'Garage Band', sub: 'Tiny wings. Huge personality.' },
+    teen:  { title: 'Opening Act', sub: 'Rebel. Louder. Hotter.' },
+    adult: { title: 'Headliner',   sub: 'Born to roar. Built to rock.' },
+  };
+  const ORDER = ['egg', 'baby', 'teen', 'adult'];
+  const SCENE = { egg: 'garage', baby: 'garage', teen: 'club', adult: 'arena' };
+  const MOUTH = { baby: [74, 42], teen: [74, 30], adult: [76, 26], egg: [50, 50] };
+
+  const SKILLS = [
+    { id: 'headbang', name: 'Headbang', stage: 'baby', hint: 'Hatch him', pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Rock!!' },
+    { id: 'roar', name: 'Tiny Roar', stage: 'baby', hint: 'Pet him 10 times', prog: s => [s.c.pet, 10], pose: 'happy', anim: 'shake', fx: 'roar', line: 'rawr!' },
+    { id: 'sneeze', name: 'Spark Sneeze', stage: 'baby', hint: 'Feed him 3 ghost peppers', prog: s => [s.c.pepper, 3], pose: 'fire', anim: 'recoil', fx: 'sparks', line: 'ah… ah… CHOO!' },
+    { id: 'smoke', name: 'Smoke Rings', stage: 'teen', hint: 'Grow into an Opening Act', pose: 'idle', anim: '', fx: 'rings', line: 'Pretty cool, huh?' },
+    { id: 'airguitar', name: 'Air Guitar', stage: 'teen', hint: 'Jam 5 times', prog: s => [s.c.jam, 5], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Wheedly-wheedly-WAAAH!' },
+    { id: 'firebreath', name: 'Fire Breath', stage: 'teen', hint: 'Eat 10 ghost peppers', prog: s => [s.c.pepper, 10], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'FWOOOSH!' },
+    { id: 'aircatch', name: 'Air Catch', stage: 'teen', hint: 'Catch 5 bones mid-air', prog: s => [s.c.catch, 5], pose: 'run', anim: 'catch', fx: 'sparks', line: 'Nothing gets past me!' },
+    { id: 'bubbles', name: 'Bubble Breath', stage: 'baby', hint: 'Take 3 baths', prog: s => [s.c.bath || 0, 3], pose: 'happy', anim: 'bounce', fx: 'bubbles', line: 'Blub blub!' },
+    { id: 'glide', name: 'Glide', stage: 'teen', hint: 'Pet him 40 times', prog: s => [s.c.pet, 40], pose: 'happy', anim: 'float', fx: 'sparks', line: 'Look, no feet!' },
+    { id: 'solo', name: 'Flame Solo', stage: 'adult', hint: 'Jam 20 times', prog: s => [s.c.jam, 20], pose: 'happy', anim: 'headbang', fx: 'solo', line: 'Take it away!' },
+    { id: 'chord', name: 'Power Chord Blast', stage: 'adult', hint: 'Land a perfect 6/6 jam', prog: s => [s.best, 6], pose: 'happy', anim: 'shake', fx: 'wave', line: 'KERRRANG!' },
+    { id: 'dive', name: 'Stage Dive', stage: 'adult', hint: 'Grow into a Headliner', pose: 'happy', anim: 'dive', fx: 'sparks', line: 'Catch me!' },
+    { id: 'pyro', name: 'Pyro Show', stage: 'adult', hint: 'Unlock every other skill', pose: 'fire', anim: 'shake', fx: 'pyro', line: 'GOODNIGHT, WEST VIRGINIA!' },
+  ];
+
+  const $ = id => document.getElementById(id);
+  const now = () => Date.now();
+  const clamp = v => Math.max(0, Math.min(100, v));
+
+  // ---------- State ----------
+  function fresh(hall) {
+    const t = now();
+    return {
+      v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
+      stats: { fuel: 85, energy: 90, vibe: 85, clean: 100 }, asleep: false,
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0, drinks: [],
+      skills: [], unseen: [], neglectH: 0, over: false,
+      lastTick: t, savedAt: 0, hall: hall || [],
+    };
+  }
+  function migrate(s) {
+    const base = fresh(s.hall);
+    return Object.assign(base, s, { stats: Object.assign(base.stats, s.stats), c: Object.assign(base.c, s.c) });
+  }
+  let state;
+  try { const raw = localStorage.getItem(KEY); state = raw ? migrate(JSON.parse(raw)) : fresh(); } catch (e) { state = fresh(); }
+
+  // ---------- Cloud backup (private per viewer) ----------
+  let cloud = null, cloudBusy = false, cloudDirty = false, cloudTimer = null;
+  function saveLocal() {
+    state.savedAt = now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function save() { saveLocal(); cloudDirty = true; if (cloud) { clearTimeout(cloudTimer); cloudTimer = setTimeout(flushCloud, 3000); } }
+  async function flushCloud() {
+    if (!cloud || cloudBusy || !cloudDirty) return;
+    cloudBusy = true; cloudDirty = false;
+    try { await cloud.set(JSON.parse(JSON.stringify(state))); }
+    catch (e) { if (e && e.code === 'invalid_argument') cloud = null; else cloudDirty = true; }
+    cloudBusy = false;
+  }
+  async function initCloud() {
+    if (SPEED > 1 || !window.claude || !window.claude.use) return;
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const id = await user.id();
+      if (!id) return;
+      const ref = db.doc('data/users/' + id + '/rockfire');
+      const snap = await ref.get();
+      cloud = ref;
+      const remote = snap.exists ? snap.data() : null;
+      if (remote && remote.v === 1 && (remote.savedAt || 0) > (state.savedAt || 0)) {
+        state = migrate(remote);
+        saveLocal();
+        hatching = false;
+        closeSheets();
+        tick();
+        if (state.stage === 'egg' && state.heat >= 100) hatch();
+      } else if (state.savedAt) {
+        cloudDirty = true; flushCloud();
+      }
+    } catch (e) {}
+  }
+
+  // ---------- Simulation ----------
+  function simulate(t) {
+    let hours = (t - state.lastTick) / 3.6e6 * SPEED;
+    state.lastTick = t;
+    if (hours <= 0 || state.over) return;
+    if (state.stage === 'egg') { state.heat = Math.min(100, state.heat + hours * 6000 / EGG_MINUTES); return; }
+    while (hours > 0) {
+      const h = Math.min(hours, 1 / 12);
+      hours -= h;
+      step(h);
+      if (state.over) return;
+    }
+  }
+  // Drain one slice of time. Returns 'woke' / 'passedout' when sleep flips.
+  function drain(s, asleep, h) {
+    const stink = s.clean < 25 ? STINKY : 1;
+    let flip = null;
+    if (asleep) {
+      s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h * stink; s.clean -= SLEEP.clean * h;
+      if (s.energy >= 100) { s.energy = 100; flip = 'woke'; }
+    } else {
+      s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h * stink; s.energy -= DRAIN.energy * h; s.clean -= DRAIN.clean * h;
+      if (s.energy <= 0) { s.energy = 0; flip = 'passedout'; }
+    }
+    s.fuel = clamp(s.fuel); s.vibe = clamp(s.vibe); s.energy = clamp(s.energy); s.clean = clamp(s.clean);
+    return flip;
+  }
+  function step(h) {
+    const s = state.stats;
+    const flip = drain(s, state.asleep, h);
+    if (flip) { state.asleep = flip === 'passedout'; events.push(flip); }
+    const care = (s.fuel + s.vibe + s.energy) / 300;
+    const rate = (s.fuel === 0 && s.vibe === 0) ? 0 : care > 0.4 ? 1 : care > 0.15 ? 0.6 : 0.25;
+    state.age += h * rate;
+    if (s.fuel === 0 && s.vibe === 0) {
+      state.neglectH += h;
+      if (state.neglectH >= NEGLECT_END) { state.over = true; events.push('over'); }
+    } else state.neglectH = 0;
+    if (state.stage === 'baby' && state.age >= TEEN_AT) { state.stage = 'teen'; events.push('grow'); }
+    if (state.stage === 'teen' && state.age >= ADULT_AT) { state.stage = 'adult'; events.push('grow'); }
+  }
+  const events = [];
+
+  function checkSkills(quiet) {
+    const si = ORDER.indexOf(state.stage);
+    for (const k of SKILLS) {
+      if (state.skills.includes(k.id) || ORDER.indexOf(k.stage) > si) continue;
+      let ok;
+      if (k.id === 'pyro') ok = SKILLS.every(o => o.id === 'pyro' || state.skills.includes(o.id));
+      else if (k.prog) { const [a, b] = k.prog(state); ok = a >= b; }
+      else ok = true;
+      if (ok) {
+        state.skills.push(k.id);
+        state.unseen.push(k.id);
+        if (!quiet) { toast('New skill: ' + k.name + '!'); sfx('unlock'); }
+      }
+    }
+  }
+
+  // ---------- Rendering ----------
+  const els = {
+    name: $('petName'), tag: $('stageTag'), age: $('ageLine'), banner: $('banner'), stage: $('stage'),
+    sprite: $('sprite'), fig: $('fig'), dirt: $('dirt'), fx: $('fx'), speech: $('speech'), meters: $('meters'), hint: $('eggHint'),
+    pedals: $('pedals'),
+  };
+  const METERS = [['fuel', 'Fuel'], ['energy', 'Energy'], ['vibe', 'Vibe'], ['clean', 'Clean']];
+  els.meters.innerHTML = METERS.map(([k, l]) =>
+    `<div class="meter" id="m-${k}"><div class="lab"><span>${l}</span><b></b></div><div class="segs">${'<i></i>'.repeat(10)}</div></div>`
+  ).join('');
+
+  let override = null; // { pose, until }
+  let currentSrc = '';
+  let fetchS = null;   // active fetch round
+  let feeding = false; // a snack is on its way to his mouth
+  let bathS = null;    // active bath
+  // Optional poses fall back to existing art until their images are uploaded.
+  const HAVE = {};
+  const FALLBACK = { run: 'happy', fetch: 'happy', bath: 'idle' };
+  const BONE_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 52"><g stroke="#3a2a22" stroke-width="6"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#f3e7cf"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#5a3b2c" opacity=".55"><circle cx="11" cy="12" r="5"/><circle cx="113" cy="40" r="5"/></g><path d="M66 17 55 28h8l-5 9 12-12h-8z" fill="#f4b942" stroke="#3a2a22" stroke-width="1.5"/></svg>');
+  function pose() {
+    if (state.stage === 'egg') return state.heat >= 100 ? 'egg-hatch' : state.heat >= 50 ? 'egg-cracked' : 'egg-idle';
+    if (override && override.until > now()) return state.stage + '-' + override.pose;
+    override = null;
+    if (state.asleep) return state.stage + '-sleep';
+    const s = state.stats;
+    if (Math.min(s.fuel, s.vibe) < 25 || s.energy < 12) return state.stage + '-sad';
+    return state.stage + '-idle';
+  }
+  function setSprite() {
+    let name = pose();
+    const [stg, p] = name.split('-');
+    if (FALLBACK[p] && !HAVE[name]) name = stg + '-' + FALLBACK[p];
+    const src = 'sprites/' + name + '.webp';
+    if (src !== currentSrc) {
+      currentSrc = src; els.sprite.src = src;
+      els.dirt.style.webkitMaskImage = els.dirt.style.maskImage = `url(${src})`;
+    }
+  }
+  function render() {
+    const s = state.stats, egg = state.stage === 'egg', st = STAGES[state.stage];
+    els.name.textContent = state.name;
+    els.tag.textContent = st.title;
+    if (egg) {
+      els.age.textContent = 'Warmth ' + Math.floor(state.heat) + '%';
+    } else {
+      const day = Math.floor((now() - state.hatchedAt) * SPEED / 864e5) + 1;
+      let next = '';
+      if (state.stage === 'baby') next = ' · Opening Act ' + Math.floor(state.age / TEEN_AT * 100) + '%';
+      else if (state.stage === 'teen') next = ' · Headliner ' + Math.floor((state.age - TEEN_AT) / (ADULT_AT - TEEN_AT) * 100) + '%';
+      else next = ' · ' + state.skills.length + '/' + SKILLS.length + ' skills';
+      els.age.textContent = 'Day ' + day + next;
+    }
+    for (const [k] of METERS) {
+      const m = $('m-' + k), v = egg ? 0 : Math.round(s[k]);
+      m.querySelector('b').textContent = egg ? '–' : v;
+      m.classList.toggle('low', !egg && v < 25);
+      const on = Math.ceil(v / 10);
+      m.querySelectorAll('i').forEach((seg, i) => seg.classList.toggle('on', i < on));
+    }
+    els.meters.hidden = egg;
+    els.hint.hidden = !egg;
+    const fc = egg ? null : forecastText(), fEl = $('forecast');
+    fEl.hidden = !fc;
+    if (fc && fEl.textContent !== fc.text) fEl.textContent = fc.text;
+    fEl.classList.toggle('urgent', !!(fc && fc.urgent));
+    els.pedals.hidden = egg;
+    els.stage.classList.toggle('night', state.asleep && !egg);
+    const inBed = state.asleep && !egg && !override;
+    $('bed').hidden = !inBed;
+    if (inBed) placeBed(); else if (els.fig.style.translate) { els.fig.style.translate = ''; els.fig.style.scale = ''; }
+    const scene = SCENE[state.stage];
+    if (els.stage.dataset.scene !== scene) {
+      els.stage.classList.remove('scene-garage', 'scene-club', 'scene-arena');
+      els.stage.classList.add('scene-' + scene);
+      els.stage.dataset.scene = scene;
+      els.stage.dataset.art = '';
+    }
+    if (HAVE['bg-' + scene] && els.stage.dataset.art !== scene) {
+      els.stage.style.backgroundImage = `url(sprites/bg-${scene}.webp)`;
+      els.stage.classList.add('has-art');
+      els.stage.dataset.art = scene;
+    } else if (!HAVE['bg-' + scene] && els.stage.dataset.art !== '') {
+      els.stage.style.backgroundImage = '';
+      els.stage.classList.remove('has-art');
+      els.stage.dataset.art = '';
+    }
+    $('sleepLabel').textContent = state.asleep ? 'Wake' : 'Sleep';
+    $('ledFeed').className = 'led' + (s.fuel < 25 ? ' on' : '');
+    $('ledJam').className = 'led' + (s.vibe < 25 ? ' on' : '');
+    $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
+    $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
+    $('ledBath').className = 'led' + (s.clean < 25 ? ' on' : '');
+    if (bathS && !bathS.done) $('tub').hidden = !!HAVE[state.stage + '-bath'];  // art may finish loading mid-bath
+    const grime = egg || bathS ? 0 : Math.max(0, (60 - s.clean) / 60);
+    els.dirt.style.opacity = (grime * .9).toFixed(2);
+    const flyTop = { baby: 42, teen: 36, adult: 33 }[state.stage] || 36;
+    document.querySelectorAll('.fly').forEach((f, i) => { f.hidden = egg || !!bathS || s.clean >= 25; f.style.top = (flyTop + i * 7) + '%'; });
+    $('btnFeed').disabled = $('btnJam').disabled = $('btnFetch').disabled = state.asleep || !!fetchS || feeding || !!bathS;
+    $('btnSleep').disabled = $('btnSet').disabled = !!fetchS || !!bathS;
+    $('btnBath').disabled = state.asleep || !!fetchS || feeding || !!bathS;
+    let banner = '';
+    if (!egg && state.neglectH >= NEGLECT_FADE) banner = state.name + ' is fading. Feed him and play with him now, or you could lose him.';
+    else if (!egg && state.neglectH >= NEGLECT_WARN) banner = state.name + ' is sick from hunger and boredom. A snack and a jam will fix it.';
+    els.banner.textContent = banner;
+    els.banner.hidden = !banner;
+    setSprite();
+  }
+
+  // ---------- Sound (synthesized with Web Audio, no files) ----------
+  const Sound = (() => {
+    let ctx = null, master = null, noiseBuf = null, curve = null;
+    let on = true;
+    try { on = localStorage.getItem('rockfire.sound') !== 'off'; } catch (e) {}
+    function ensure() {
+      if (!on) return null;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = .6;
+        const comp = ctx.createDynamicsCompressor();
+        master.connect(comp); comp.connect(ctx.destination);
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        curve = new Float32Array(1024);
+        for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; curve[i] = (1 + 60) * x / (1 + 60 * Math.abs(x)); }
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    function env(g, t, vol, attack, dur) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    }
+    function tone({ t = 0, f, f2, dur = .2, type = 'sine', vol = .2, attack = .008, vib = 0, cut = 0 }) {
+      const c = ensure(); if (!c) return;
+      const s = c.currentTime + t, o = c.createOscillator(), g = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, s);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + dur);
+      if (vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = vib; lg.gain.value = f * .06; l.connect(lg); lg.connect(o.frequency); l.start(s); l.stop(s + dur + .05); }
+      let out = o;
+      if (cut) { const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cut; o.connect(lp); out = lp; }
+      out.connect(g); g.connect(master);
+      env(g, s, vol, attack, dur);
+      o.start(s); o.stop(s + dur + .05);
+    }
+    function noise({ t = 0, dur = .2, vol = .2, type = 'bandpass', f = 1000, f2, q = 1, attack = .005 }) {
+      const c = ensure(); if (!c) return;
+      const s = c.currentTime + t, src = c.createBufferSource(), bq = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = noiseBuf; src.loop = true;
+      bq.type = type; bq.Q.value = q; bq.frequency.setValueAtTime(f, s);
+      if (f2) bq.frequency.exponentialRampToValueAtTime(f2, s + dur);
+      src.connect(bq); bq.connect(g); g.connect(master);
+      env(g, s, vol, attack, dur);
+      src.start(s, Math.random()); src.stop(s + dur + .05);
+    }
+    // Distorted power chord: root, fifth, octave through a waveshaper.
+    function chord(root, t = 0, dur = .5, vol = .22, bright = 2600) {
+      const c = ensure(); if (!c) return;
+      const s = c.currentTime + t, pre = c.createGain(), ws = c.createWaveShaper(), lp = c.createBiquadFilter(), g = c.createGain();
+      pre.gain.value = .5; ws.curve = curve; ws.oversample = '2x';
+      lp.type = 'lowpass'; lp.frequency.value = bright;
+      pre.connect(ws); ws.connect(lp); lp.connect(g); g.connect(master);
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(vol, s + .008);
+      g.gain.exponentialRampToValueAtTime(vol * .45, s + dur * .35);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + dur);
+      [1, 1.4983, 2].forEach(m => {
+        const o = c.createOscillator(); o.type = 'sawtooth';
+        o.frequency.value = root * m; o.detune.value = Math.random() * 10 - 5;
+        o.connect(pre); o.start(s); o.stop(s + dur + .05);
+      });
+    }
+    const E2 = 82.41, A2 = 110, B2 = 123.47, D3 = 146.83, E3 = 164.81, G2 = 98;
+    const PITCH = { egg: 1, baby: 2.2, teen: 1.4, adult: 1 };
+    const fx = {
+      click: () => noise({ dur: .03, vol: .12, type: 'highpass', f: 2500 }),
+      knock: () => { tone({ f: 190, f2: 90, dur: .14, type: 'triangle', vol: .35 }); noise({ dur: .06, vol: .15, type: 'lowpass', f: 900 }); },
+      crack: () => { for (let i = 0; i < 5; i++) noise({ t: i * .045 + Math.random() * .03, dur: .04, vol: .22, f: 2800 + Math.random() * 1500, q: 4 }); },
+      hatch: () => {
+        fx.crack(); fx.crack();
+        [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ t: .25 + i * .09, f, dur: .5, vol: .16, type: 'triangle' }));
+        chord(E2, .75, 1.4, .2);
+      },
+      chirp: (stage) => {
+        if (stage === 'adult') { tone({ f: 95, dur: .45, type: 'sawtooth', vol: .16, vib: 22, cut: 500 }); return; }
+        const p = PITCH[stage] || 1;
+        tone({ f: 520 * p, f2: 800 * p, dur: .1, vol: .14, type: stage === 'teen' ? 'square' : 'sine', cut: 3000 });
+        tone({ t: .12, f: 600 * p, f2: 950 * p, dur: .12, vol: .12, type: stage === 'teen' ? 'square' : 'sine', cut: 3000 });
+      },
+      crunch: () => { for (let i = 0; i < 3; i++) noise({ t: i * .1, dur: .07, vol: .3, f: 1600 + Math.random() * 900, q: 1.5 }); },
+      sizzle: () => noise({ t: .15, dur: .8, vol: .1, type: 'highpass', f: 4500, attack: .05 }),
+      fire: (big) => {
+        noise({ dur: big ? 1.3 : .8, vol: big ? .5 : .35, type: 'lowpass', f: 300, f2: 3200, attack: .08 });
+        noise({ t: .2, dur: big ? 1.1 : .6, vol: .2, type: 'bandpass', f: 1800, f2: 500, q: .7 });
+        tone({ f: 70, f2: 45, dur: big ? 1.2 : .7, type: 'sawtooth', vol: .18, cut: 220 });
+      },
+      roar: (stage) => {
+        const base = { baby: 520, teen: 240, adult: 130 }[stage] || 240;
+        tone({ f: base, f2: base * .55, dur: .8, type: 'sawtooth', vol: .25, vib: 30, cut: base * 6, attack: .04 });
+        noise({ dur: .7, vol: .18, type: 'bandpass', f: base * 3, q: 2, attack: .04 });
+      },
+      sneeze: () => {
+        tone({ f: 700, f2: 1100, dur: .35, vol: .08, type: 'sine', attack: .2 });
+        noise({ t: .4, dur: .25, vol: .45, f: 2600, q: .8 });
+        fx.crack();
+      },
+      puffs: () => { for (let i = 0; i < 4; i++) noise({ t: i * .45, dur: .3, vol: .22, type: 'lowpass', f: 500, f2: 200, attack: .03 }); },
+      whoosh: () => noise({ dur: 1.6, vol: .3, f: 400, f2: 2400, q: .9, attack: .5 }),
+      strum: (mark) => {
+        if (mark === 'miss') { noise({ dur: .08, vol: .3, type: 'lowpass', f: 450 }); chord(E2 * 1.06, 0, .12, .1, 900); return; }
+        const roots = [E2, G2, A2, B2, D3, E3];
+        chord(roots[(jam ? jam.round : 0) % roots.length], 0, mark === 'perfect' ? .9 : .55, mark === 'perfect' ? .26 : .2, mark === 'perfect' ? 3400 : 2200);
+      },
+      cheer: (big) => {
+        noise({ dur: big ? 2.4 : 1.6, vol: big ? .35 : .25, f: 1100, q: .5, attack: .35 });
+        for (let i = 0; i < (big ? 4 : 2); i++) tone({ t: .2 + i * .3 + Math.random() * .2, f: 1900 + Math.random() * 500, f2: 2700, dur: .35, vol: .06 });
+      },
+      wahwah: () => [392, 370, 349, 311].forEach((f, i) => tone({ t: i * .38, f, f2: f * .97, dur: i === 3 ? .9 : .34, type: 'triangle', vol: .18, vib: i === 3 ? 6 : 0, cut: 1400 })),
+      riff: () => [[E2, 0], [E2, .16], [G2, .32], [A2, .48], [E2, .72]].forEach(([r, t]) => chord(r, t, .3, .2)),
+      solo: () => {
+        chord(E2, 0, .6, .22);
+        [659, 784, 880, 988, 1175, 1319, 1175, 1319].forEach((f, i) => tone({ t: .3 + i * .11, f, dur: .2, type: 'sawtooth', vol: .09, cut: 2600, vib: 7 }));
+        fx.fire(false);
+      },
+      blast: () => { chord(E2, 0, 1.8, .3, 3800); chord(E3, 0, 1.8, .12, 3800); tone({ f: 70, f2: 28, dur: .9, vol: .45, type: 'sine' }); },
+      dive: () => { fx.whoosh(); tone({ t: 1.5, f: 80, f2: 30, dur: .6, vol: .45 }); fx.cheer(true); },
+      pyro: () => {
+        [0, .35, .7, 1.05].forEach((t, i) => { tone({ t, f: 90, f2: 30, dur: .5, vol: .4 }); noise({ t, dur: .45, vol: .25, type: 'lowpass', f: 1200, f2: 200 }); if (i === 3) chord(E2, t, 2, .28, 3600); });
+        fx.fire(true);
+        setTimeout(() => fx.cheer(true), 900);
+      },
+      levelUp: () => { [[E2, 0], [A2, .18], [B2, .36], [E3, .54]].forEach(([r, t], i) => chord(r, t, i === 3 ? 1.6 : .3, .24, 3200)); setTimeout(() => fx.cheer(true), 700); },
+      unlock: () => [784, 988, 1175, 1568].forEach((f, i) => tone({ t: i * .08, f, dur: .4, vol: .12, type: 'triangle' })),
+      lullaby: () => [659, 523, 440, 392].forEach((f, i) => tone({ t: i * .32, f, dur: .5, vol: .1 })),
+      yawn: () => tone({ f: 260, f2: 480, dur: .7, vol: .12, type: 'triangle', vib: 5, attack: .2 }),
+      snore: () => noise({ dur: .9, vol: .07, type: 'lowpass', f: 240, attack: .45 }),
+      bubble: () => { const f = 500 + Math.random() * 700; tone({ f, f2: f * 1.7, dur: .07, vol: .08 }); },
+      bubbles: () => { for (let i = 0; i < 8; i++) { const f = 500 + Math.random() * 700; tone({ t: i * .09, f, f2: f * 1.7, dur: .07, vol: .08 }); } },
+      splash: () => { noise({ dur: .7, vol: .35, type: 'lowpass', f: 3000, f2: 500, attack: .02 }); for (let i = 0; i < 6; i++) noise({ t: .1 + i * .08, dur: .05, vol: .12, f: 1500 + Math.random() * 2000, q: 3 }); },
+      sparkle: () => [1568, 2093, 2637, 3136].forEach((f, i) => tone({ t: i * .07, f, dur: .25, vol: .06, type: 'triangle' })),
+      pop: () => { noise({ dur: .05, vol: .3, type: 'highpass', f: 2000 }); noise({ t: .04, dur: .5, vol: .12, type: 'highpass', f: 5000, attack: .02 }); },
+      gulp: () => tone({ f: 180, f2: 90, dur: .14, type: 'sine', vol: .3, attack: .01 }),
+      zap: () => { [440, 660, 880, 1320].forEach((f, i) => tone({ t: i * .06, f, dur: .15, type: 'square', vol: .06, cut: 3000 })); fx.cheer(false); },
+      toss: () => noise({ dur: .35, vol: .22, f: 700, f2: 2600, q: 1.2, attack: .03 }),
+      thud: () => { tone({ f: 150, f2: 60, dur: .16, vol: .35, type: 'triangle' }); noise({ dur: .1, vol: .15, type: 'lowpass', f: 600 }); },
+      patter: (ms, stage) => {
+        const gap = { baby: .11, teen: .15, adult: .19 }[stage] || .15;
+        for (let t = 0; t < ms / 1000 - .05; t += gap) noise({ t, dur: .035, vol: stage === 'adult' ? .16 : .1, type: 'lowpass', f: stage === 'adult' ? 500 : 1100 });
+      },
+      chomp: () => { noise({ dur: .06, vol: .3, f: 1300, q: 1.5 }); noise({ t: .09, dur: .06, vol: .25, f: 1100, q: 1.5 }); tone({ f: 220, f2: 130, dur: .12, type: 'square', vol: .06, cut: 900 }); },
+      catch: () => { fx.chomp(); fx.unlock(); fx.cheer(false); },
+      hearts: () => [1047, 1319].forEach((f, i) => tone({ t: i * .07, f, dur: .18, vol: .06 })),
+      sad: () => [220, 261.6, 329.6].forEach((f, i) => tone({ t: i * .5, f, dur: 2.4 - i * .5, vol: .1, type: 'triangle', cut: 1200 })),
+    };
+    return {
+      get on() { return on; },
+      unlock: ensure,
+      play(name, ...args) { if (!on) return; try { if (ensure()) fx[name](...args); } catch (e) {} },
+      toggle() {
+        on = !on;
+        try { localStorage.setItem('rockfire.sound', on ? 'on' : 'off'); } catch (e) {}
+        if (!on && ctx) ctx.suspend(); else ensure();
+        return on;
+      },
+    };
+  })();
+  const sfx = (name, ...args) => Sound.play(name, ...args);
+  // Audio can only start from a tap; wake it on the first one.
+  document.addEventListener('pointerdown', () => { if (Sound.on) Sound.unlock(); }, { capture: true });
+  document.querySelectorAll('.pedal').forEach(p => p.addEventListener('pointerdown', () => sfx('click')));
+  function drawSoundBtn() {
+    const b = $('soundBtn');
+    b.setAttribute('aria-label', Sound.on ? 'Mute sound' : 'Turn sound on');
+    b.classList.toggle('off', !Sound.on);
+  }
+  $('soundBtn').addEventListener('click', () => { Sound.toggle(); drawSoundBtn(); if (Sound.on) sfx('chirp', state.stage); });
+  drawSoundBtn();
+
+  // ---------- Effects ----------
+  function animate(name) {
+    const f = els.fig;
+    f.className = 'fig';
+    void f.offsetWidth;
+    if (name) f.className = 'fig a-' + name;
+  }
+  els.fig.addEventListener('animationend', e => { if (e.target === els.fig) els.fig.className = 'fig'; });
+  function spawn(el, ms) { els.fx.appendChild(el); setTimeout(() => el.remove(), ms); }
+  function embers(n, x, y, spreadX, spreadY, t = 1.2) {
+    for (let i = 0; i < n; i++) {
+      const e = document.createElement('span');
+      e.className = 'ember';
+      e.style.left = x + '%'; e.style.top = y + '%';
+      e.style.setProperty('--dx', (Math.random() * spreadX - spreadX * .25) + 'px');
+      e.style.setProperty('--dy', (Math.random() * spreadY - spreadY * .7) + 'px');
+      e.style.setProperty('--t', (t * (.6 + Math.random() * .6)) + 's');
+      spawn(e, t * 1300);
+    }
+  }
+  function glyphs(chars, n, color, x = 50, y = 45, cls = '') {
+    for (let i = 0; i < n; i++) {
+      const g = document.createElement('span');
+      g.className = 'glyph ' + cls;
+      g.textContent = chars[i % chars.length];
+      g.style.color = color;
+      g.style.left = (x + Math.random() * 30 - 15) + '%'; g.style.top = (y + Math.random() * 12) + '%';
+      g.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
+      g.style.setProperty('--dy', (-80 - Math.random() * 80) + 'px');
+      g.style.animationDelay = (i * .12) + 's';
+      spawn(g, 2200 + i * 120);
+    }
+  }
+  function rings(n) {
+    const [x, y] = MOUTH[state.stage];
+    for (let i = 0; i < n; i++) {
+      const r = document.createElement('span');
+      r.className = 'ring';
+      r.style.left = x + '%'; r.style.top = y + '%';
+      r.style.setProperty('--dx', (20 + i * 12) + 'px');
+      r.style.animationDelay = (i * .45) + 's';
+      spawn(r, 2400 + i * 450);
+    }
+  }
+  function flash() { const f = document.createElement('div'); f.className = 'flash'; spawn(f, 800); }
+  function wave() { const w = document.createElement('div'); w.className = 'wave'; spawn(w, 1000); }
+  function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+  function fx(kind) {
+    const [x, y] = MOUTH[state.stage];
+    if (kind === 'notes') glyphs(['♪', '♫', '♬'], 6, 'var(--gold)');
+    if (kind === 'roar') { glyphs(['!'], 3, 'var(--crimson)', 60, 30); buzz(120); }
+    if (kind === 'sparks') embers(16, x, y, 140, 120, 1);
+    if (kind === 'flames') { embers(40, x, y, 260, 140, 1.3); flash(); buzz([60, 40, 120]); }
+    if (kind === 'rings') rings(4);
+    if (kind === 'solo') { glyphs(['♪', '♫', '♬'], 8, 'var(--gold)'); embers(30, 50, 55, 240, 260, 1.4); }
+    if (kind === 'wave') { wave(); flash(); buzz(200); }
+    if (kind === 'pyro') {
+      flash(); wave(); buzz([80, 60, 80, 60, 200]);
+      for (let i = 0; i < 6; i++) setTimeout(() => embers(18, 10 + i * 16, 92, 60, 520, 1.6), i * 180);
+      embers(40, x, y, 280, 160, 1.4);
+    }
+    if (kind === 'hearts') glyphs(['♥'], 3, 'var(--crimson)', 50, 35);
+    if (kind === 'bubbles') for (let i = 0; i < 12; i++) {
+      const b = document.createElement('span'), d = 10 + Math.random() * 22;
+      b.className = 'bub rise';
+      b.style.width = b.style.height = d + 'px';
+      b.style.left = x + '%'; b.style.top = y + '%';
+      b.style.setProperty('--dx', (20 + Math.random() * 120) + 'px');
+      b.style.setProperty('--dy', (-60 - Math.random() * 160) + 'px');
+      b.style.setProperty('--t', (1.4 + Math.random()) + 's');
+      b.style.animationDelay = (i * .08) + 's';
+      spawn(b, 3000);
+    }
+  }
+
+  let speechTimer = null;
+  function say(text, ms = 2800) {
+    els.speech.textContent = text;
+    els.speech.classList.add('show');
+    clearTimeout(speechTimer);
+    speechTimer = setTimeout(() => els.speech.classList.remove('show'), ms);
+  }
+  let toastTimer = null;
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+  function show(p, ms) { override = { pose: p, until: now() + ms }; setSprite(); }
+
+  // ---------- Sheets ----------
+  function openSheet(id) { closeSheets(); $(id).hidden = false; }
+  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); }
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+  document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => {
+    if (e.target === s && s.id !== 'nameSheet' && s.id !== 'endSheet') closeSheets();
+  }));
+
+  // ---------- Egg + hatching ----------
+  let lastEggTap = 0, hatching = false;
+  function tapEgg() {
+    const t = now();
+    if (t - lastEggTap < 120) return;
+    lastEggTap = t;
+    state.heat = Math.min(100, state.heat + 3);
+    animate('wobble');
+    embers(4, 50, 60, 120, 120, .9);
+    sfx(state.heat >= 50 ? 'crack' : 'knock');
+    if (state.heat >= 100) hatch();
+    else if (state.heat >= 50 && state.heat < 53) say('Something is moving in there…');
+    render();
+    saveLocal();
+  }
+  function hatch() {
+    if (hatching) return;
+    hatching = true;
+    render();
+    animate('hatch'); flash(); embers(30, 50, 55, 240, 220, 1.3); buzz([60, 40, 160]);
+    sfx('hatch');
+    say('!!!', 1500);
+    setTimeout(() => { openSheet('nameSheet'); const i = $('nameInput'); i.value = state.name || 'Rockfire'; }, 1600);
+  }
+  $('nameGo').addEventListener('click', () => {
+    const n = $('nameInput').value.trim().slice(0, 16) || 'Rockfire';
+    state.name = n;
+    state.stage = 'baby';
+    state.hatchedAt = now();
+    state.lastTick = now();
+    hatching = false;
+    closeSheets();
+    checkSkills(true);
+    render();
+    animate('bounce'); fx('sparks'); sfx('chirp', 'baby');
+    say('Hey! I\'m ' + n + '. Got any snacks?', 3500);
+    save();
+  });
+
+  // ---------- Care actions ----------
+  let lastPet = 0;
+  $('petBtn').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (state.over) return;
+    if (state.stage === 'egg') return tapEgg();
+    if (hatching || fetchS || bathS) return;
+    const t = now();
+    if (state.asleep) { if (t - lastPet > 1500) { sfx('snore'); glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
+    state.stats.vibe = clamp(state.stats.vibe + (t - lastPet > 2500 ? 4 : 1));
+    lastPet = t;
+    state.c.pet++;
+    show('happy', 1300); fx('hearts'); sfx('chirp', state.stage); sfx('hearts');
+    if (Math.random() < .25) say(pick(PET_LINES[state.stage]), 1800);
+    checkSkills(); render(); save();
+  });
+  const PET_LINES = {
+    baby: ['hehe!', 'Again!', 'That tickles!', 'Purrrr… wait, dragons don\'t purr.'],
+    teen: ['Ugh, fine. That\'s nice.', 'Don\'t mess up the hair.', 'OK that\'s actually rad.'],
+    adult: ['Respect.', 'Thanks, boss.', 'You\'re my number one fan.'],
+  };
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+  $('btnFeed').addEventListener('click', () => { if (!state.asleep && !feeding) { drawFoodMenu(); openSheet('feedSheet'); } });
+  const FOOD_SVG = {
+    pepper: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M33 30C19 46 24 76 57 93c6 2 9-3 5-8C51 70 55 51 63 39c4-8-3-14-14-14-7 0-12 1-16 5z" fill="#d7261e" stroke="#4a0e0a" stroke-width="3"/><path d="M38 38c-6 12-3 30 12 44" fill="none" stroke="#ff8a6a" stroke-width="4" stroke-linecap="round" opacity=".6"/><path d="M47 45q5 4 2 10M52 62q4 3 1 8" fill="none" stroke="#8e140e" stroke-width="2.5" stroke-linecap="round"/><path d="M45 26c0-8 6-14 14-16" fill="none" stroke="#3f7d2a" stroke-width="6" stroke-linecap="round"/><path d="M33 29q13-11 30 2-14 5-30-2z" fill="#4f9a34" stroke="#244a17" stroke-width="2"/></svg>'),
+    coal: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="18,62 27,36 50,24 75,31 87,53 78,77 52,85 27,79" fill="#26211f" stroke="#0d0b0a" stroke-width="3"/><polygon points="27,36 50,24 52,46 33,55" fill="#3b3431"/><polygon points="50,24 75,31 70,50 52,46" fill="#312a27"/><polyline points="40,43 50,54 46,64 58,72" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"/><polyline points="64,40 67,52 76,58" fill="none" stroke="#f4b942" stroke-width="2.5" stroke-linecap="round"/><circle cx="36" cy="40" r="2" fill="#fff" opacity=".35"/></svg>'),
+    pizza: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M14 24Q50 8 86 24L50 94z" fill="#f6c34a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><path d="M11 24Q50 2 89 24l-4 9Q50 14 15 33z" fill="#d99a4a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><circle cx="39" cy="42" r="7" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="61" cy="44" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="50" cy="64" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><path d="M30 52q2 8 0 12M66 58q1 6-1 9" fill="none" stroke="#f6c34a" stroke-width="4" stroke-linecap="round"/></svg>'),
+  };
+  FOOD_SVG.drink = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="30" y="16" width="40" height="70" rx="7" fill="#1d1a22" stroke="#0b090e" stroke-width="3"/><rect x="33" y="12" width="34" height="8" rx="3" fill="#b9b3ad" stroke="#6e6862" stroke-width="2"/><rect x="30" y="80" width="40" height="7" rx="3" fill="#b9b3ad" stroke="#6e6862" stroke-width="2"/><path d="M55 26 40 52h11l-6 22 17-30h-11z" fill="#9dff3a" stroke="#0b090e" stroke-width="2" stroke-linejoin="round"/><path d="M35 22v54" stroke="#fff" stroke-width="3" opacity=".25" stroke-linecap="round"/></svg>');
+  const CRUMB = { pepper: ['#d7261e', '#ff7a1a'], coal: ['#26211f', '#3b3431', '#ff7a1a'], pizza: ['#f6c34a', '#d99a4a', '#b3261e'], drink: ['#9dff3a', '#d9ffe0', '#7fd3ff'] };
+  const foodSrc = k => HAVE['food-' + k] ? 'sprites/food-' + k + '.webp' : FOOD_SVG[k];
+  function drawFoodMenu() { document.querySelectorAll('[data-food-img]').forEach(i => { i.src = foodSrc(i.dataset.foodImg); }); }
+  // Where his mouth is, as a fraction of each stage's standing pose.
+  const MOUTH_AT = { baby: [.55, .52], teen: [.62, .27], adult: [.64, .25] };
+  function mouthPx() {
+    const img = els.sprite, sr = els.stage.getBoundingClientRect(), br = $('petBtn').getBoundingClientRect();
+    const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1, k = Math.min(br.width / nw, br.height / nh);
+    const w = nw * k, h = nh * k, left = br.left + (br.width - w) / 2, top = br.top + br.height - h;
+    const [fx, fy] = MOUTH_AT[state.stage] || [.55, .4];
+    return [left + w * fx - sr.left, top + h * fy - sr.top];
+  }
+  function crumbs(kind, x, y) {
+    const cs = CRUMB[kind];
+    for (let i = 0; i < 7; i++) {
+      const c = document.createElement('span');
+      c.className = 'crumb';
+      c.style.left = x + 'px'; c.style.top = y + 'px';
+      c.style.setProperty('--c', cs[i % cs.length]);
+      c.style.setProperty('--dx', (Math.random() * 70 - 35) + 'px');
+      c.style.setProperty('--dy', (40 + Math.random() * 80) + 'px');
+      c.style.setProperty('--t', (.6 + Math.random() * .5) + 's');
+      spawn(c, 1200);
+    }
+  }
+  async function serveFood(kind) {
+    const el = $('snack'), sr = els.stage.getBoundingClientRect();
+    el.src = foodSrc(kind); el.hidden = false;
+    await new Promise(r => requestAnimationFrame(r));
+    const w = el.offsetWidth, h = el.offsetHeight || w;
+    const [mx, my] = mouthPx();
+    const sx = sr.width * .22 - w / 2, sy = sr.height * .9 - h / 2, ex = mx - w / 2, ey = my - h / 2;
+    const frames = [];
+    for (let i = 0; i <= 14; i++) {
+      const t = i / 14, lift = 4 * sr.height * .16 * t * (1 - t);
+      frames.push({ transform: `translate(${sx + (ex - sx) * t}px, ${sy + (ey - sy) * t - lift}px) rotate(${t * 360}deg) scale(${1 - t * .15})` });
+    }
+    sfx('toss');
+    if (kind === 'drink') setTimeout(() => sfx('pop'), 500);
+    await el.animate(frames, { duration: 650, easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
+    // Three bites.
+    for (const sc of [.65, .35, 0]) {
+      el.getAnimations().forEach(a => a.cancel());
+      el.style.transform = `translate(${ex}px, ${ey}px) scale(${Math.max(sc, .01) * .85}) rotate(${sc * 40 - 20}deg)`;
+      sfx(kind === 'drink' ? 'gulp' : 'chomp'); if (kind !== 'drink') animate('shake');
+      crumbs(kind, mx, my);
+      if (kind === 'pepper') embers(5, mx / sr.width * 100, my / sr.height * 100, 60, 60, .7);
+      await wait(260);
+    }
+    el.hidden = true; el.style.transform = '';
+  }
+  const FOODS = {
+    pepper: { fuel: 20, vibe: 6, mess: 3, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
+    coal: { fuel: 35, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
+    pizza: { fuel: 25, vibe: 12, mess: 4, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
+    drink: { fuel: 0, vibe: 4, energy: 30, pose: 'happy', fx: 'sparks', line: ['WIDE AWAKE!', 'Let\'s ROCK!', 'I can hear colors!'] },
+  };
+  document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', async () => {
+    const f = FOODS[b.dataset.food];
+    closeSheets();
+    if (feeding) return;
+    const kind = b.dataset.food;
+    if (kind === 'drink') {
+      // Two cans per six hours, so sleep still matters.
+      state.drinks = (state.drinks || []).filter(t => (now() - t) * SPEED < 6 * 3.6e6);
+      if (state.drinks.length >= 2) { say('I\'m buzzing. I need actual sleep.'); return; }
+      if (state.stats.energy >= 95) { say('Already fully charged!'); return; }
+      state.drinks.push(now());
+    } else if (state.stats.fuel >= 95) { say('I\'m stuffed. Maybe later?'); return; }
+    feeding = true; render();
+    override = { pose: 'idle', until: Infinity }; setSprite();
+    say(kind === 'drink' ? pick(['Is that Amp Juice?!', 'Ooh, fizzy!']) : pick(['Ooh, snack!', 'Gimme!', 'Is that for me?']), 1200);
+    await serveFood(b.dataset.food);
+    feeding = false; override = null;
+    state.stats.fuel = clamp(state.stats.fuel + f.fuel);
+    state.stats.vibe = clamp(state.stats.vibe + f.vibe);
+    state.stats.energy = clamp(state.stats.energy + (f.energy || 0));
+    state.stats.clean = clamp(state.stats.clean - (f.mess || 0));
+    state.c[kind] = (state.c[kind] || 0) + 1;
+    show(f.pose, 1800); animate('bounce');
+    fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
+    if (kind === 'pepper') { sfx('sizzle'); setTimeout(() => sfx('fire', false), 350); }
+    else if (kind === 'drink') { sfx('zap'); animate('shake'); }
+    else sfx('chirp', state.stage);
+    say(pick(f.line));
+    checkSkills(); render(); save();
+  }));
+
+  $('btnSleep').addEventListener('click', () => {
+    if (state.asleep) {
+      state.asleep = false;
+      say(state.stats.energy < 40 ? 'Huh? I\'m up… barely.' : 'Rested and ready to rock!');
+      sfx('yawn');
+    } else {
+      state.asleep = true;
+      glyphs(['z', 'Z', 'z'], 3, '#c9d2ff', 55, 25, 'zzz');
+      say('Night night…', 1600);
+      sfx('lullaby');
+    }
+    override = null; render(); save();
+  });
+
+  // ---------- Jam mini-game ----------
+  let jam = null, raf = 0;
+  $('btnJam').addEventListener('click', () => {
+    if (state.asleep) return;
+    if (state.stats.energy < 10) { say('Too tired to jam… need sleep.'); return; }
+    openSheet('jamSheet');
+    jam = { round: 0, hits: 0, perfect: 0, pos: 0, dir: 1, speed: .8, w: .26, l: 0, done: false, last: performance.now(), marks: [] };
+    newZone();
+    $('call').textContent = 'Ready…';
+    $('strum').textContent = 'Strum';
+    drawDots();
+    raf = requestAnimationFrame(jamLoop);
+  });
+  function newZone() { jam.l = .08 + Math.random() * (.84 - jam.w); const z = $('zone'); z.style.left = jam.l * 100 + '%'; z.style.width = jam.w * 100 + '%'; }
+  function drawDots() { $('dots').innerHTML = Array.from({ length: 6 }, (_, i) => `<i class="${jam.marks[i] || ''}"></i>`).join(''); }
+  function jamLoop(t) {
+    if (!jam || jam.done) return;
+    const dt = Math.min(.05, (t - jam.last) / 1000); jam.last = t;
+    jam.pos += jam.dir * jam.speed * dt;
+    if (jam.pos > 1) { jam.pos = 1; jam.dir = -1; }
+    if (jam.pos < 0) { jam.pos = 0; jam.dir = 1; }
+    $('pick').style.left = jam.pos * 100 + '%';
+    raf = requestAnimationFrame(jamLoop);
+  }
+  function stopJam() { cancelAnimationFrame(raf); jam = null; }
+  $('strum').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (!jam) return;
+    if (jam.done) { closeSheets(); return; }
+    const c = jam.l + jam.w / 2, d = Math.abs(jam.pos - c);
+    let mark = 'miss', call = pick(['Clunk.', 'Whoops!', 'Off-beat!']);
+    if (d <= jam.w * .16) { mark = 'perfect'; jam.perfect++; jam.hits++; call = pick(['PERFECT!', 'Face-melter!', 'SHRED!']); buzz(40); }
+    else if (d <= jam.w / 2) { mark = 'hit'; jam.hits++; call = pick(['Nice!', 'Rockin\'!', 'Yeah!']); buzz(20); }
+    sfx('strum', mark);
+    jam.marks.push(mark); jam.round++;
+    $('call').textContent = call;
+    drawDots();
+    if (jam.round >= 6) return finishJam();
+    jam.speed *= 1.14; jam.w = Math.max(.1, jam.w * .88);
+    newZone();
+  });
+  function finishJam() {
+    jam.done = true;
+    const h = jam.hits, p = jam.perfect;
+    state.stats.vibe = clamp(state.stats.vibe + 6 + h * 5 + p * 3);
+    state.stats.energy = clamp(state.stats.energy - 8);
+    state.c.jam++;
+    state.stats.clean = clamp(state.stats.clean - 2);
+    state.best = Math.max(state.best, h);
+    $('call').textContent = h + '/6 — ' + (h === 6 ? 'Legendary!' : h >= 4 ? 'The crowd went wild!' : h >= 2 ? 'Solid set.' : 'Rough night. Try again!');
+    $('strum').textContent = 'Done';
+    show(h >= 3 ? 'happy' : 'idle', 2200); animate(h >= 3 ? 'headbang' : '');
+    if (h >= 3) fx('notes');
+    setTimeout(() => sfx(h >= 3 ? 'cheer' : 'wahwah', h >= 5), 500);
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Fetch mini-game ----------
+  const HAND = { x: 36, y: 92 }, WAIT = { x: 70, y: 80 };
+  const RUN_SPEED = { baby: 42, teen: 60, adult: 75 };   // stage-% per second
+  const CATCH_ODDS = { baby: .25, teen: .45, adult: .6 };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const boneEl = $('bone'), mouthEl = $('mouthBone');
+  let facing = 1, dpos = { x: 50, y: 95 };
+  function depth(y) { return .32 + (y - 58) / 37 * .34; }
+  function placeDragon(x, y, ms) {
+    const r = els.stage.getBoundingClientRect(), s = depth(y), b = $('petBtn');
+    b.style.transition = ms ? `transform ${ms}ms linear` : 'transform .35s ease';
+    b.style.transform = `translate(${(x - 50) / 100 * r.width}px, ${(y - 95) / 100 * r.height}px) scale(${s})`;
+    b.style.scale = facing < 0 ? '-1 1' : '1 1';  // separate property, so turning around is instant
+    dpos = { x, y };
+  }
+  function bonePx(x, y) {
+    const r = els.stage.getBoundingClientRect();
+    return [x / 100 * r.width - boneEl.offsetWidth / 2, y / 100 * r.height - boneEl.offsetHeight / 2];
+  }
+  function placeBone(x, y, rot, sc) { const [px, py] = bonePx(x, y); boneEl.style.transform = `translate(${px}px, ${py}px) rotate(${rot}deg) scale(${sc})`; }
+  function flyBone(to, apexPct, ms) {
+    const r = els.stage.getBoundingClientRect(), frames = [], N = 18, endScale = depth(to.y) / depth(HAND.y);
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, x = HAND.x + (to.x - HAND.x) * t, y = HAND.y + (to.y - HAND.y) * t;
+      const [px, py] = bonePx(x, y), lift = 4 * apexPct / 100 * r.height * t * (1 - t);
+      frames.push({ transform: `translate(${px}px, ${py - lift}px) rotate(${t * 900}deg) scale(${1 + (endScale - 1) * t})` });
+    }
+    const a = boneEl.animate(frames, { duration: ms, easing: 'linear', fill: 'forwards' });
+    return a;
+  }
+  function runTo(x, y) {
+    const dist = Math.hypot(x - dpos.x, (y - dpos.y) * .7);
+    const ms = Math.max(250, dist / RUN_SPEED[state.stage] * 1000);
+    facing = x < dpos.x - 1 ? -1 : x > dpos.x + 1 ? 1 : facing;
+    override = { pose: 'run', until: Infinity }; setSprite();
+    els.fig.className = 'fig a-run';
+    placeDragon(x, y, ms);
+    sfx('patter', ms, state.stage);
+    return wait(ms);
+  }
+  function stopRun(p) { els.fig.className = 'fig'; override = { pose: p, until: Infinity }; setSprite(); }
+  function drawFetchBar() { const left = 5 - fetchS.throws; $('fetchLeft').textContent = left + (left === 1 ? ' throw left' : ' throws left'); }
+
+  $('btnFetch').addEventListener('click', () => {
+    if (state.asleep || fetchS) return;
+    if (state.stats.energy < 10) { say('Too tired to run… need sleep.'); return; }
+    fetchS = { throws: 0, catches: 0, busy: false, start: null };
+    els.stage.classList.add('fetching');
+    boneEl.src = HAVE.bone ? 'sprites/bone.webp' : BONE_SVG;
+    mouthEl.src = boneEl.src;
+    boneEl.hidden = false; $('fetchBar').hidden = false;
+    drawFetchBar();
+    facing = 1; stopRun('idle');
+    placeDragon(WAIT.x, WAIT.y);
+    placeBone(HAND.x, HAND.y, -20, 1);
+    say('Swipe up to throw!', 2200);
+    sfx('chirp', state.stage);
+    render();
+  });
+  $('fetchDone').addEventListener('click', () => { if (fetchS && !fetchS.busy) endFetch(); });
+
+  els.stage.addEventListener('pointerdown', e => {
+    if (!fetchS || fetchS.busy || e.target.closest('.soundbtn, .fetchbar')) return;
+    fetchS.start = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  els.stage.addEventListener('pointerup', e => {
+    if (!fetchS || fetchS.busy || !fetchS.start) return;
+    const st = fetchS.start; fetchS.start = null;
+    const r = els.stage.getBoundingClientRect();
+    const dx = e.clientX - st.x, dy = e.clientY - st.y, dt = Math.max(16, performance.now() - st.t);
+    let tx, ty, power;
+    if (Math.hypot(dx, dy) > 25 && dy < 0) {
+      power = Math.max(.25, Math.min(1, (Math.hypot(dx, dy) / dt - .2) / 1.3));
+      ty = 90 - power * 31;
+      tx = HAND.x + dx / Math.max(40, -dy) * 38;
+    } else {
+      tx = (e.clientX - r.left) / r.width * 100;
+      ty = Math.max(60, Math.min(92, (e.clientY - r.top) / r.height * 100));
+      power = Math.max(.25, Math.min(1, (93 - ty) / 30));
+    }
+    doThrow(Math.max(8, Math.min(92, tx)), ty, power);
+  });
+  els.stage.addEventListener('pointercancel', () => { if (fetchS) fetchS.start = null; });
+
+  async function doThrow(tx, ty, power) {
+    if (state.stats.energy < 6) { endFetch(); say('Too tired… need sleep.'); return; }
+    fetchS.busy = true; fetchS.throws++; drawFetchBar();
+    const flight = 520 + power * 560;
+    const catching = power > .55 && Math.random() < CATCH_ODDS[state.stage] * (state.stats.energy > 30 ? 1 : .6);
+    sfx('toss');
+    const anim = flyBone({ x: tx, y: ty }, 16 + power * 26, flight);
+    if (catching) {
+      facing = tx < dpos.x ? -1 : 1;
+      override = { pose: 'run', until: Infinity }; setSprite(); els.fig.className = 'fig a-run';
+      placeDragon(tx, ty, flight - 120);
+      sfx('patter', flight - 120, state.stage);
+      await wait(flight - 120);
+      stopRun('run'); animate('catch');
+      await wait(110);
+      anim.cancel(); boneEl.hidden = true;
+      fetchS.catches++; state.c.catch++;
+      sfx('catch'); fx('sparks');
+      say(pick(['CAUGHT IT!', 'Mid-air!', 'Too easy.']), 1600);
+      await wait(450);
+    } else {
+      await anim.finished.catch(() => {});
+      placeBone(tx, ty, 0, depth(ty) / depth(HAND.y)); anim.cancel();
+      sfx('thud');
+      say(pick(['!', 'Mine!', 'Bone!!']), 900);
+      await wait(280);
+      await runTo(tx, ty);
+      boneEl.hidden = true;
+      sfx('chomp');
+    }
+    stopRun('fetch');
+    mouthEl.hidden = HAVE[state.stage + '-fetch'];
+    await wait(380);
+    await runTo(WAIT.x, WAIT.y);
+    // Drop it at your feet.
+    mouthEl.hidden = true;
+    facing = 1; placeDragon(WAIT.x, WAIT.y);
+    stopRun('happy'); animate('bounce');
+    boneEl.hidden = false;
+    placeBone(HAND.x, HAND.y, -20, 1);
+    sfx('thud'); fx('hearts'); sfx('chirp', state.stage);
+    state.stats.vibe = clamp(state.stats.vibe + 5 + (catching ? 4 : 0));
+    state.stats.energy = clamp(state.stats.energy - 3);
+    state.stats.fuel = clamp(state.stats.fuel - 1);
+    state.c.fetch++;
+    state.stats.clean = clamp(state.stats.clean - 4);
+    checkSkills(); render(); save();
+    await wait(700);
+    if (!fetchS) return;
+    fetchS.busy = false;
+    override = { pose: 'idle', until: Infinity }; setSprite();
+    if (fetchS.throws >= 5) endFetch();
+  }
+  function endFetch() {
+    if (!fetchS) return;
+    const { throws, catches } = fetchS;
+    fetchS = null;
+    els.stage.classList.remove('fetching');
+    boneEl.hidden = true; mouthEl.hidden = true; $('fetchBar').hidden = true;
+    els.fig.className = 'fig';
+    facing = 1;
+    const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = ''; b.style.scale = '';
+    dpos = { x: 50, y: 95 };
+    override = null;
+    if (throws) {
+      toast('Fetched ' + throws + (catches ? ' · ' + catches + ' air catch' + (catches > 1 ? 'es' : '') : ''));
+      say(pick(['Again tomorrow?', 'Best. Game. Ever.', 'I\'m a good dragon.']));
+    }
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Bed ----------
+  const BED_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 110"><rect x="6" y="40" width="188" height="66" rx="8" fill="#1c1917" stroke="#0b0908" stroke-width="4"/><rect x="16" y="54" width="168" height="42" rx="4" fill="#2e2724"/><path d="M16 61h168M16 68h168M16 75h168M16 82h168M16 89h168" stroke="#3a322e" stroke-width="2"/><rect x="10" y="45" width="180" height="3" fill="#f4b942"/><path d="M104 60 94 76h8l-5 13 13-18h-8z" fill="#f4b942"/><rect x="10" y="22" width="180" height="22" rx="10" fill="#efe6d6" stroke="#3a2a22" stroke-width="3"/><ellipse cx="38" cy="24" rx="26" ry="11" fill="#fff" stroke="#3a2a22" stroke-width="3"/><path d="M74 26h116v20c-10 8-19-6-29 2s-19-6-29 2-19-6-29 2-19-6-29 2z" fill="#c8232c" stroke="#3a2a22" stroke-width="3"/><path d="M132 30l-6 9h5l-3 7 8-10h-5z" fill="#f4b942"/></svg>');
+  // How high the mattress top sits, as a fraction of the bed's height from the bottom.
+  const BED_TOP = { art: .45, svg: .5 };
+  function placeBed() {
+    const bedEl = $('bed'), art = !!HAVE.bed, src = art ? 'sprites/bed.webp' : BED_SVG;
+    if (bedEl.dataset.src !== src) { bedEl.src = src; bedEl.dataset.src = src; }
+    const b = $('petBtn'), W = b.clientWidth, H = b.clientHeight, img = els.sprite;
+    if (!img.naturalWidth || !W) return;
+    const rw = img.naturalWidth * Math.min(W / img.naturalWidth, H / img.naturalHeight);
+    const ar = art ? (bedEl.naturalHeight / bedEl.naturalWidth || .6) : 110 / 200;
+    const bw = Math.min(W * .96, rw * .82), lift = bw * ar * (art ? BED_TOP.art : BED_TOP.svg);
+    bedEl.style.width = bw + 'px';
+    els.fig.style.translate = `0 ${-lift}px`;
+    els.fig.style.scale = '.85';
+  }
+
+  // ---------- Bath ----------
+  const TUB_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 104"><g fill="#fff" stroke="#9cc9dc" stroke-width="2"><circle cx="30" cy="30" r="14"/><circle cx="52" cy="22" r="17"/><circle cx="78" cy="28" r="13"/><circle cx="104" cy="20" r="18"/><circle cx="130" cy="27" r="14"/><circle cx="154" cy="21" r="16"/><circle cx="174" cy="30" r="12"/></g><rect x="4" y="34" width="192" height="12" rx="6" fill="#fbf8f2" stroke="#3a2a22" stroke-width="4"/><path d="M12 46h176c0 28-22 44-52 44H64C34 90 12 74 12 46z" fill="#f2efe9" stroke="#3a2a22" stroke-width="4"/><path d="M30 54c4 16 16 26 36 28" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/><g fill="#f4b942" stroke="#3a2a22" stroke-width="3"><path d="M44 86l-8 14h16z"/><path d="M156 86l-8 14h16z"/></g></svg>');
+  function drawBathBar() { $('bathLeft').textContent = 'Scrub! ' + Math.floor(state.stats.clean) + '%'; }
+  $('btnBath').addEventListener('click', () => {
+    if (state.asleep || bathS || fetchS || feeding) return;
+    if (state.stats.clean >= 95) { say(pick(['Already squeaky clean!', 'I just had a bath!'])); return; }
+    bathS = { last: null, moved: 0, n: 0, done: false };
+    els.stage.classList.add('bathing');
+    const tub = $('tub');
+    tub.src = TUB_SVG; tub.hidden = !!HAVE[state.stage + '-bath'];
+    $('bathBar').hidden = false; drawBathBar();
+    override = { pose: 'bath', until: Infinity }; setSprite();
+    say(pick(['Bath time?! Fine…', 'Is the water warm?', 'No shampoo in the eyes!']), 2200);
+    sfx('splash');
+    render();
+  });
+  $('bathDone').addEventListener('click', () => { if (bathS && !bathS.done) endBath(); });
+  function scrubAt(x, y) {
+    state.stats.clean = clamp(state.stats.clean + 1.5);
+    bathS.n++;
+    if (els.fx.querySelectorAll('.bub.foam').length < 45) {
+      const b = document.createElement('span'), d = 14 + Math.random() * 26;
+      b.className = 'bub foam';
+      b.style.width = b.style.height = d + 'px';
+      b.style.left = (x - d / 2) + 'px'; b.style.top = (y - d / 2) + 'px';
+      els.fx.appendChild(b);
+    }
+    if (bathS.n % 2) sfx('bubble');
+    drawBathBar(); render();
+    if (state.stats.clean >= 100) rinse();
+  }
+  els.stage.addEventListener('pointerdown', e => {
+    if (!bathS || bathS.done || e.target.closest('.soundbtn, .fetchbar')) return;
+    bathS.last = { x: e.clientX, y: e.clientY };
+  });
+  els.stage.addEventListener('pointermove', e => {
+    if (!bathS || bathS.done || !bathS.last) return;
+    bathS.moved += Math.hypot(e.clientX - bathS.last.x, e.clientY - bathS.last.y);
+    bathS.last = { x: e.clientX, y: e.clientY };
+    const r = els.stage.getBoundingClientRect();
+    while (bathS.moved >= 34 && !bathS.done) { bathS.moved -= 34; scrubAt(e.clientX - r.left, e.clientY - r.top); }
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => els.stage.addEventListener(t, () => { if (bathS) bathS.last = null; }));
+  async function rinse() {
+    bathS.done = true;
+    $('bathBar').hidden = true;
+    sfx('splash');
+    const r = els.stage.getBoundingClientRect();
+    for (let i = 0; i < 26; i++) {
+      const d = document.createElement('span');
+      d.className = 'drop';
+      d.style.left = (Math.random() * 100) + '%';
+      d.style.setProperty('--dy', (r.height + 40) + 'px');
+      d.style.setProperty('--t', (.6 + Math.random() * .5) + 's');
+      d.style.animationDelay = (Math.random() * .5) + 's';
+      spawn(d, 1700);
+    }
+    await wait(700);
+    els.fx.querySelectorAll('.bub.foam').forEach(b => { b.classList.add('gone'); setTimeout(() => b.remove(), 550); });
+    $('tub').hidden = true;
+    override = { pose: 'happy', until: Infinity }; setSprite();
+    animate('shake'); sfx('sparkle'); fx('sparks');
+    state.stats.vibe = clamp(state.stats.vibe + 8);
+    state.c.bath = (state.c.bath || 0) + 1;
+    say(pick(['Squeaky clean!', 'I\'m shining like a Flying V!', 'Fresh as a new set of strings.']), 2400);
+    await wait(1500);
+    endBath();
+  }
+  function endBath() {
+    if (!bathS) return;
+    bathS = null;
+    els.stage.classList.remove('bathing');
+    $('tub').hidden = true; $('bathBar').hidden = true;
+    els.fx.querySelectorAll('.bub.foam').forEach(b => b.remove());
+    override = null;
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Setlist ----------
+  $('btnSet').addEventListener('click', () => { drawSetlist(); openSheet('setSheet'); state.unseen = []; render(); save(); });
+  function drawSetlist() {
+    const si = ORDER.indexOf(state.stage);
+    let html = '';
+    for (const stg of ['baby', 'teen', 'adult']) {
+      html += `<h3>${STAGES[stg].title}</h3>`;
+      for (const k of SKILLS.filter(s => s.stage === stg)) {
+        const has = state.skills.includes(k.id);
+        let hint = k.hint;
+        if (!has && ORDER.indexOf(stg) > si) hint = 'Unlocks as ' + STAGES[stg].title;
+        else if (!has && k.prog) { const [a, b] = k.prog(state); hint += ` (${Math.min(a, b)}/${b})`; }
+        else if (has) hint = 'Tap Play to perform';
+        html += `<div class="skill${has ? '' : ' locked'}${state.unseen.includes(k.id) ? ' new' : ''}"><span class="n">${k.name}</span><span class="h">${hint}</span>${has ? `<button data-skill="${k.id}">Play</button>` : ''}</div>`;
+      }
+    }
+    $('skillList').innerHTML = html;
+    $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
+    const c = state.c;
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
+      (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
+  }
+  const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
+  let lastPerform = {};
+  function perform(id) {
+    const k = SKILLS.find(s => s.id === id);
+    closeSheets();
+    if (state.asleep) { say('He\'s asleep. Wake him first.'); return; }
+    show(k.pose, k.anim === 'dive' || k.anim === 'float' ? 2500 : 2200);
+    animate(k.anim); fx(k.fx);
+    sfx(SKILL_SFX[k.id], state.stage);
+    say(k.line, 2400);
+    if (!lastPerform[id] || now() - lastPerform[id] > 30000) {
+      state.stats.vibe = clamp(state.stats.vibe + 5);
+      state.stats.energy = clamp(state.stats.energy - 3);
+    }
+    lastPerform[id] = now();
+    state.c.perform++;
+    render(); save();
+  }
+  // ---------- Backstage: check-in forecast, sound, hall of fame, new game ----------
+  function forecast() {
+    if (state.stage === 'egg' || state.over) return null;
+    const s = { ...state.stats }, h = 1 / 12;
+    let asleep = state.asleep;
+    const low = () => s.fuel < 25 ? 'hungry' : s.vibe < 25 ? 'bored' : s.clean < 25 ? 'grimy' : null;
+    if (low()) return { now: true, what: low() };
+    for (let t = h; t <= 72; t += h) {
+      const flip = drain(s, asleep, h);
+      if (flip) asleep = flip === 'passedout';
+      if (low()) return { hours: t, what: low() };
+    }
+    return null;
+  }
+  function whenText(hours) {
+    const d = new Date(Math.round((now() + hours * 3.6e6 / SPEED) / 3e5) * 3e5);
+    const tm = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const today = new Date(), tmrw = new Date(); tmrw.setDate(today.getDate() + 1);
+    if (d.toDateString() === today.toDateString()) return tm;
+    if (d.toDateString() === tmrw.toDateString()) return 'tomorrow ' + tm;
+    return d.toLocaleDateString([], { weekday: 'long' }) + ' ' + tm;
+  }
+  function forecastText() {
+    const f = forecast();
+    if (!f) return null;
+    if (f.now) return { text: 'He needs you now: he\'s ' + f.what + '.', urgent: true };
+    return { text: 'Check back by ' + whenText(f.hours) + ' · he\'ll be ' + f.what, urgent: false };
+  }
+  function drawBackstage() {
+    const fc = forecastText();
+    $('bsForecast').textContent = state.stage === 'egg' ? 'Nothing yet. Eggs just need warmth.' : fc ? fc.text : 'He\'s all set for now.';
+    $('bsSoundOn').setAttribute('aria-pressed', String(Sound.on));
+    $('bsSoundOff').setAttribute('aria-pressed', String(!Sound.on));
+    const ul = $('bsHall');
+    ul.textContent = '';
+    for (const h of state.hall.slice().reverse()) {
+      const li = document.createElement('li');
+      li.textContent = h.name + ' · ' + (STAGES[h.stage] ? STAGES[h.stage].title : h.stage) + ' · ' + h.skills + ' skill' + (h.skills === 1 ? '' : 's') + (h.end === 'faded' ? ' · faded' : '');
+      ul.appendChild(li);
+    }
+    ul.hidden = !state.hall.length;
+    $('bsHallEmpty').hidden = !!state.hall.length;
+    $('bsNewText').textContent = state.stage === 'egg'
+      ? 'Swap this egg for a fresh one.'
+      : 'Say goodbye to ' + state.name + ' and start over with a fresh egg. He\'ll join the Hall of Fame.';
+    $('bsNewStart').hidden = false;
+    $('bsNewConfirm').hidden = true;
+  }
+  $('menuBtn').addEventListener('click', () => { if (fetchS || feeding || hatching || bathS) return; drawBackstage(); openSheet('backSheet'); });
+  $('bsSoundOn').addEventListener('click', () => { if (!Sound.on) { Sound.toggle(); drawSoundBtn(); sfx('chirp', state.stage); } drawBackstage(); });
+  $('bsSoundOff').addEventListener('click', () => { if (Sound.on) { Sound.toggle(); drawSoundBtn(); } drawBackstage(); });
+  $('newGameBtn').addEventListener('click', () => { $('bsNewStart').hidden = true; $('bsNewConfirm').hidden = false; });
+  $('newGameNo').addEventListener('click', () => { $('bsNewStart').hidden = false; $('bsNewConfirm').hidden = true; });
+  $('newGameYes').addEventListener('click', () => newEgg(false));
+  function newEgg(fromEnd) {
+    const hall = state.hall.slice(-9);
+    if (state.stage !== 'egg') hall.push({ name: state.name, stage: state.stage, skills: state.skills.length, end: fromEnd ? 'faded' : 'retired' });
+    state = fresh(hall);
+    hatching = false;
+    closeSheets(); override = null; render(); save();
+    say('A new egg… it\'s warm.', 2500);
+  }
+
+  function showEnd() {
+    $('endTitle').textContent = state.name + '\'s flame went out';
+    $('endText').textContent = 'He waited three days for a snack and a song. Every legend deserves an encore, and a new egg is already warm.';
+    openSheet('endSheet');
+    sfx('sad');
+  }
+  $('endGo').addEventListener('click', () => newEgg(true));
+
+  // ---------- Loop ----------
+  let chatterAt = now() + 20000;
+  function tick() {
+    const wasStage = state.stage;
+    simulate(now());
+    while (events.length) {
+      const ev = events.shift();
+      if (ev === 'woke') { say('Rested and ready to rock!'); if (!document.hidden) sfx('yawn'); }
+      if (ev === 'passedout') { say('Can\'t… keep… eyes… open… zzz'); if (!document.hidden) sfx('snore'); }
+      if (ev === 'over') showEnd();
+    }
+    if (state.stage !== wasStage && wasStage !== 'egg') {
+      toast('Level up: ' + STAGES[state.stage].title + '!');
+      animate('bounce'); flash(); embers(30, 50, 55, 260, 240, 1.3); sfx('levelUp');
+      say(STAGES[state.stage].sub, 3200);
+    }
+    if (state.stage !== 'egg') checkSkills();
+    if (state.stage === 'egg' && state.heat >= 100 && !hatching) hatch();
+    if (state.over && $('endSheet').hidden) showEnd();
+    render();
+    if (state.asleep && Math.random() < .12) glyphs(['z', 'Z'], 1, '#c9d2ff', 58, 22, 'zzz');
+    if (state.asleep && state.stage !== 'egg' && !document.hidden && Math.random() < .07) sfx('snore');
+    if (now() > chatterAt && !state.asleep && state.stage !== 'egg') {
+      chatterAt = now() + 25000 + Math.random() * 20000;
+      const s = state.stats;
+      if (s.fuel < 25) say(pick(['I\'m starving…', 'Got a pepper? Anything?', 'Tummy\'s rumbling like a bass amp.']));
+      else if (s.vibe < 25) say(pick(['Bored. Play me something.', 'Let\'s jam!', 'Is the show cancelled?']));
+      else if (s.clean < 25) say(pick(['I smell like a tour bus.', 'Bath? Maybe?', 'These flies are my fans now.']));
+      else if (s.energy < 20) say(pick(['*yawn*', 'Need a nap…']));
+      else say(pick(IDLE_LINES[state.stage]));
+    }
+  }
+  const IDLE_LINES = {
+    baby: ['Is it showtime yet?', 'I can almost breathe fire!', 'Rawr! (that was scary, right?)', 'Can I have a guitar?'],
+    teen: ['Turn it up!', 'I\'m basically famous.', 'Whatever. Wanna jam?', 'Smells like smoke in here. Nice.'],
+    adult: ['Born to roar.', 'Sound check, one two…', 'Rock never dies.', 'Who wants an encore?'],
+  };
+
+  // Catch up on time away before first paint.
+  const away = (now() - state.lastTick) * SPEED;
+  tick();
+  if (state.stage !== 'egg' && !state.over && away > 2 * 3.6e6) say('You\'re back! I missed you.', 3000);
+  else if (state.stage === 'egg' && state.heat < 3) say('An egg! Tap it to keep it warm.', 3500);
+  checkSkills(true);
+  render();
+  saveLocal();
+  setInterval(tick, 1000);
+  setInterval(saveLocal, 15000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { saveLocal(); flushCloud(); }
+    else tick();
+  });
+
+  // Preload every pose so swaps are instant.
+  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', 'food-drink', 'bg-garage', 'bg-club', 'bg-arena', 'bed', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch', 'bath'].map(p => s + '-' + p))]
+    .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
+
+  initCloud();
+})();
+</script>
