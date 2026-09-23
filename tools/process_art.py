@@ -5,6 +5,7 @@
 - Crops every pose of a stage to one shared box, so the dragon stays the same
   size when he changes pose.
 - Props (the bone and food-*.png) are cropped tight on their own.
+- Backgrounds (bg-*.png) are only resized.
 
 Run from the repo root:  python3 tools/process_art.py   (needs pillow, numpy, scipy)
 """
@@ -79,7 +80,13 @@ def load(path):
 
 def main():
     os.makedirs("sprites", exist_ok=True)
-    art = {os.path.basename(f)[:-4]: load(f) for f in sorted(glob.glob("art/*.png"))}
+    for f in sorted(glob.glob("art/bg-*.png")):  # backgrounds: opaque, just resized
+        im = Image.open(f).convert("RGB")
+        im = im.resize((720, round(im.size[1] * 720 / im.size[0])), Image.LANCZOS)
+        im.save("sprites/" + os.path.basename(f)[:-4] + ".webp", "WEBP", quality=80, method=6)
+        print(os.path.basename(f)[:-4])
+    art = {os.path.basename(f)[:-4]: load(f) for f in sorted(glob.glob("art/*.png"))
+           if not os.path.basename(f).startswith("bg-")}
     for stage in ["egg", "baby", "teen", "adult"]:
         names = [k for k in art if k.startswith(stage + "-")]
         core = [k for k in names if k.split("-")[1] not in EXTRAS]
