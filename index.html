@@ -793,6 +793,7 @@
     $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
     $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
     $('ledBath').className = 'led' + (s.clean < 25 ? ' on' : '');
+    if (bathS && !bathS.done) $('tub').hidden = !!HAVE[state.stage + '-bath'];  // art may finish loading mid-bath
     const grime = egg || bathS ? 0 : Math.max(0, (60 - s.clean) / 60);
     els.dirt.style.opacity = (grime * .9).toFixed(2);
     const flyTop = { baby: 42, teen: 36, adult: 33 }[state.stage] || 36;
