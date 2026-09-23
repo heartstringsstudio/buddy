@@ -4,7 +4,7 @@
   edge of each figure's box.
 - Crops every pose of a stage to one shared box, so the dragon stays the same
   size when he changes pose.
-- The bone is cropped tight on its own.
+- Props (the bone and food-*.png) are cropped tight on their own.
 
 Run from the repo root:  python3 tools/process_art.py   (needs pillow, numpy, scipy)
 """
@@ -96,9 +96,10 @@ def main():
             if k not in core:
                 save(*fit_into(art[k], box), k)
         print(stage, ", ".join(sorted(names)))
-    if "bone" in art:
-        save(art["bone"], bbox(art["bone"], 0.04), "bone")
-        print("bone")
+    for k in sorted(art):  # props: the bone and the foods, cropped tight
+        if k == "bone" or k.startswith("food-"):
+            save(art[k], bbox(art[k], 0.04), k)
+            print(k)
 
 
 if __name__ == "__main__":

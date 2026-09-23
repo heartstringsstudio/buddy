@@ -56,7 +56,7 @@
     margin: 0;
     font-family: var(--display);
     font-weight: 400;
-    font-size: clamp(34px, 10vw, 44px);
+    font-size: clamp(30px, 9vw, 44px);
     line-height: .9;
     color: var(--crimson);
     text-shadow: 0 0 1px var(--gold), 2px 2px 0 #000, 0 0 18px rgba(255, 122, 26, .45);
@@ -71,7 +71,7 @@
     font-weight: 700; font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
     color: var(--soot); background: var(--gold); padding: 2px 8px; border-radius: 3px; justify-self: end;
   }
-  .billing .age { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+  .billing .age { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 
   .banner {
     font-weight: 600; font-size: 15px; letter-spacing: .03em;
@@ -156,6 +156,8 @@
   .soundbtn.off .waves { display: none; }
   .soundbtn.off .cross { display: inline; }
   .bone { position: absolute; left: 0; top: 0; width: 16%; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 3px rgba(0,0,0,.45)); }
+  .snack { position: absolute; left: 0; top: 0; width: 20%; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); }
+  .crumb { position: absolute; width: 7px; height: 7px; border-radius: 2px; background: var(--c); animation: ember var(--t, 1s) ease-in forwards; }
   .mouthbone { position: absolute; left: 56%; top: 30%; width: 30%; transform: rotate(-14deg); pointer-events: none; }
   .fetchbar {
     position: absolute; z-index: 5; top: 10px; left: 10px;
@@ -281,12 +283,13 @@
 
   .foods { display: grid; gap: 10px; }
   .food {
-    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; text-align: left;
+    display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 2px 12px; text-align: left;
     background: var(--tolex); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px;
   }
-  .food strong { font-size: 20px; letter-spacing: .04em; }
-  .food span { color: var(--muted); font-size: 15px; grid-column: 1; }
-  .food em { grid-row: 1 / span 2; grid-column: 2; font-style: normal; font-weight: 700; color: var(--gold); font-size: 15px; letter-spacing: .06em; text-align: right; }
+  .food img { grid-row: 1 / span 2; grid-column: 1; width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+  .food strong { font-size: 20px; letter-spacing: .04em; grid-column: 2; }
+  .food span { color: var(--muted); font-size: 15px; grid-column: 2; }
+  .food em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-weight: 700; color: var(--gold); font-size: 15px; letter-spacing: .06em; text-align: right; }
 
   /* Jam */
   .track { position: relative; height: 54px; border-radius: 10px; background: #120d0c; border: 1px solid var(--edge); overflow: hidden; }
@@ -358,6 +361,7 @@
       <img class="mouthbone" id="mouthBone" alt="" hidden>
     </button>
     <img class="bone" id="bone" alt="Bone" hidden>
+    <img class="snack" id="snack" alt="" hidden>
     <div class="fetchbar" id="fetchBar" hidden><span id="fetchLeft">5 throws left</span><button id="fetchDone">Done</button></div>
     <div class="fx" id="fx"></div>
     <div class="speech" id="speech" aria-live="polite"></div>
@@ -382,9 +386,9 @@
   <div class="panel">
     <div class="row"><h2>Snack Bar</h2><button class="x" data-close>Close</button></div>
     <div class="foods">
-      <button class="food" data-food="pepper"><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+20 FUEL<br>+6 VIBE</em></button>
-      <button class="food" data-food="coal"><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+35 FUEL</em></button>
-      <button class="food" data-food="pizza"><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+25 FUEL<br>+12 VIBE</em></button>
+      <button class="food" data-food="pepper"><img data-food-img="pepper" alt=""><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+20 FUEL<br>+6 VIBE</em></button>
+      <button class="food" data-food="coal"><img data-food-img="coal" alt=""><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+35 FUEL</em></button>
+      <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+25 FUEL<br>+12 VIBE</em></button>
     </div>
   </div>
 </div>
@@ -589,6 +593,7 @@
   let override = null; // { pose, until }
   let currentSrc = '';
   let fetchS = null;   // active fetch round
+  let feeding = false; // a snack is on its way to his mouth
   // Optional poses fall back to existing art until their images are uploaded.
   const HAVE = {};
   const FALLBACK = { run: 'happy', fetch: 'happy' };
@@ -639,7 +644,7 @@
     $('ledJam').className = 'led' + (s.vibe < 25 ? ' on' : '');
     $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
     $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
-    $('btnFeed').disabled = $('btnJam').disabled = $('btnFetch').disabled = state.asleep || !!fetchS;
+    $('btnFeed').disabled = $('btnJam').disabled = $('btnFetch').disabled = state.asleep || !!fetchS || feeding;
     $('btnSleep').disabled = $('btnSet').disabled = !!fetchS;
     let banner = '';
     if (!egg && state.neglectH >= NEGLECT_FADE) banner = state.name + ' is fading. Feed him and play with him now, or you could lose him.';
@@ -966,22 +971,82 @@
   };
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 
-  $('btnFeed').addEventListener('click', () => { if (!state.asleep) openSheet('feedSheet'); });
+  $('btnFeed').addEventListener('click', () => { if (!state.asleep && !feeding) { drawFoodMenu(); openSheet('feedSheet'); } });
+  const FOOD_SVG = {
+    pepper: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M33 30C19 46 24 76 57 93c6 2 9-3 5-8C51 70 55 51 63 39c4-8-3-14-14-14-7 0-12 1-16 5z" fill="#d7261e" stroke="#4a0e0a" stroke-width="3"/><path d="M38 38c-6 12-3 30 12 44" fill="none" stroke="#ff8a6a" stroke-width="4" stroke-linecap="round" opacity=".6"/><path d="M47 45q5 4 2 10M52 62q4 3 1 8" fill="none" stroke="#8e140e" stroke-width="2.5" stroke-linecap="round"/><path d="M45 26c0-8 6-14 14-16" fill="none" stroke="#3f7d2a" stroke-width="6" stroke-linecap="round"/><path d="M33 29q13-11 30 2-14 5-30-2z" fill="#4f9a34" stroke="#244a17" stroke-width="2"/></svg>'),
+    coal: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="18,62 27,36 50,24 75,31 87,53 78,77 52,85 27,79" fill="#26211f" stroke="#0d0b0a" stroke-width="3"/><polygon points="27,36 50,24 52,46 33,55" fill="#3b3431"/><polygon points="50,24 75,31 70,50 52,46" fill="#312a27"/><polyline points="40,43 50,54 46,64 58,72" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"/><polyline points="64,40 67,52 76,58" fill="none" stroke="#f4b942" stroke-width="2.5" stroke-linecap="round"/><circle cx="36" cy="40" r="2" fill="#fff" opacity=".35"/></svg>'),
+    pizza: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M14 24Q50 8 86 24L50 94z" fill="#f6c34a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><path d="M11 24Q50 2 89 24l-4 9Q50 14 15 33z" fill="#d99a4a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><circle cx="39" cy="42" r="7" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="61" cy="44" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="50" cy="64" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><path d="M30 52q2 8 0 12M66 58q1 6-1 9" fill="none" stroke="#f6c34a" stroke-width="4" stroke-linecap="round"/></svg>'),
+  };
+  const CRUMB = { pepper: ['#d7261e', '#ff7a1a'], coal: ['#26211f', '#3b3431', '#ff7a1a'], pizza: ['#f6c34a', '#d99a4a', '#b3261e'] };
+  const foodSrc = k => HAVE['food-' + k] ? 'sprites/food-' + k + '.webp' : FOOD_SVG[k];
+  function drawFoodMenu() { document.querySelectorAll('[data-food-img]').forEach(i => { i.src = foodSrc(i.dataset.foodImg); }); }
+  // Where his mouth is, as a fraction of each stage's standing pose.
+  const MOUTH_AT = { baby: [.55, .52], teen: [.62, .27], adult: [.64, .25] };
+  function mouthPx() {
+    const img = els.sprite, sr = els.stage.getBoundingClientRect(), br = $('petBtn').getBoundingClientRect();
+    const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1, k = Math.min(br.width / nw, br.height / nh);
+    const w = nw * k, h = nh * k, left = br.left + (br.width - w) / 2, top = br.top + br.height - h;
+    const [fx, fy] = MOUTH_AT[state.stage] || [.55, .4];
+    return [left + w * fx - sr.left, top + h * fy - sr.top];
+  }
+  function crumbs(kind, x, y) {
+    const cs = CRUMB[kind];
+    for (let i = 0; i < 7; i++) {
+      const c = document.createElement('span');
+      c.className = 'crumb';
+      c.style.left = x + 'px'; c.style.top = y + 'px';
+      c.style.setProperty('--c', cs[i % cs.length]);
+      c.style.setProperty('--dx', (Math.random() * 70 - 35) + 'px');
+      c.style.setProperty('--dy', (40 + Math.random() * 80) + 'px');
+      c.style.setProperty('--t', (.6 + Math.random() * .5) + 's');
+      spawn(c, 1200);
+    }
+  }
+  async function serveFood(kind) {
+    const el = $('snack'), sr = els.stage.getBoundingClientRect();
+    el.src = foodSrc(kind); el.hidden = false;
+    await new Promise(r => requestAnimationFrame(r));
+    const w = el.offsetWidth, h = el.offsetHeight || w;
+    const [mx, my] = mouthPx();
+    const sx = sr.width * .22 - w / 2, sy = sr.height * .9 - h / 2, ex = mx - w / 2, ey = my - h / 2;
+    const frames = [];
+    for (let i = 0; i <= 14; i++) {
+      const t = i / 14, lift = 4 * sr.height * .16 * t * (1 - t);
+      frames.push({ transform: `translate(${sx + (ex - sx) * t}px, ${sy + (ey - sy) * t - lift}px) rotate(${t * 360}deg) scale(${1 - t * .15})` });
+    }
+    sfx('toss');
+    await el.animate(frames, { duration: 650, easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
+    // Three bites.
+    for (const sc of [.65, .35, 0]) {
+      el.getAnimations().forEach(a => a.cancel());
+      el.style.transform = `translate(${ex}px, ${ey}px) scale(${Math.max(sc, .01) * .85}) rotate(${sc * 40 - 20}deg)`;
+      sfx('chomp'); animate('shake');
+      crumbs(kind, mx, my);
+      if (kind === 'pepper') embers(5, mx / sr.width * 100, my / sr.height * 100, 60, 60, .7);
+      await wait(260);
+    }
+    el.hidden = true; el.style.transform = '';
+  }
   const FOODS = {
     pepper: { fuel: 20, vibe: 6, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
     coal: { fuel: 35, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
     pizza: { fuel: 25, vibe: 12, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
   };
-  document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', async () => {
     const f = FOODS[b.dataset.food];
     closeSheets();
+    if (feeding) return;
     if (state.stats.fuel >= 95) { say('I\'m stuffed. Maybe later?'); return; }
+    feeding = true; render();
+    override = { pose: 'idle', until: Infinity }; setSprite();
+    say(pick(['Ooh, snack!', 'Gimme!', 'Is that for me?']), 1200);
+    await serveFood(b.dataset.food);
+    feeding = false; override = null;
     state.stats.fuel = clamp(state.stats.fuel + f.fuel);
     state.stats.vibe = clamp(state.stats.vibe + f.vibe);
     state.c[b.dataset.food]++;
     show(f.pose, 1800); animate('bounce');
     fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
-    sfx('crunch');
     if (b.dataset.food === 'pepper') { sfx('sizzle'); setTimeout(() => sfx('fire', false), 350); }
     else sfx('chirp', state.stage);
     say(pick(f.line));
@@ -1329,7 +1394,7 @@
   });
 
   // Preload every pose so swaps are instant.
-  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch'].map(p => s + '-' + p))]
+  ['egg-idle', 'egg-cracked', 'egg-hatch', 'bone', 'food-pepper', 'food-coal', 'food-pizza', ...['baby', 'teen', 'adult'].flatMap(s => ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch'].map(p => s + '-' + p))]
     .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
 
   initCloud();
