@@ -660,6 +660,12 @@
     { id: 'solo', name: 'Flame Solo', stage: 'adult', hint: 'Jam 20 times', prog: s => [s.c.jam, 20], pose: 'happy', anim: 'headbang', fx: 'solo', line: 'Take it away!' },
     { id: 'chord', name: 'Power Chord Blast', stage: 'adult', hint: 'Land a perfect 6/6 jam', prog: s => [s.best, 6], pose: 'happy', anim: 'shake', fx: 'wave', line: 'KERRRANG!' },
     { id: 'dive', name: 'Stage Dive', stage: 'adult', hint: 'Grow into a Headliner', pose: 'happy', anim: 'dive', fx: 'sparks', line: 'Catch me!' },
+    // Mini-game skills (best scores count, so earlier runs already qualify)
+    { id: 'drumfill', name: 'Drum Fill', stage: 'baby', hint: 'Clear 3 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 3], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Ba-dum-TSSS!' },
+    { id: 'cruncher', name: 'Coal Cruncher', stage: 'baby', hint: 'Score 10 in Coal Rush', prog: s => [s.bestRush || 0, 10], pose: 'fire', anim: 'bounce', fx: 'sparks', line: 'Crunch time!' },
+    { id: 'echo', name: 'Echo Riff', stage: 'teen', hint: 'Clear 6 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 6], pose: 'happy', anim: 'shake', fx: 'notes', line: 'Riff… riff… RIFF!' },
+    { id: 'furnace', name: 'Furnace Belly', stage: 'teen', hint: 'Score 20 in Coal Rush', prog: s => [s.bestRush || 0, 20], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'Feed the fire!' },
+    { id: 'encore', name: 'Encore', stage: 'adult', hint: 'Clear all 8 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 8], pose: 'happy', anim: 'float', fx: 'solo', line: 'One more song? ONE MORE SONG!' },
     { id: 'pyro', name: 'Pyro Show', stage: 'adult', hint: 'Unlock every other skill', pose: 'fire', anim: 'shake', fx: 'pyro', line: 'GOODNIGHT, WEST VIRGINIA!' },
   ];
 
@@ -1028,6 +1034,13 @@
         for (let i = 0; i < (big ? 4 : 2); i++) tone({ t: .2 + i * .3 + Math.random() * .2, f: 1900 + Math.random() * 500, f2: 2700, dur: .35, vol: .06 });
       },
       wahwah: () => [392, 370, 349, 311].forEach((f, i) => tone({ t: i * .38, f, f2: f * .97, dur: i === 3 ? .9 : .34, type: 'triangle', vol: .18, vib: i === 3 ? 6 : 0, cut: 1400 })),
+      drumfill: () => {
+        [0, .1, .2, .3, .38, .46].forEach((t, i) => noise({ t, dur: .09, vol: .28, f: 900 + i * 350, q: 1.2 }));  // tom run
+        tone({ t: .56, f: 120, f2: 45, dur: .3, vol: .45 });                                                   // kick
+        noise({ t: .56, dur: 1.1, vol: .2, type: 'highpass', f: 6000, attack: .005 });                          // crash
+      },
+      echo: () => [0, .32, .64, .96].forEach((t, i) => chord([E2, G2, A2, E2][i], t, .4, .24 * Math.pow(.62, i), 2600 - i * 450)),
+      encore: () => { fx.riff(); setTimeout(() => fx.cheer(true), 800); setTimeout(() => fx.blast(), 1300); },
       pad: (i) => chord([E2, G2, A2, B2][i], 0, .45, .2, 2800),
       riff: () => [[E2, 0], [E2, .16], [G2, .32], [A2, .48], [E2, .72]].forEach(([r, t]) => chord(r, t, .3, .2)),
       solo: () => {
@@ -1839,7 +1852,7 @@
     $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Rushes ${c.rush || 0} · Best rush ${state.bestRush || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
   }
-  const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
+  const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro', drumfill: 'drumfill', cruncher: 'crunch', echo: 'echo', furnace: 'fire', encore: 'encore' };
   let lastPerform = {};
   function perform(id) {
     const k = SKILLS.find(s => s.id === id);
