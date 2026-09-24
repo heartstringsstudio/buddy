@@ -413,8 +413,8 @@
     position: relative; height: 300px; border-radius: 10px; overflow: hidden; touch-action: none;
     background: radial-gradient(ellipse at 50% 110%, rgba(255,122,26,.28), transparent 60%), #120d0c; border: 1px solid var(--edge);
   }
-  .rush .drop { position: absolute; top: 0; left: 0; width: 44px; height: 44px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
-  .rush .drop.water { display: grid; place-items: center; font-size: 34px; line-height: 1; }
+  .rush .drop { position: absolute; top: 0; left: 0; width: 54px; height: 54px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+  .rush .drop.water { display: grid; place-items: center; font-size: 38px; line-height: 1; border-radius: 50%; background: radial-gradient(circle, rgba(95,184,217,.45), rgba(95,184,217,0) 70%); }
   .rush .catcher { position: absolute; bottom: 2px; left: 0; width: 96px; height: 96px; object-fit: contain; pointer-events: none; }
   .rushhud { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; color: var(--chrome); font-size: 16px; pointer-events: none; text-shadow: 0 1px 2px #000; }
 
@@ -551,7 +551,7 @@
 <div class="sheet" id="rushSheet" hidden>
   <div class="panel">
     <div class="row"><h2>Coal Rush</h2><button class="x" data-close>Close</button></div>
-    <p>Drag to catch coal and peppers. Water puts out his fire, so dodge it. Three drops and you're out.</p>
+    <p>Drag to catch coal and peppers. Dodge the water! It starts slow and keeps speeding up. Catch water or drop a snack three times and you're out.</p>
     <div class="rush" id="rush"><div class="rushhud" id="rushHud"></div><img class="catcher" id="catcher" alt=""></div>
     <div class="call" id="rushCall"></div>
     <button class="big" id="rushGo">Start</button>
@@ -1499,8 +1499,12 @@
   }
 
   // ---------- Coal Rush mini-game ----------
-  // Snacks fall; drag him left/right to catch them. Water drops cost a life.
-  const RUSH_SECS = 20;
+  // Endless: snacks fall, starting slow and speeding up every second. Catching water
+  // or letting a snack hit the floor costs a life; three and you're out.
+  const DROP = 54;                                      // item size, px
+  const rushFall = t => 70 + 8 * t;                     // px/s: ~4s to fall at the start, ~1s by 30s
+  const rushGap = t => Math.max(.45, 1.6 - .03 * t);    // seconds between drops
+  const rushSpeed = t => rushFall(t) / rushFall(0);
   function openRush() {
     openSheet('rushSheet');
     rush = { items: [], score: 0, lives: 3, x: .5, t: 0, next: 0, last: 0, raf: 0, started: false, done: false };
@@ -1513,7 +1517,7 @@
     rushHud();
   }
   function stopRush() { if (!rush) return; cancelAnimationFrame(rush.raf); rush.items.forEach(it => it.el.remove()); rush = null; }
-  function rushHud() { $('rushHud').innerHTML = `<span>Score ${rush.score}</span><span>${'🔥'.repeat(rush.lives)}${'<span style="opacity:.25">🔥</span>'.repeat(3 - rush.lives)}</span><span>${Math.max(0, Math.ceil(RUSH_SECS - rush.t))}s</span>`; }
+  function rushHud() { $('rushHud').innerHTML = `<span>Score ${rush.score}</span><span>${'🔥'.repeat(rush.lives)}${'<span style="opacity:.25">🔥</span>'.repeat(3 - rush.lives)}</span><span>Speed ×${rushSpeed(rush.t).toFixed(1)}</span>`; }
   function aimRush(e) {
     if (!rush || !rush.started || rush.done) return;
     const r = $('rush').getBoundingClientRect();
@@ -1536,35 +1540,42 @@
     if (kind === 'water') { el = document.createElement('div'); el.className = 'drop water'; el.textContent = '💧'; }
     else { el = document.createElement('img'); el.className = 'drop'; el.alt = ''; el.src = foodSrc(kind); }
     $('rush').appendChild(el);
-    rush.items.push({ el, kind, x: 22 + Math.random() * (W - 44), y: -44 });
+    // Keep new drops away from the last one so they're easy to tell apart.
+    let x, tries = 0;
+    do x = DROP / 2 + Math.random() * (W - DROP); while (rush.lastX != null && Math.abs(x - rush.lastX) < DROP * 1.2 && ++tries < 6);
+    rush.lastX = x;
+    rush.items.push({ el, kind, x, y: -DROP });
   }
   function rushLoop(t) {
     if (!rush || rush.done) return;
     const dt = Math.min(.05, (t - rush.last) / 1000); rush.last = t;
     rush.t += dt;
-    const box = $('rush'), W = box.offsetWidth, H = box.offsetHeight, p = Math.min(1, rush.t / RUSH_SECS);
+    const box = $('rush'), W = box.offsetWidth, H = box.offsetHeight;
     const cx = 48 + rush.x * (W - 96);
     $('catcher').style.transform = `translateX(${cx - 48}px)`;
     rush.next -= dt;
-    if (rush.next <= 0) { spawnDrop(W); rush.next = .75 - p * .4; }
-    const fall = 150 + p * 170;  // px per second, speeding up
+    if (rush.next <= 0) { spawnDrop(W); rush.next = rushGap(rush.t); }
+    const fall = rushFall(rush.t);
     for (const it of rush.items.slice()) {
       it.y += fall * dt;
-      it.el.style.transform = `translate(${it.x - 22}px, ${it.y}px)`;
-      const inMouth = it.y + 44 >= H - 80 && it.y + 44 <= H - 30 && Math.abs(it.x - cx) < 42;
+      it.el.style.transform = `translate(${it.x - DROP / 2}px, ${it.y}px)`;
+      const inMouth = it.y + DROP >= H - 80 && it.y + DROP <= H - 26 && Math.abs(it.x - cx) < 44;
       if (inMouth || it.y > H) {
         it.el.remove(); rush.items.splice(rush.items.indexOf(it), 1);
-        if (!inMouth) continue;
+        if (!inMouth) {
+          if (it.kind !== 'water') { rush.lives--; sfx('thud'); buzz(40); $('rushCall').textContent = pick(['Dropped one!', 'Missed it!', 'Aw, my snack!']); }
+          continue;
+        }
         if (it.kind === 'water') { rush.lives--; sfx('splash'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
         else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'sizzle' : 'crunch'); buzz(15); }
       }
     }
     rushHud();
-    if (rush.lives <= 0 || rush.t >= RUSH_SECS) return finishRush();
+    if (rush.lives <= 0) return finishRush();
     rush.raf = requestAnimationFrame(rushLoop);
   }
   function finishRush() {
-    const n = rush.score, out = rush.lives <= 0;
+    const n = rush.score;
     rush.done = true;
     rush.items.forEach(it => it.el.remove()); rush.items = [];
     state.stats.fuel = clamp(state.stats.fuel + Math.min(25, Math.round(n * 1.2)));
@@ -1573,7 +1584,7 @@
     state.stats.clean = clamp(state.stats.clean - 3);
     state.c.rush = (state.c.rush || 0) + 1;
     state.bestRush = Math.max(state.bestRush || 0, n);
-    $('rushCall').textContent = (out ? 'Fizzled out! ' : 'Time! ') + 'Score ' + n + (n >= 20 ? ' — legendary appetite!' : n >= 12 ? ' — stuffed and happy.' : n >= 6 ? ' — nice snack.' : '.');
+    $('rushCall').textContent = 'Out at speed ×' + rushSpeed(rush.t).toFixed(1) + '! Score ' + n + (n >= 20 ? ' — legendary appetite!' : n >= 12 ? ' — stuffed and happy.' : n >= 6 ? ' — nice snack.' : '.');
     $('rushGo').textContent = 'Done'; $('rushGo').disabled = false;
     rushHud();
     show(n >= 8 ? 'happy' : 'idle', 2200); animate(n >= 8 ? 'bounce' : '');
