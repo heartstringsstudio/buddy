@@ -1,6 +1,6 @@
 // Offline support: keep the game and its sprites on the phone.
 // Bump CACHE when shipping changes so phones drop the old copy.
-const CACHE = 'rockfire-v2';
+const CACHE = 'rockfire-v3';
 const ASSETS = [
   './',
   './manifest.webmanifest',
@@ -46,7 +46,10 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's HTTP cache, so a new version never stores old files.
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -58,10 +61,13 @@ self.addEventListener('activate', e => {
 });
 
 // Network first so updates show up right away; fall back to the cache offline.
+// Our own files are revalidated with the server every time (a cheap 304 when unchanged),
+// so the browser can't hand back a stale copy for up to 10 minutes after a deploy.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const own = new URL(e.request.url).origin === location.origin;
   e.respondWith(
-    fetch(e.request)
+    fetch(own ? new Request(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }) : e.request)
       .then(res => {
         if (res.ok || res.type === 'opaque') {
           const copy = res.clone();
