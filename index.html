@@ -387,6 +387,35 @@
   .dots i.miss { background: #5a2226; }
   .call { text-align: center; font-family: var(--scrawl); font-size: 26px; min-height: 34px; color: var(--chrome); }
 
+  /* Mini-game picker */
+  .games { display: grid; gap: 10px; }
+  .game {
+    display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 2px 12px; text-align: left;
+    background: var(--tolex); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px;
+  }
+  .game i { grid-row: 1 / span 2; width: 56px; height: 56px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-size: 30px; background: var(--gc); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 3px 0 rgba(0,0,0,.5); }
+  .game strong { font-size: 20px; letter-spacing: .04em; grid-column: 2; }
+  .game span { color: var(--muted); font-size: 15px; grid-column: 2; }
+  .game em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-weight: 700; color: var(--gold); font-size: 14px; letter-spacing: .06em; text-align: right; }
+
+  /* Riff Recall */
+  .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pad {
+    height: 96px; border: 0; border-radius: 14px; background: var(--pc); opacity: .45;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 4px 0 rgba(0,0,0,.55); transition: opacity .08s, transform .08s;
+  }
+  .pad.lit { opacity: 1; transform: translateY(2px); box-shadow: 0 0 22px 4px var(--pc), 0 2px 0 rgba(0,0,0,.55); }
+
+  /* Coal Rush */
+  .rush {
+    position: relative; height: 300px; border-radius: 10px; overflow: hidden; touch-action: none;
+    background: radial-gradient(ellipse at 50% 110%, rgba(255,122,26,.28), transparent 60%), #120d0c; border: 1px solid var(--edge);
+  }
+  .rush .drop { position: absolute; top: 0; left: 0; width: 44px; height: 44px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+  .rush .drop.water { display: grid; place-items: center; font-size: 34px; line-height: 1; }
+  .rush .catcher { position: absolute; bottom: 2px; left: 0; width: 96px; height: 96px; object-fit: contain; pointer-events: none; }
+  .rushhud { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; color: var(--chrome); font-size: 16px; pointer-events: none; text-shadow: 0 1px 2px #000; }
+
   /* Setlist */
   .panel.setlist {
     background: var(--paper); color: var(--ink); border-top: 0;
@@ -471,7 +500,7 @@
 
   <nav class="pedals" id="pedals">
     <button class="pedal p-feed" id="btnFeed"><span class="pl">Feed</span><span class="sw"></span><span class="led" id="ledFeed"></span></button>
-    <button class="pedal p-jam" id="btnJam"><span class="pl">Jam</span><span class="sw"></span><span class="led" id="ledJam"></span></button>
+    <button class="pedal p-jam" id="btnJam"><span class="pl">Games</span><span class="sw"></span><span class="led" id="ledJam"></span></button>
     <button class="pedal p-fetch" id="btnFetch"><span class="pl">Fetch</span><span class="sw"></span><span class="led" id="ledFetch"></span></button>
     <button class="pedal p-bath" id="btnBath"><span class="pl">Bath</span><span class="sw"></span><span class="led" id="ledBath"></span></button>
     <button class="pedal p-sleep" id="btnSleep"><span class="pl" id="sleepLabel">Sleep</span><span class="sw"></span><span class="led" id="ledSleep"></span></button>
@@ -488,6 +517,42 @@
       <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+20 FUEL<br>+10 VIBE</em></button>
       <button class="food" data-food="drink"><img data-food-img="drink" alt=""><strong>Amp Juice</strong><span>Energy drink. Two per six hours, tops.</span><em>+25 ENERGY<br>+3 VIBE</em></button>
     </div>
+  </div>
+</div>
+
+<div class="sheet" id="gamesSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Mini Games</h2><button class="x" data-close>Close</button></div>
+    <div class="games">
+      <button class="game" data-game="jam" style="--gc: var(--gold)"><i>🎸</i><strong>Jam Session</strong><span>Strum on the beat. Six strums, faster each time.</span><em>VIBE</em></button>
+      <button class="game" data-game="riff" style="--gc: #5fb8d9"><i>🥁</i><strong>Riff Recall</strong><span>He plays a riff, you play it back. It keeps growing.</span><em>VIBE</em></button>
+      <button class="game" data-game="rush" style="--gc: var(--flame)"><i>🔥</i><strong>Coal Rush</strong><span>Slide to catch falling snacks. Dodge the water!</span><em>FUEL<br>VIBE</em></button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="riffSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Riff Recall</h2><button class="x" data-close>Close</button></div>
+    <p>Watch the pads light up, then play them back in the same order. One more note every round.</p>
+    <div class="pads" id="pads">
+      <button class="pad" data-pad="0" style="--pc: var(--flame)" aria-label="Orange pad"></button>
+      <button class="pad" data-pad="1" style="--pc: var(--gold)" aria-label="Gold pad"></button>
+      <button class="pad" data-pad="2" style="--pc: var(--crimson)" aria-label="Red pad"></button>
+      <button class="pad" data-pad="3" style="--pc: #5fb8d9" aria-label="Blue pad"></button>
+    </div>
+    <div class="call" id="riffCall"></div>
+    <button class="big" id="riffGo">Start</button>
+  </div>
+</div>
+
+<div class="sheet" id="rushSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Coal Rush</h2><button class="x" data-close>Close</button></div>
+    <p>Drag to catch coal and peppers. Water puts out his fire, so dodge it. Three drops and you're out.</p>
+    <div class="rush" id="rush"><div class="rushhud" id="rushHud"></div><img class="catcher" id="catcher" alt=""></div>
+    <div class="call" id="rushCall"></div>
+    <button class="big" id="rushGo">Start</button>
   </div>
 </div>
 
@@ -630,7 +695,7 @@
     return {
       v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
       stats: { fuel: 85, energy: 90, vibe: 85, clean: 100 }, asleep: false,
-      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0 }, best: 0, drinks: [],
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0, riff: 0, rush: 0 }, best: 0, bestRiff: 0, bestRush: 0, drinks: [],
       skills: [], unseen: [], neglectH: 0, over: false,
       lastTick: t, savedAt: 0, hall: hall || [],
     };
@@ -640,6 +705,7 @@
     return Object.assign(base, s, { stats: Object.assign(base.stats, s.stats), c: Object.assign(base.c, s.c) });
   }
   let state;
+  let riff = null, rush = null; // active mini-games (declared early: closeSheets() stops them)
   try { const raw = localStorage.getItem(KEY); state = raw ? migrate(JSON.parse(raw)) : fresh(); } catch (e) { state = fresh(); }
 
   // ---------- Cloud backup (private per viewer) ----------
@@ -962,6 +1028,7 @@
         for (let i = 0; i < (big ? 4 : 2); i++) tone({ t: .2 + i * .3 + Math.random() * .2, f: 1900 + Math.random() * 500, f2: 2700, dur: .35, vol: .06 });
       },
       wahwah: () => [392, 370, 349, 311].forEach((f, i) => tone({ t: i * .38, f, f2: f * .97, dur: i === 3 ? .9 : .34, type: 'triangle', vol: .18, vib: i === 3 ? 6 : 0, cut: 1400 })),
+      pad: (i) => chord([E2, G2, A2, B2][i], 0, .45, .2, 2800),
       riff: () => [[E2, 0], [E2, .16], [G2, .32], [A2, .48], [E2, .72]].forEach(([r, t]) => chord(r, t, .3, .2)),
       solo: () => {
         chord(E2, 0, .6, .22);
@@ -1115,7 +1182,7 @@
 
   // ---------- Sheets ----------
   function openSheet(id) { closeSheets(); $(id).hidden = false; }
-  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); }
+  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); stopRiff(); stopRush(); }
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
   document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => {
     if (e.target === s && s.id !== 'nameSheet' && s.id !== 'endSheet') closeSheets();
@@ -1296,7 +1363,14 @@
   let jam = null, raf = 0;
   $('btnJam').addEventListener('click', () => {
     if (state.asleep) return;
-    if (state.stats.energy < 10) { say('Too tired to jam… need sleep.'); return; }
+    if (state.stats.energy < 10) { say('Too tired to play… need sleep.'); return; }
+    openSheet('gamesSheet');
+  });
+  document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => {
+    if (state.stats.energy < 10) { closeSheets(); say('Too tired to play… need sleep.'); return; }
+    ({ jam: startJam, riff: openRiff, rush: openRush })[b.dataset.game]();
+  }));
+  function startJam() {
     openSheet('jamSheet');
     jam = { round: 0, hits: 0, perfect: 0, pos: 0, dir: 1, speed: .95, w: .22, l: 0, done: false, last: performance.now(), marks: [] };
     newZone();
@@ -1304,7 +1378,7 @@
     $('strum').textContent = 'Strum';
     drawDots();
     raf = requestAnimationFrame(jamLoop);
-  });
+  }
   function newZone() { jam.l = .08 + Math.random() * (.84 - jam.w); const z = $('zone'); z.style.left = jam.l * 100 + '%'; z.style.width = jam.w * 100 + '%'; }
   function drawDots() { $('dots').innerHTML = Array.from({ length: 6 }, (_, i) => `<i class="${jam.marks[i] || ''}"></i>`).join(''); }
   function jamLoop(t) {
@@ -1346,6 +1420,150 @@
     show(h >= 3 ? 'happy' : 'idle', 2200); animate(h >= 3 ? 'headbang' : '');
     if (h >= 3) fx('notes');
     setTimeout(() => sfx(h >= 3 ? 'cheer' : 'wahwah', h >= 5), 500);
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Riff Recall mini-game ----------
+  // Simon-style: he plays a riff on four pads, you repeat it, it grows by one note a round.
+  const RIFF_MAX = 8;  // clear 8 rounds (a 10-note riff) for a perfect set
+  function openRiff() {
+    openSheet('riffSheet');
+    riff = { seq: [], i: 0, round: 0, listening: false, done: false, started: false, timers: [] };
+    $('riffCall').textContent = 'Ready?';
+    $('riffGo').textContent = 'Start'; $('riffGo').disabled = false;
+  }
+  function stopRiff() { if (riff) riff.timers.forEach(clearTimeout); riff = null; document.querySelectorAll('.pad').forEach(p => p.classList.remove('lit')); }
+  function riffLater(fn, ms) { const r = riff; r.timers.push(setTimeout(() => { if (riff === r) fn(); }, ms)); }
+  function lightPad(k, ms) {
+    const el = document.querySelector(`.pad[data-pad="${k}"]`);
+    el.classList.add('lit'); sfx('pad', k);
+    setTimeout(() => el.classList.remove('lit'), ms);
+  }
+  function playRiff() {
+    riff.listening = false; riff.i = 0;
+    $('riffCall').textContent = 'Listen…';
+    const gap = Math.max(300, 600 - riff.round * 40);
+    riff.seq.forEach((k, n) => riffLater(() => lightPad(k, gap * .6), 500 + n * gap));
+    riffLater(() => { riff.listening = true; $('riffCall').textContent = 'Your turn!'; }, 500 + riff.seq.length * gap);
+  }
+  $('riffGo').addEventListener('click', () => {
+    if (!riff) return;
+    if (riff.done) { closeSheets(); return; }
+    if (riff.started) return;
+    riff.started = true; $('riffGo').disabled = true; $('riffGo').textContent = 'Playing…';
+    riff.seq = Array.from({ length: 3 }, () => Math.floor(Math.random() * 4));
+    playRiff();
+  });
+  document.querySelectorAll('.pad').forEach(pad => pad.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (!riff || !riff.listening) return;
+    const k = +pad.dataset.pad;
+    lightPad(k, 220);
+    if (k !== riff.seq[riff.i]) { buzz(80); return finishRiff(); }
+    buzz(15);
+    if (++riff.i < riff.seq.length) return;
+    riff.listening = false; riff.round++;
+    if (riff.round >= RIFF_MAX) return finishRiff();
+    $('riffCall').textContent = pick(['Nailed it!', 'Tight!', 'Again, longer!']);
+    riff.seq.push(Math.floor(Math.random() * 4));
+    riffLater(playRiff, 700);
+  }));
+  function finishRiff() {
+    const r = riff.round;
+    riff.done = true; riff.listening = false;
+    state.stats.vibe = clamp(state.stats.vibe + (r < 1 ? -4 : 3 + r * 3));
+    state.stats.energy = clamp(state.stats.energy - 8);
+    state.c.riff = (state.c.riff || 0) + 1;
+    state.bestRiff = Math.max(state.bestRiff || 0, r);
+    $('riffCall').textContent = r >= RIFF_MAX ? 'Flawless! ' + RIFF_MAX + '/' + RIFF_MAX : (r ? 'Wrong note! ' : 'Clunk! ') + r + ' round' + (r === 1 ? '' : 's') + (r >= 5 ? ' — the crowd went wild!' : r >= 2 ? ' — solid set.' : '');
+    $('riffGo').textContent = 'Done'; $('riffGo').disabled = false;
+    show(r >= 3 ? 'happy' : 'idle', 2200); animate(r >= 3 ? 'headbang' : '');
+    if (r >= 3) fx('notes');
+    setTimeout(() => sfx(r >= 3 ? 'cheer' : 'wahwah', r >= 6), 400);
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Coal Rush mini-game ----------
+  // Snacks fall; drag him left/right to catch them. Water drops cost a life.
+  const RUSH_SECS = 20;
+  function openRush() {
+    openSheet('rushSheet');
+    rush = { items: [], score: 0, lives: 3, x: .5, t: 0, next: 0, last: 0, raf: 0, started: false, done: false };
+    const c = $('catcher');
+    c.src = 'sprites/' + state.stage + '-happy.webp';
+    c.style.transform = `translateX(${$('rush').offsetWidth / 2 - 48}px)`;
+    $('rush').querySelectorAll('.drop').forEach(d => d.remove());
+    $('rushCall').textContent = 'Ready?';
+    $('rushGo').textContent = 'Start'; $('rushGo').disabled = false;
+    rushHud();
+  }
+  function stopRush() { if (!rush) return; cancelAnimationFrame(rush.raf); rush.items.forEach(it => it.el.remove()); rush = null; }
+  function rushHud() { $('rushHud').innerHTML = `<span>Score ${rush.score}</span><span>${'🔥'.repeat(rush.lives)}${'<span style="opacity:.25">🔥</span>'.repeat(3 - rush.lives)}</span><span>${Math.max(0, Math.ceil(RUSH_SECS - rush.t))}s</span>`; }
+  function aimRush(e) {
+    if (!rush || !rush.started || rush.done) return;
+    const r = $('rush').getBoundingClientRect();
+    rush.x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  }
+  $('rush').addEventListener('pointerdown', e => { e.preventDefault(); aimRush(e); });
+  $('rush').addEventListener('pointermove', aimRush);
+  $('rushGo').addEventListener('click', () => {
+    if (!rush) return;
+    if (rush.done) { closeSheets(); return; }
+    if (rush.started) return;
+    rush.started = true; $('rushGo').disabled = true; $('rushGo').textContent = 'Go!';
+    $('rushCall').textContent = 'Catch!';
+    rush.last = performance.now();
+    rush.raf = requestAnimationFrame(rushLoop);
+  });
+  function spawnDrop(W) {
+    const roll = Math.random(), kind = roll < .22 ? 'water' : roll < .42 ? 'pepper' : 'coal';
+    let el;
+    if (kind === 'water') { el = document.createElement('div'); el.className = 'drop water'; el.textContent = '💧'; }
+    else { el = document.createElement('img'); el.className = 'drop'; el.alt = ''; el.src = foodSrc(kind); }
+    $('rush').appendChild(el);
+    rush.items.push({ el, kind, x: 22 + Math.random() * (W - 44), y: -44 });
+  }
+  function rushLoop(t) {
+    if (!rush || rush.done) return;
+    const dt = Math.min(.05, (t - rush.last) / 1000); rush.last = t;
+    rush.t += dt;
+    const box = $('rush'), W = box.offsetWidth, H = box.offsetHeight, p = Math.min(1, rush.t / RUSH_SECS);
+    const cx = 48 + rush.x * (W - 96);
+    $('catcher').style.transform = `translateX(${cx - 48}px)`;
+    rush.next -= dt;
+    if (rush.next <= 0) { spawnDrop(W); rush.next = .75 - p * .4; }
+    const fall = 150 + p * 170;  // px per second, speeding up
+    for (const it of rush.items.slice()) {
+      it.y += fall * dt;
+      it.el.style.transform = `translate(${it.x - 22}px, ${it.y}px)`;
+      const inMouth = it.y + 44 >= H - 80 && it.y + 44 <= H - 30 && Math.abs(it.x - cx) < 42;
+      if (inMouth || it.y > H) {
+        it.el.remove(); rush.items.splice(rush.items.indexOf(it), 1);
+        if (!inMouth) continue;
+        if (it.kind === 'water') { rush.lives--; sfx('splash'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
+        else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'sizzle' : 'crunch'); buzz(15); }
+      }
+    }
+    rushHud();
+    if (rush.lives <= 0 || rush.t >= RUSH_SECS) return finishRush();
+    rush.raf = requestAnimationFrame(rushLoop);
+  }
+  function finishRush() {
+    const n = rush.score, out = rush.lives <= 0;
+    rush.done = true;
+    rush.items.forEach(it => it.el.remove()); rush.items = [];
+    state.stats.fuel = clamp(state.stats.fuel + Math.min(25, Math.round(n * 1.2)));
+    state.stats.vibe = clamp(state.stats.vibe + (n >= 15 ? 8 : n >= 6 ? 4 : 0));
+    state.stats.energy = clamp(state.stats.energy - 8);
+    state.stats.clean = clamp(state.stats.clean - 3);
+    state.c.rush = (state.c.rush || 0) + 1;
+    state.bestRush = Math.max(state.bestRush || 0, n);
+    $('rushCall').textContent = (out ? 'Fizzled out! ' : 'Time! ') + 'Score ' + n + (n >= 20 ? ' — legendary appetite!' : n >= 12 ? ' — stuffed and happy.' : n >= 6 ? ' — nice snack.' : '.');
+    $('rushGo').textContent = 'Done'; $('rushGo').disabled = false;
+    rushHud();
+    show(n >= 8 ? 'happy' : 'idle', 2200); animate(n >= 8 ? 'bounce' : '');
+    if (n >= 8) fx('sparks');
+    setTimeout(() => sfx(n >= 8 ? 'cheer' : 'wahwah', n >= 20), 400);
     checkSkills(); render(); save();
   }
 
@@ -1618,7 +1836,7 @@
     $('skillList').innerHTML = html;
     $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
     const c = state.c;
-    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Rushes ${c.rush || 0} · Best rush ${state.bestRush || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
   }
   const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro' };
