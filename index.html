@@ -483,10 +483,10 @@
   <div class="panel">
     <div class="row"><h2>Snack Bar</h2><button class="x" data-close>Close</button></div>
     <div class="foods">
-      <button class="food" data-food="pepper"><img data-food-img="pepper" alt=""><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+20 FUEL<br>+6 VIBE</em></button>
-      <button class="food" data-food="coal"><img data-food-img="coal" alt=""><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+35 FUEL</em></button>
-      <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+25 FUEL<br>+12 VIBE</em></button>
-      <button class="food" data-food="drink"><img data-food-img="drink" alt=""><strong>Amp Juice</strong><span>Energy drink. Two per six hours, tops.</span><em>+30 ENERGY<br>+4 VIBE</em></button>
+      <button class="food" data-food="pepper"><img data-food-img="pepper" alt=""><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+16 FUEL<br>+5 VIBE</em></button>
+      <button class="food" data-food="coal"><img data-food-img="coal" alt=""><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+28 FUEL</em></button>
+      <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+20 FUEL<br>+10 VIBE</em></button>
+      <button class="food" data-food="drink"><img data-food-img="drink" alt=""><strong>Amp Juice</strong><span>Energy drink. Two per six hours, tops.</span><em>+25 ENERGY<br>+3 VIBE</em></button>
     </div>
   </div>
 </div>
@@ -568,9 +568,9 @@
   const EGG_MINUTES = 8;               // passive warmth alone hatches the egg in 8 minutes
   const TEEN_AT = 48, ADULT_AT = 144;  // care-hours: ~2 days and ~6 days with decent care
   const NEGLECT_WARN = 24, NEGLECT_FADE = 48, NEGLECT_END = 72; // hours at zero fuel AND zero vibe
-  const DRAIN = { fuel: 8, vibe: 7, energy: 6, clean: 4 };   // per hour awake: ~12-16 hours from full to empty (clean ~25)
-  const SLEEP = { energy: 20, fuel: 3, vibe: 2, clean: 1 };   // per hour asleep
-  const STINKY = 1.5;  // vibe drains this much faster when he's filthy
+  const DRAIN = { fuel: 10, vibe: 9, energy: 7.5, clean: 5 }; // per hour awake: ~10-13 hours from full to empty (clean ~20)
+  const SLEEP = { energy: 18, fuel: 4, vibe: 3, clean: 1 };   // per hour asleep
+  const STINKY = 1.75; // vibe drains this much faster when he's filthy
 
   const STAGES = {
     egg:   { title: 'The Egg',     sub: 'A fire legend in the making' },
@@ -711,8 +711,8 @@
     const s = state.stats;
     const flip = drain(s, state.asleep, h);
     if (flip) { state.asleep = flip === 'passedout'; events.push(flip); }
-    const care = (s.fuel + s.vibe + s.energy) / 300;
-    const rate = (s.fuel === 0 && s.vibe === 0) ? 0 : care > 0.4 ? 1 : care > 0.15 ? 0.6 : 0.25;
+    const care = (s.fuel + s.vibe + s.energy + s.clean) / 400;
+    const rate = (s.fuel === 0 && s.vibe === 0) ? 0 : care > 0.55 ? 1 : care > 0.3 ? 0.5 : 0.2;
     state.age += h * rate;
     if (s.fuel === 0 && s.vibe === 0) {
       state.neglectH += h;
@@ -1169,7 +1169,7 @@
     if (hatching || fetchS || bathS) return;
     const t = now();
     if (state.asleep) { if (t - lastPet > 1500) { sfx('snore'); glyphs(['z', 'Z'], 2, '#c9d2ff', 55, 25, 'zzz'); say('mmh… five more minutes…', 1800); } lastPet = t; return; }
-    state.stats.vibe = clamp(state.stats.vibe + (t - lastPet > 2500 ? 4 : 1));
+    if (t - lastPet > 2500) state.stats.vibe = clamp(state.stats.vibe + 3); // rapid taps give nothing
     lastPet = t;
     state.c.pet++;
     show('happy', 1300); fx('hearts'); sfx('chirp', state.stage); sfx('hearts');
@@ -1242,10 +1242,10 @@
     el.hidden = true; el.style.transform = '';
   }
   const FOODS = {
-    pepper: { fuel: 20, vibe: 6, mess: 3, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
-    coal: { fuel: 35, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
-    pizza: { fuel: 25, vibe: 12, mess: 4, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
-    drink: { fuel: 0, vibe: 4, energy: 30, pose: 'happy', fx: 'sparks', line: ['WIDE AWAKE!', 'Let\'s ROCK!', 'I can hear colors!'] },
+    pepper: { fuel: 16, vibe: 5, mess: 3, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
+    coal: { fuel: 28, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
+    pizza: { fuel: 20, vibe: 10, mess: 4, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
+    drink: { fuel: 0, vibe: 3, energy: 25, pose: 'happy', fx: 'sparks', line: ['WIDE AWAKE!', 'Let\'s ROCK!', 'I can hear colors!'] },
   };
   document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', async () => {
     const f = FOODS[b.dataset.food];
@@ -1298,7 +1298,7 @@
     if (state.asleep) return;
     if (state.stats.energy < 10) { say('Too tired to jam… need sleep.'); return; }
     openSheet('jamSheet');
-    jam = { round: 0, hits: 0, perfect: 0, pos: 0, dir: 1, speed: .8, w: .26, l: 0, done: false, last: performance.now(), marks: [] };
+    jam = { round: 0, hits: 0, perfect: 0, pos: 0, dir: 1, speed: .95, w: .22, l: 0, done: false, last: performance.now(), marks: [] };
     newZone();
     $('call').textContent = 'Ready…';
     $('strum').textContent = 'Strum';
@@ -1330,14 +1330,14 @@
     $('call').textContent = call;
     drawDots();
     if (jam.round >= 6) return finishJam();
-    jam.speed *= 1.14; jam.w = Math.max(.1, jam.w * .88);
+    jam.speed *= 1.14; jam.w = Math.max(.09, jam.w * .88);
     newZone();
   });
   function finishJam() {
     jam.done = true;
     const h = jam.hits, p = jam.perfect;
-    state.stats.vibe = clamp(state.stats.vibe + 6 + h * 5 + p * 3);
-    state.stats.energy = clamp(state.stats.energy - 8);
+    state.stats.vibe = clamp(state.stats.vibe + (h < 2 ? -4 : h * 4 + p * 3)); // a rough set stings
+    state.stats.energy = clamp(state.stats.energy - 10);
     state.c.jam++;
     state.stats.clean = clamp(state.stats.clean - 2);
     state.best = Math.max(state.best, h);
@@ -1474,8 +1474,8 @@
     boneEl.hidden = false;
     placeBone(HAND.x, HAND.y, -20, 1);
     sfx('thud'); fx('hearts'); sfx('chirp', state.stage);
-    state.stats.vibe = clamp(state.stats.vibe + 5 + (catching ? 4 : 0));
-    state.stats.energy = clamp(state.stats.energy - 3);
+    state.stats.vibe = clamp(state.stats.vibe + 4 + (catching ? 3 : 0));
+    state.stats.energy = clamp(state.stats.energy - 4);
     state.stats.fuel = clamp(state.stats.fuel - 1);
     state.c.fetch++;
     state.stats.clean = clamp(state.stats.clean - 4);
