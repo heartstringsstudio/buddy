@@ -78,13 +78,30 @@ def load(path):
     return clean(im)
 
 
-def main():
-    os.makedirs("sprites", exist_ok=True)
-    for f in sorted(glob.glob("art/bg-*.png")):  # backgrounds: opaque, just resized
-        im = Image.open(f).convert("RGB")
+def trim_edges(im, look=32, ref=48, jump=40):
+    """ChatGPT backgrounds sometimes come with a thin white or pale strip down an edge.
+    Crop each side past any line whose brightness jumps away from the art just inside it."""
+    g = np.asarray(im.convert("L"), dtype=float)
+    cut = {}
+    for side, lines in (("left", g.mean(0)), ("right", g.mean(0)[::-1]),
+                        ("top", g.mean(1)), ("bottom", g.mean(1)[::-1])):
+        bad = [i for i in range(look) if abs(lines[i] - lines[ref]) > jump]
+        cut[side] = bad[-1] + 3 if bad else 0  # +3 clears the soft blend into the art
+    w, h = im.size
+    return im.crop((cut["left"], cut["top"], w - cut["right"], h - cut["bottom"]))
+
+
+def backgrounds():
+    for f in sorted(glob.glob("art/bg-*.png")):  # backgrounds: opaque, edge strips trimmed, resized
+        im = trim_edges(Image.open(f).convert("RGB"))
         im = im.resize((720, round(im.size[1] * 720 / im.size[0])), Image.LANCZOS)
         im.save("sprites/" + os.path.basename(f)[:-4] + ".webp", "WEBP", quality=80, method=6)
-        print(os.path.basename(f)[:-4])
+        print(os.path.basename(f)[:-4], im.size)
+
+
+def main():
+    os.makedirs("sprites", exist_ok=True)
+    backgrounds()
     art = {os.path.basename(f)[:-4]: load(f) for f in sorted(glob.glob("art/*.png"))
            if not os.path.basename(f).startswith("bg-")}
     for stage in ["egg", "baby", "teen", "adult"]:
