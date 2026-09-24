@@ -1,6 +1,6 @@
 // Offline support: keep the game and its sprites on the phone.
 // Bump CACHE when shipping changes so phones drop the old copy.
-const CACHE = 'rockfire-v1';
+const CACHE = 'rockfire-v2';
 const ASSETS = [
   './',
   './manifest.webmanifest',
