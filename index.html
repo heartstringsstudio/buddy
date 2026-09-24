@@ -33,11 +33,13 @@
     --scrawl: "Permanent Marker", "Comic Sans MS", "Marker Felt", cursive;
     --ui: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
   }
-  html { height: 100%; box-sizing: border-box; background: var(--soot); }
+  html { height: 100%; box-sizing: border-box; background: var(--soot); overflow: hidden; overscroll-behavior: none; }
   *, *::before, *::after { box-sizing: inherit; }
   [hidden] { display: none !important; }
   body {
     height: 100%;
+    margin: 0;                   /* the browser's default 8px margin made the page scroll */
+    overscroll-behavior: none;   /* no bounce or pull-to-refresh */
     background: var(--soot);
     color: var(--chrome);
     font-family: var(--ui);
@@ -346,7 +348,7 @@
   .sheet { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(5,3,3,.62); }
   .panel {
     width: 100%; max-width: 520px; max-height: 88%;
-    overflow-y: auto;
+    overflow-y: auto; overscroll-behavior: contain;
     background: var(--amp);
     border-top: 3px solid var(--gold);
     border-radius: 20px 20px 0 0;
