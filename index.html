@@ -225,6 +225,18 @@
     background: rgba(20, 16, 16, .55); border: 1px solid var(--edge); color: var(--gold);
   }
   .soundbtn.left { right: auto; left: 10px; }
+  .soundbtn.ward { right: auto; left: 10px; top: 56px; }
+  .fetching .soundbtn.ward, .bathing .soundbtn.ward { display: none; }
+  /* Wardrobe: accessories drawn over his picture, placed per pose */
+  .gear { position: absolute; pointer-events: none; }
+  .gear > svg { position: absolute; overflow: visible; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .wpreview { position: relative; height: 170px; border-radius: 12px; background: radial-gradient(ellipse at 50% 100%, rgba(244,185,66,.18), transparent 65%), #120d0c; border: 1px solid var(--edge); overflow: hidden; }
+  .wpreview .wfig { position: absolute; inset: 8px 0 4px; }
+  .wpreview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+  .wgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .witem { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 8px 2px 6px; border-radius: 10px; background: var(--tolex); border: 2px solid var(--edge); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); line-height: 1.1; text-align: center; }
+  .witem svg { width: 46px; height: 32px; overflow: visible; }
+  .witem[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: linear-gradient(160deg, rgba(244,185,66,.18), var(--tolex) 70%); }
   .fetching .soundbtn.left, .bathing .soundbtn.left { display: none; }
   .soundbtn .cross { display: none; }
   .soundbtn.off { color: var(--muted); }
@@ -487,6 +499,7 @@
       <div class="fig" id="fig">
         <img id="sprite" src="sprites/egg-idle.webp" alt="Rockfire">
         <div class="dirt" id="dirt"></div>
+        <div class="gear" id="gear"></div>
       </div>
       <span class="fly" hidden></span><span class="fly f2" hidden></span>
       <img class="mouthbone" id="mouthBone" alt="" hidden>
@@ -500,6 +513,9 @@
     <div class="speech" id="speech" aria-live="polite"></div>
     <button class="soundbtn left" id="menuBtn" aria-label="Backstage menu">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="soundbtn ward" id="wardBtn" aria-label="Wardrobe">
+      <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M12 7.5a1.9 1.9 0 1 1 1.9-1.9c0 1.3-1.9 1.5-1.9 3v.4l8.6 5.6c.9.6.5 2-.6 2H4c-1.1 0-1.5-1.4-.6-2L12 9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="soundbtn" id="soundBtn" aria-label="Mute sound">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="cross" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -597,6 +613,26 @@
   </div>
 </div>
 
+<div class="sheet" id="wardSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Wardrobe</h2><button class="x" data-close>Close</button></div>
+    <div class="wpreview"><div class="wfig" id="wFig"><img id="wImg" alt=""><div class="gear" id="wGear"></div></div></div>
+    <p class="small" id="wNote" hidden>He'll show off his look once he hatches.</p>
+    <section class="bs">
+      <h3>Scale color</h3>
+      <div class="swatches" id="bsColors"></div>
+    </section>
+    <section class="bs">
+      <h3>Hats</h3>
+      <div class="wgrid" id="wHats"></div>
+    </section>
+    <section class="bs">
+      <h3>Eyewear</h3>
+      <div class="wgrid" id="wEyes"></div>
+    </section>
+  </div>
+</div>
+
 <div class="sheet" id="backSheet" hidden>
   <div class="panel">
     <div class="row"><h2>Backstage</h2><button class="x" data-close>Close</button></div>
@@ -608,11 +644,6 @@
     <section class="bs">
       <h3>Sound</h3>
       <div class="btns"><button class="pill" id="bsSoundOn">On</button><button class="pill" id="bsSoundOff">Off</button></div>
-    </section>
-    <section class="bs">
-      <h3>Scale color</h3>
-      <div class="swatches" id="bsColors"></div>
-      <p class="small" id="bsColorNote" hidden>He'll show his color once he hatches.</p>
     </section>
     <section class="bs">
       <h3>Hall of Fame</h3>
@@ -923,6 +954,122 @@
       setSprite();
     }
   }
+
+  // ---------- Wardrobe ----------
+  // Accessories are SVG drawn over his picture. Each has a viewBox, a width relative to his face
+  // (w), and the point (ax, ay; 0-1 of the box) that sits on his head (hats) or between his eyes.
+  const G = (id, stops) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient></defs>`;
+  const HATS = {
+    none: { label: 'None' },
+    sunhat: { label: 'Sun Hat', vb: '0 0 140 70', w: 1.75, ax: .5, ay: .78, svg:
+      G('gSun', [[0, '#f7df9c'], [1, '#caa04e']]) +
+      `<ellipse cx="70" cy="54" rx="68" ry="13" fill="url(#gSun)" stroke="#9c7632" stroke-width="1.5"/>
+       <path d="M36 54 C36 16 104 16 104 54 Z" fill="url(#gSun)" stroke="#9c7632" stroke-width="1.5"/>
+       <path d="M37 44 C50 49 90 49 103 44 L104 53 C88 58 52 58 36 53 Z" fill="#e8559b"/>
+       <path d="M96 47 l14 -8 l-2 14 Z M96 47 l12 10 l-14 2 Z" fill="#d63f86"/><circle cx="97" cy="48" r="4" fill="#f07ac4"/>
+       <path d="M44 30 C60 22 80 22 96 30" fill="none" stroke="#fff3c9" stroke-width="2" opacity=".6"/>` },
+    beanie: { label: 'Beanie', vb: '0 0 100 80', w: 1.05, ax: .5, ay: .9, svg:
+      G('gBean', [[0, '#3a3d4a'], [1, '#1f2029']]) +
+      `<circle cx="50" cy="12" r="11" fill="#ff7a1a"/><circle cx="46" cy="9" r="4" fill="#ffb066"/>
+       <path d="M8 62 C8 18 92 18 92 62 Z" fill="url(#gBean)"/>
+       <path d="M10 46 C30 38 70 38 90 46 L91 53 C70 45 30 45 9 53 Z" fill="#ff7a1a"/>
+       <rect x="4" y="58" width="92" height="16" rx="7" fill="#2c2e39"/>
+       ${Array.from({ length: 11 }, (_, i) => `<line x1="${11 + i * 8}" y1="60" x2="${11 + i * 8}" y2="72" stroke="#444857" stroke-width="3" stroke-linecap="round"/>`).join('')}` },
+    cowboy: { label: 'Cowboy', vb: '0 0 150 70', w: 1.7, ax: .5, ay: .8, svg:
+      G('gCow', [[0, '#a8743f'], [1, '#6b4523']]) +
+      `<path d="M4 44 C20 62 50 60 75 60 C100 60 130 62 146 44 C140 58 110 70 75 69 C40 70 10 58 4 44 Z" fill="#5a3a1d"/>
+       <path d="M4 44 C24 58 52 57 75 57 C98 57 126 58 146 44 C136 60 106 64 75 64 C44 64 14 60 4 44 Z" fill="url(#gCow)"/>
+       <path d="M42 56 C40 30 46 12 60 10 C66 16 84 16 90 10 C104 12 110 30 108 56 Z" fill="url(#gCow)" stroke="#5a3a1d" stroke-width="1.5"/>
+       <path d="M43 46 C60 50 90 50 107 46 L108 54 C90 58 60 58 42 54 Z" fill="#2b1a0c"/>
+       <circle cx="75" cy="51" r="3.2" fill="#f4b942"/>` },
+    crown: { label: 'Crown', vb: '0 0 100 64', w: .95, ax: .5, ay: .9, svg:
+      G('gCrown', [[0, '#ffe58a'], [.55, '#f4b942'], [1, '#b87d17']]) +
+      `<path d="M8 58 L4 16 L28 36 L50 6 L72 36 L96 16 L92 58 Z" fill="url(#gCrown)" stroke="#8a5a0e" stroke-width="2" stroke-linejoin="round"/>
+       <rect x="8" y="48" width="84" height="10" rx="3" fill="#d99a1f"/>
+       <circle cx="50" cy="32" r="6" fill="#e0203a"/><circle cx="28" cy="42" r="4" fill="#2f7fd8"/><circle cx="72" cy="42" r="4" fill="#34b24a"/>
+       <circle cx="4" cy="15" r="4" fill="#ffe58a"/><circle cx="50" cy="5" r="4" fill="#ffe58a"/><circle cx="96" cy="15" r="4" fill="#ffe58a"/>` },
+    party: { label: 'Party Hat', vb: '0 0 70 90', w: .7, ax: .5, ay: .92, svg:
+      `<defs><clipPath id="cParty"><path d="M35 8 L64 82 L6 82 Z"/></clipPath></defs>
+       <path d="M35 8 L64 82 L6 82 Z" fill="#8e4fd6"/>
+       <g clip-path="url(#cParty)" fill="#f4b942">${[20, 40, 60].map(y => `<path d="M0 ${y} L70 ${y - 16} L70 ${y - 8} L0 ${y + 8} Z"/>`).join('')}</g>
+       <circle cx="35" cy="8" r="8" fill="#f07ac4"/><path d="M4 82 C20 88 50 88 66 82" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 6"/>` },
+    bow: { label: 'Pink Bow', vb: '0 0 100 60', w: .85, ax: .5, ay: .75, svg:
+      G('gBow', [[0, '#ff9ad4'], [1, '#d63f86']]) +
+      `<path d="M50 30 C34 6 6 4 6 28 C6 52 34 50 50 30 Z" fill="url(#gBow)" stroke="#a82a66" stroke-width="2"/>
+       <path d="M50 30 C66 6 94 4 94 28 C94 52 66 50 50 30 Z" fill="url(#gBow)" stroke="#a82a66" stroke-width="2"/>
+       <path d="M44 34 L36 58 L46 52 Z M56 34 L64 58 L54 52 Z" fill="#d63f86"/>
+       <rect x="40" y="20" width="20" height="20" rx="7" fill="#f07ac4" stroke="#a82a66" stroke-width="2"/>
+       <path d="M16 20 C20 14 30 14 34 20" fill="none" stroke="#ffd1ea" stroke-width="3" stroke-linecap="round"/>` },
+  };
+  const EYES = {
+    none: { label: 'None' },
+    shades: { label: 'Sunglasses', vb: '0 0 120 40', w: 1.2, svg:
+      G('gLens', [[0, '#3a3f4c'], [1, '#07080b']]) +
+      `<path d="M2 8 H118" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+       <path d="M6 8 H54 C54 26 48 36 30 36 C12 36 6 26 6 8 Z" fill="url(#gLens)" stroke="#111" stroke-width="3"/>
+       <path d="M66 8 H114 C114 26 108 36 90 36 C72 36 66 26 66 8 Z" fill="url(#gLens)" stroke="#111" stroke-width="3"/>
+       <path d="M13 13 L22 13 L14 24 Z M73 13 L82 13 L74 24 Z" fill="#fff" opacity=".35"/>` },
+    hearts: { label: 'Heart Shades', vb: '0 0 120 44', w: 1.25, svg:
+      `<path d="M54 14 H66" stroke="#b3124e" stroke-width="4" stroke-linecap="round"/>
+       ${[30, 90].map(x => `<path d="M${x} 40 C${x - 30} 22 ${x - 26} 2 ${x - 12} 4 C${x - 5} 5 ${x} 10 ${x} 14 C${x} 10 ${x + 5} 5 ${x + 12} 4 C${x + 26} 2 ${x + 30} 22 ${x} 40 Z" fill="#ff3d8b" stroke="#b3124e" stroke-width="3" stroke-linejoin="round"/>`).join('')}
+       <path d="M12 12 C14 8 20 7 23 9 M72 12 C74 8 80 7 83 9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>` },
+    specs: { label: 'Round Specs', vb: '0 0 120 44', w: 1.15, svg:
+      `<path d="M44 20 C52 12 68 12 76 20" fill="none" stroke="#c8961e" stroke-width="3"/>
+       <circle cx="26" cy="22" r="19" fill="rgba(200,230,255,.25)" stroke="#e0ad2a" stroke-width="4"/>
+       <circle cx="94" cy="22" r="19" fill="rgba(200,230,255,.25)" stroke="#e0ad2a" stroke-width="4"/>
+       <path d="M14 14 C18 9 24 8 28 9 M82 14 C86 9 92 8 96 9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>` },
+  };
+  // Where his eyes are in each picture: centre x, y (% of the picture), face width (% of the
+  // picture's width) and head tilt in degrees. Hats sit above, along the same tilt.
+  const FACE = {
+    'baby-idle': [61, 41, 46, 4], 'baby-happy': [64.5, 45.5, 38, 30], 'baby-sleep': [54, 63, 32, 8], 'baby-sad': [61.5, 51.5, 44, -2],
+    'baby-fire': [58, 40, 36, -3], 'baby-run': [85, 45, 30, 3], 'baby-fetch': [77, 39, 34, 6], 'baby-bath': [47.5, 25, 36, 0],
+    'teen-idle': [52.5, 16, 30, -22], 'teen-happy': [43.5, 21.5, 26, -16], 'teen-sleep': [23.5, 69.5, 30, -28], 'teen-sad': [57, 30, 30, 5],
+    'teen-fire': [52.5, 18, 26, -8], 'teen-run': [88.5, 39.5, 22, 3], 'teen-fetch': [71, 18, 24, -10], 'teen-bath': [38.5, 12, 28, -12],
+    'adult-idle': [51, 21, 22, 0], 'adult-happy': [49, 24, 20, -5], 'adult-sleep': [49, 51, 24, 15], 'adult-sad': [58, 32, 22, 5],
+    'adult-fire': [47, 20, 18, -15], 'adult-run': [86, 46, 17, 5], 'adult-fetch': [73, 28, 20, 5], 'adult-bath': [49, 35, 20, 3],
+  };
+  const HAT_UP = { baby: .34, teen: .28, adult: .38 };  // how far above the eyes the hat sits, in face widths
+  let wear = { hat: 'none', eyes: 'none' };
+  try { Object.assign(wear, JSON.parse(localStorage.getItem('rockfire.wardrobe')) || {}); } catch (e) {}
+  if (!HATS[wear.hat]) wear.hat = 'none';
+  if (!EYES[wear.eyes]) wear.eyes = 'none';
+  const svgOf = (it, extra = '') => `<svg viewBox="${it.vb}" ${extra} aria-hidden="true">${it.svg}</svg>`;
+  // Lay the accessories over the picture in `box` (sized like the figure), for pose `name`.
+  function dressUp(gear, box, img, name) {
+    const f = FACE[name];
+    if (!f || name.startsWith('egg') || !img.naturalWidth) { gear.innerHTML = ''; return; }
+    const W = box.clientWidth, H = box.clientHeight, k = Math.min(W / img.naturalWidth, H / img.naturalHeight);
+    const gw = img.naturalWidth * k, gh = img.naturalHeight * k;
+    Object.assign(gear.style, { left: (W - gw) / 2 + 'px', top: (H - gh) + 'px', width: gw + 'px', height: gh + 'px' });
+    const ex = f[0] / 100 * gw, ey = f[1] / 100 * gh, face = f[2] / 100 * gw, a = f[3], r = a * Math.PI / 180;
+    let html = '';
+    const put = (it, x, y, ax, ay) => {
+      const [, , vw, vh] = it.vb.split(' ').map(Number), w = face * it.w, h = w * vh / vw;
+      html += svgOf(it, `style="left:${x - w * ax}px;top:${y - h * ay}px;width:${w}px;height:${h}px;transform-origin:${ax * 100}% ${ay * 100}%;transform:rotate(${a}deg)"`);
+    };
+    const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
+    if (hat.svg) put(hat, ex + Math.sin(r) * up, ey - Math.cos(r) * up, hat.ax, hat.ay);
+    if (eyes.svg) put(eyes, ex, ey, .5, .5);
+    gear.innerHTML = html;
+  }
+  let gearName = '';
+  function dressStage() { dressUp($('gear'), $('fig'), els.sprite, gearName); }
+  addEventListener('resize', () => dressStage());
+  els.sprite.addEventListener('load', () => dressStage());
+  function drawWardrobe() {
+    const egg = state.stage === 'egg', name = (egg ? 'baby' : state.stage) + '-idle', img = $('wImg');
+    $('wNote').hidden = !egg;
+    img.onload = () => dressUp($('wGear'), $('wFig'), img, name);
+    const src = dragonSrc(name);
+    if (src && img.getAttribute('src') !== src) img.src = src; else if (src) dressUp($('wGear'), $('wFig'), img, name);
+    if (!src) tint(name, scale).then(drawWardrobe);
+    $('bsColors').innerHTML = Object.entries(SCALES).map(([k, c]) =>
+      `<button class="swatch" data-scale="${k}" aria-pressed="${k === scale}" style="--sw:${c.sw}"><i></i>${c.label}</button>`).join('');
+    const tile = (slot, k, it) => `<button class="witem" data-${slot}="${k}" aria-pressed="${wear[slot] === k}">${it.svg ? svgOf(it) : '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 23 L28 7" stroke="currentColor" stroke-width="2.5"/></svg>'}${it.label}</button>`;
+    $('wHats').innerHTML = Object.entries(HATS).map(([k, it]) => tile('hat', k, it)).join('');
+    $('wEyes').innerHTML = Object.entries(EYES).map(([k, it]) => tile('eyes', k, it)).join('');
+  }
   const FALLBACK = { run: 'happy', fetch: 'happy', bath: 'idle' };
   const BONE_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 52"><g stroke="#3a2a22" stroke-width="6"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#f3e7cf"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#5a3b2c" opacity=".55"><circle cx="11" cy="12" r="5"/><circle cx="113" cy="40" r="5"/></g><path d="M66 17 55 28h8l-5 9 12-12h-8z" fill="#f4b942" stroke="#3a2a22" stroke-width="1.5"/></svg>');
   function pose() {
@@ -945,6 +1092,7 @@
       return;
     }
     els.sprite.style.visibility = '';
+    if (name !== gearName) { gearName = name; if (els.sprite.complete) dressStage(); }
     if (src !== currentSrc) {
       currentSrc = src; els.sprite.src = src;
       els.dirt.style.webkitMaskImage = els.dirt.style.maskImage = `url(${src})`;
@@ -1134,6 +1282,20 @@
         for (let i = 0; i < (big ? 4 : 2); i++) tone({ t: .2 + i * .3 + Math.random() * .2, f: 1900 + Math.random() * 500, f2: 2700, dur: .35, vol: .06 });
       },
       wahwah: () => [392, 370, 349, 311].forEach((f, i) => tone({ t: i * .38, f, f2: f * .97, dur: i === 3 ? .9 : .34, type: 'triangle', vol: .18, vib: i === 3 ? 6 : 0, cut: 1400 })),
+      // Coal Rush
+      rushCount: () => { [0, .22, .44].forEach(t => noise({ t, dur: .03, vol: .3, type: 'highpass', f: 3500 })); chord(E3, .66, .45, .22, 3000); },
+      rushBeat: (step) => {  // eighth-note groove: kick on 1 and 3, snare on 2 and 4, hats between
+        if (step % 4 === 0) tone({ f: 110, f2: 42, dur: .16, vol: .32 });
+        if (step % 4 === 2) { noise({ dur: .12, vol: .16, f: 1800, q: .8 }); tone({ f: 190, f2: 150, dur: .08, type: 'triangle', vol: .08 }); }
+        noise({ dur: .025, vol: step % 2 ? .05 : .08, type: 'highpass', f: 7000 });
+        if (step % 8 === 0) tone({ f: [E2, E2, G2, A2][(step / 8) % 4] * 2, dur: .3, type: 'sawtooth', vol: .07, cut: 600 });
+      },
+      rushCoal: () => { fx.crunch(); tone({ f: 330, f2: 220, dur: .12, type: 'triangle', vol: .14 }); },
+      rushPepper: () => { noise({ dur: .45, vol: .22, type: 'highpass', f: 3500, attack: .01 }); [880, 1175, 1568].forEach((f, i) => tone({ t: i * .06, f, dur: .16, type: 'triangle', vol: .12 })); },
+      rushWater: () => { fx.splash(); noise({ t: .05, dur: .6, vol: .25, type: 'highpass', f: 5000, attack: .02 }); tone({ t: .1, f: 400, f2: 180, dur: .45, type: 'triangle', vol: .14 }); },
+      rushDrop: () => { fx.thud(); tone({ t: .05, f: 260, f2: 110, dur: .35, type: 'square', vol: .06, cut: 900 }); },
+      rushLevel: () => { noise({ dur: .5, vol: .16, f: 500, f2: 3000, q: 1.2, attack: .3 }); chord(A2, .45, .4, .2, 3200); },
+      rushOver: () => { tone({ f: 600, f2: 70, dur: .9, type: 'sawtooth', vol: .14, cut: 1400 }); noise({ dur: .9, vol: .12, type: 'lowpass', f: 900, f2: 120 }); },
       drumfill: () => {
         [0, .1, .2, .3, .38, .46].forEach((t, i) => noise({ t, dur: .09, vol: .28, f: 900 + i * 350, q: 1.2 }));  // tom run
         tone({ t: .56, f: 120, f2: 45, dur: .3, vol: .45 });                                                   // kick
@@ -1663,6 +1825,8 @@
     if (rush.started) return;
     rush.started = true; $('rushGo').disabled = true; $('rushGo').textContent = 'Go!';
     $('rushCall').textContent = 'Catch!';
+    sfx('rushCount');
+    rush.beat = .9; rush.step = 0; rush.level = 1;  // groove starts after the count-in
     rush.last = performance.now();
     rush.raf = requestAnimationFrame(rushLoop);
   });
@@ -1688,6 +1852,13 @@
     rush.next -= dt;
     if (rush.next <= 0) { spawnDrop(W); rush.next = rushGap(rush.t); }
     const fall = rushFall(rush.t);
+    // Backing groove speeds up with the game (90 bpm at ×1, capped at 200).
+    if (rush.t >= rush.beat) {
+      sfx('rushBeat', rush.step++);
+      rush.beat += 30 / Math.min(200, 90 * (.7 + .3 * rushSpeed(rush.t)));
+    }
+    const lvl = Math.floor(rushSpeed(rush.t));
+    if (lvl > rush.level) { rush.level = lvl; sfx('rushLevel'); $('rushCall').textContent = 'Speed ×' + lvl + '!'; }
     for (const it of rush.items.slice()) {
       it.y += fall * dt;
       it.el.style.transform = `translate(${it.x - DROP / 2}px, ${it.y}px)`;
@@ -1695,11 +1866,11 @@
       if (inMouth || it.y > H) {
         it.el.remove(); rush.items.splice(rush.items.indexOf(it), 1);
         if (!inMouth) {
-          if (it.kind !== 'water') { rush.lives--; sfx('thud'); buzz(40); $('rushCall').textContent = pick(['Dropped one!', 'Missed it!', 'Aw, my snack!']); }
+          if (it.kind !== 'water') { rush.lives--; sfx('rushDrop'); buzz(40); $('rushCall').textContent = pick(['Dropped one!', 'Missed it!', 'Aw, my snack!']); }
           continue;
         }
-        if (it.kind === 'water') { rush.lives--; sfx('splash'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
-        else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'sizzle' : 'crunch'); buzz(15); }
+        if (it.kind === 'water') { rush.lives--; sfx('rushWater'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
+        else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'rushPepper' : 'rushCoal'); buzz(15); }
       }
     }
     rushHud();
@@ -1721,7 +1892,8 @@
     rushHud();
     show(n >= 8 ? 'happy' : 'idle', 2200); animate(n >= 8 ? 'bounce' : '');
     if (n >= 8) fx('sparks');
-    setTimeout(() => sfx(n >= 8 ? 'cheer' : 'wahwah', n >= 20), 400);
+    sfx('rushOver');
+    setTimeout(() => sfx(n >= 8 ? 'cheer' : 'wahwah', n >= 20), 900);
     checkSkills(); render(); save();
   }
 
@@ -2048,9 +2220,6 @@
     $('bsForecast').textContent = state.stage === 'egg' ? 'Nothing yet. Eggs just need warmth.' : fc ? fc.text : 'He\'s all set for now.';
     $('bsSoundOn').setAttribute('aria-pressed', String(Sound.on));
     $('bsSoundOff').setAttribute('aria-pressed', String(!Sound.on));
-    $('bsColors').innerHTML = Object.entries(SCALES).map(([k, c]) =>
-      `<button class="swatch" data-scale="${k}" aria-pressed="${k === scale}" style="--sw:${c.sw}"><i></i>${c.label}</button>`).join('');
-    $('bsColorNote').hidden = state.stage !== 'egg';
     const ul = $('bsHall');
     ul.textContent = '';
     for (const h of state.hall.slice().reverse()) {
@@ -2066,14 +2235,24 @@
     $('bsNewStart').hidden = false;
     $('bsNewConfirm').hidden = true;
   }
+  $('wardBtn').addEventListener('click', () => { if (fetchS || feeding || hatching || bathS) return; openSheet('wardSheet'); drawWardrobe(); });
+  document.querySelector('#wardSheet .panel').addEventListener('click', e => {
+    const b = e.target.closest('[data-hat], [data-eyes]');
+    if (!b) return;
+    const slot = b.dataset.hat ? 'hat' : 'eyes';
+    wear[slot] = b.dataset[slot];
+    try { localStorage.setItem('rockfire.wardrobe', JSON.stringify(wear)); } catch (err) {}
+    sfx(wear[slot] === 'none' ? 'click' : 'sparkle');
+    drawWardrobe(); dressStage();
+  });
   $('bsColors').addEventListener('click', e => {
     const b = e.target.closest('[data-scale]');
     if (!b || b.dataset.scale === scale) return;
     scale = b.dataset.scale;
     try { localStorage.setItem('rockfire.color', scale); } catch (err) {}
-    drawBackstage();
     sfx('sparkle');
-    if (state.stage !== 'egg') { toast(state.name + ' is ' + SCALES[scale].label.toLowerCase() + ' now!'); pretint(); setSprite(); }
+    if (state.stage !== 'egg') { toast(state.name + ' is ' + SCALES[scale].label.toLowerCase() + ' now!'); pretint().then(drawWardrobe); setSprite(); }
+    drawWardrobe();
   });
   $('menuBtn').addEventListener('click', () => { if (fetchS || feeding || hatching || bathS) return; drawBackstage(); openSheet('backSheet'); });
   $('bsSoundOn').addEventListener('click', () => { if (!Sound.on) { Sound.toggle(); drawSoundBtn(); sfx('chirp', state.stage); } drawBackstage(); });
