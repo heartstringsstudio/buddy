@@ -231,6 +231,7 @@
   .soundbtn.off .waves { display: none; }
   .soundbtn.off .cross { display: inline; }
   .bone { position: absolute; left: 0; top: 0; width: 16%; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 3px rgba(0,0,0,.45)); }
+  .snack.golden, .food.golden img { filter: sepia(1) saturate(3.5) hue-rotate(-8deg) brightness(1.15) drop-shadow(0 0 8px rgba(244,185,66,.95)); }
   .snack { position: absolute; left: 0; top: 0; width: 20%; max-height: 17%; object-fit: contain; z-index: 3; pointer-events: none; will-change: transform; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); }
   .crumb { position: absolute; width: 7px; height: 7px; border-radius: 2px; background: var(--c); animation: ember var(--t, 1s) ease-in forwards; }
   .mouthbone { position: absolute; left: 56%; top: 30%; width: 30%; transform: rotate(-14deg); pointer-events: none; }
@@ -341,6 +342,7 @@
     background: rgba(0,0,0,.45);
   }
   .pedal .led.on { background: #ff3b30; box-shadow: 0 0 8px 2px rgba(255,59,48,.8); }
+  .pedal .led.on.gold { background: var(--gold); box-shadow: 0 0 8px 2px rgba(244,185,66,.85); }
   .pedal .led.on.cool { background: #7fd3ff; box-shadow: 0 0 8px 2px rgba(127,211,255,.8); }
   .p-feed { --pc: var(--flame); }
   .p-jam { --pc: var(--gold); }
@@ -379,6 +381,9 @@
     background: var(--tolex); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px;
   }
   .food img { grid-row: 1 / span 2; grid-column: 1; width: 64px; height: 64px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+  .food.golden { border-color: var(--gold); background: linear-gradient(120deg, rgba(244,185,66,.24), var(--tolex) 65%); }
+  .food.golden:disabled { opacity: .6; cursor: default; }
+  .food.golden:disabled img { filter: grayscale(1) brightness(.6); }
   .food strong { font-size: 20px; letter-spacing: .04em; grid-column: 2; }
   .food span { color: var(--muted); font-size: 15px; grid-column: 2; }
   .food em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-weight: 700; color: var(--gold); font-size: 15px; letter-spacing: .06em; text-align: right; }
@@ -519,6 +524,7 @@
   <div class="panel">
     <div class="row"><h2>Snack Bar</h2><button class="x" data-close>Close</button></div>
     <div class="foods">
+      <button class="food golden" data-food="golden" id="goldenBtn"><img data-food-img="pizza" alt=""><strong>Golden Pizza <span id="goldenCount"></span></strong><span id="goldenNote"></span><em>EVERY<br>METER<br>FULL</em></button>
       <button class="food" data-food="pepper"><img data-food-img="pepper" alt=""><strong>Ghost Pepper</strong><span>Spicy. Makes him breathe fire.</span><em>+16 FUEL<br>+5 VIBE</em></button>
       <button class="food" data-food="coal"><img data-food-img="coal" alt=""><strong>Lump of Coal</strong><span>A dragon's meat and potatoes.</span><em>+28 FUEL</em></button>
       <button class="food" data-food="pizza"><img data-food-img="pizza" alt=""><strong>Tour-Bus Pizza</strong><span>Cold, greasy, perfect.</span><em>+20 FUEL<br>+10 VIBE</em></button>
@@ -646,7 +652,7 @@
   const TEEN_AT = 48, ADULT_AT = 144;  // care-hours: ~2 days and ~6 days with decent care
   const NEGLECT_WARN = 24, NEGLECT_FADE = 48, NEGLECT_END = 72; // hours at zero fuel AND zero vibe
   const DRAIN = { fuel: 10, vibe: 9, energy: 7.5, clean: 5 }; // per hour awake: ~10-13 hours from full to empty (clean ~20)
-  const SLEEP = { energy: 18, fuel: 4, vibe: 3, clean: 1 };   // per hour asleep
+  const SLEEP = { energy: 350, fuel: 4, vibe: 3, clean: 1 };  // per hour asleep: a 12-minute nap takes him from ~10% to ~80%
   const STINKY = 1.75; // vibe drains this much faster when he's filthy
 
   const STAGES = {
@@ -724,6 +730,11 @@
   }
   let state;
   let riff = null, rush = null; // active mini-games (declared early: closeSheets() stops them)
+  // Daily prize progress (see Golden Pizza below); declared early because render() reads it.
+  const DAILY_KEY = SPEED > 1 ? 'rockfire.fast.daily' : 'rockfire.daily';
+  const DAILY_SECS = SPEED > 1 ? 10 : 300, GOLDEN_MAX = 3;
+  let daily = { date: '', secs: 0, got: false, golden: 0 };
+  try { Object.assign(daily, JSON.parse(localStorage.getItem(DAILY_KEY)) || {}); } catch (e) {}
   try { const raw = localStorage.getItem(KEY); state = raw ? migrate(JSON.parse(raw)) : fresh(); } catch (e) { state = fresh(); }
 
   // ---------- Cloud backup (private per viewer) ----------
@@ -778,12 +789,13 @@
     }
   }
   // Drain one slice of time. Returns 'woke' / 'passedout' when sleep flips.
-  function drain(s, asleep, h) {
+  // He only wakes himself when full if he passed out; tucked in, he sleeps until you wake him.
+  function drain(s, asleep, h, wakeWhenFull) {
     const stink = s.clean < 25 ? STINKY : 1;
     let flip = null;
     if (asleep) {
       s.energy += SLEEP.energy * h; s.fuel -= SLEEP.fuel * h; s.vibe -= SLEEP.vibe * h * stink; s.clean -= SLEEP.clean * h;
-      if (s.energy >= 100) { s.energy = 100; flip = 'woke'; }
+      if (s.energy >= 100) { s.energy = 100; if (wakeWhenFull) flip = 'woke'; }
     } else {
       s.fuel -= DRAIN.fuel * h; s.vibe -= DRAIN.vibe * h * stink; s.energy -= DRAIN.energy * h; s.clean -= DRAIN.clean * h;
       if (s.energy <= 0) { s.energy = 0; flip = 'passedout'; }
@@ -793,8 +805,8 @@
   }
   function step(h) {
     const s = state.stats;
-    const flip = drain(s, state.asleep, h);
-    if (flip) { state.asleep = flip === 'passedout'; events.push(flip); }
+    const flip = drain(s, state.asleep, h, !!state.passedOut);
+    if (flip) { state.asleep = state.passedOut = flip === 'passedout'; events.push(flip); }
     const care = (s.fuel + s.vibe + s.energy + s.clean) / 400;
     const rate = (s.fuel === 0 && s.vibe === 0) ? 0 : care > 0.55 ? 1 : care > 0.3 ? 0.5 : 0.2;
     state.age += h * rate;
@@ -987,7 +999,7 @@
       els.stage.dataset.art = '';
     }
     $('sleepLabel').textContent = state.asleep ? 'Wake' : 'Sleep';
-    $('ledFeed').className = 'led' + (s.fuel < 25 ? ' on' : '');
+    $('ledFeed').className = 'led' + (s.fuel < 25 ? ' on' : daily.golden > 0 && !egg ? ' on gold' : '');
     $('ledJam').className = 'led' + (s.vibe < 25 ? ' on' : '');
     $('ledSleep').className = 'led' + (state.asleep ? ' on cool' : s.energy < 15 ? ' on' : '');
     $('ledSet').className = 'led' + (state.unseen.length ? ' on' : '');
@@ -1358,9 +1370,36 @@
     pizza: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M14 24Q50 8 86 24L50 94z" fill="#f6c34a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><path d="M11 24Q50 2 89 24l-4 9Q50 14 15 33z" fill="#d99a4a" stroke="#6b3a12" stroke-width="3" stroke-linejoin="round"/><circle cx="39" cy="42" r="7" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="61" cy="44" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><circle cx="50" cy="64" r="6" fill="#b3261e" stroke="#6e150f" stroke-width="2"/><path d="M30 52q2 8 0 12M66 58q1 6-1 9" fill="none" stroke="#f6c34a" stroke-width="4" stroke-linecap="round"/></svg>'),
   };
   FOOD_SVG.drink = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="30" y="16" width="40" height="70" rx="7" fill="#1d1a22" stroke="#0b090e" stroke-width="3"/><rect x="33" y="12" width="34" height="8" rx="3" fill="#b9b3ad" stroke="#6e6862" stroke-width="2"/><rect x="30" y="80" width="40" height="7" rx="3" fill="#b9b3ad" stroke="#6e6862" stroke-width="2"/><path d="M55 26 40 52h11l-6 22 17-30h-11z" fill="#9dff3a" stroke="#0b090e" stroke-width="2" stroke-linejoin="round"/><path d="M35 22v54" stroke="#fff" stroke-width="3" opacity=".25" stroke-linecap="round"/></svg>');
-  const CRUMB = { pepper: ['#d7261e', '#ff7a1a'], coal: ['#26211f', '#3b3431', '#ff7a1a'], pizza: ['#f6c34a', '#d99a4a', '#b3261e'], drink: ['#9dff3a', '#d9ffe0', '#7fd3ff'] };
+  const CRUMB = { golden: ['#f4b942', '#ffe28a', '#fff4c2'], pepper: ['#d7261e', '#ff7a1a'], coal: ['#26211f', '#3b3431', '#ff7a1a'], pizza: ['#f6c34a', '#d99a4a', '#b3261e'], drink: ['#9dff3a', '#d9ffe0', '#7fd3ff'] };
   const foodSrc = k => HAVE['food-' + k] ? 'sprites/food-' + k + '.webp' : FOOD_SVG[k];
-  function drawFoodMenu() { document.querySelectorAll('[data-food-img]').forEach(i => { i.src = foodSrc(i.dataset.foodImg); }); }
+  function drawFoodMenu() { document.querySelectorAll('[data-food-img]').forEach(i => { i.src = foodSrc(i.dataset.foodImg); }); drawGolden(); }
+
+  // ---------- Daily prize: the Golden Pizza ----------
+  // Play 5 minutes in a day (app open on screen) to earn one. It waits in the Snack Bar
+  // (up to 3) and fills every meter when eaten. Kept outside the save so it survives a new egg.
+  function saveDaily() { try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) {} }
+  const today = () => new Date().toDateString();
+  function drawGolden() {
+    const n = daily.golden || 0, left = Math.max(0, DAILY_SECS - daily.secs);
+    $('goldenBtn').disabled = !n;
+    $('goldenCount').textContent = n > 1 ? '×' + n : '';
+    $('goldenNote').textContent = n ? 'Daily prize! Fills every meter to the top.'
+      : daily.got ? 'Today\'s prize is eaten. A new one tomorrow!'
+      : 'Daily prize. Play ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') + ' more today to earn it.';
+  }
+  setInterval(() => {
+    if (document.hidden || state.over) return;
+    if (daily.date !== today()) { daily.date = today(); daily.secs = 0; daily.got = false; }
+    if (daily.got) return;
+    daily.secs++;
+    if (daily.secs >= DAILY_SECS) {
+      daily.got = true;
+      if ((daily.golden || 0) < GOLDEN_MAX) { daily.golden = (daily.golden || 0) + 1; toast('Daily prize: a Golden Pizza! It\'s in the Snack Bar.'); }
+      else toast('Daily prize! (Snack Bar already holds ' + GOLDEN_MAX + ' Golden Pizzas)');
+      sfx('unlock'); saveDaily(); render();
+    } else if (daily.secs % 5 === 0) saveDaily();
+    if (!$('feedSheet').hidden) drawGolden();
+  }, 1000);
   // Where his mouth is, as a fraction of each stage's standing pose.
   const MOUTH_AT = { baby: [.55, .52], teen: [.62, .27], adult: [.64, .25] };
   function mouthPx() {
@@ -1385,7 +1424,8 @@
   }
   async function serveFood(kind) {
     const el = $('snack'), sr = { width: els.stage.offsetWidth, height: els.stage.offsetHeight };
-    el.src = foodSrc(kind); el.hidden = false;
+    el.src = foodSrc(kind === 'golden' ? 'pizza' : kind); el.hidden = false;
+    el.classList.toggle('golden', kind === 'golden');
     await new Promise(r => requestAnimationFrame(r));
     const w = el.offsetWidth, h = el.offsetHeight || w;
     const [mx, my] = mouthPx();
@@ -1413,6 +1453,7 @@
     pepper: { fuel: 16, vibe: 5, mess: 3, pose: 'fire', fx: 'sparks', line: ['SPICY!', 'HOT HOT HOT!', 'That\'s the good stuff!'] },
     coal: { fuel: 28, vibe: 0, pose: 'happy', fx: 'sparks', line: ['Crunchy.', 'Mmm, smoky.', 'Classic.'] },
     pizza: { fuel: 20, vibe: 10, mess: 4, pose: 'happy', fx: 'hearts', line: ['Tour food!', 'Extra cheese, nice.', 'Pizza > everything.'] },
+    golden: { fuel: 100, vibe: 100, energy: 100, clean: 100, pose: 'happy', fx: 'sparks', line: ['GOLDEN?! Best. Day. Ever.', 'I feel like a legend!', 'Fully charged. Let\'s ROCK!'] },
     drink: { fuel: 0, vibe: 3, energy: 25, pose: 'happy', fx: 'sparks', line: ['WIDE AWAKE!', 'Let\'s ROCK!', 'I can hear colors!'] },
   };
   document.querySelectorAll('[data-food]').forEach(b => b.addEventListener('click', async () => {
@@ -1426,27 +1467,32 @@
       if (state.drinks.length >= 2) { say('I\'m buzzing. I need actual sleep.'); return; }
       if (state.stats.energy >= 95) { say('Already fully charged!'); return; }
       state.drinks.push(now());
+    } else if (kind === 'golden') {
+      if (!(daily.golden > 0)) return;
+      daily.golden--; saveDaily();
     } else if (state.stats.fuel >= 95) { say('I\'m stuffed. Maybe later?'); return; }
     feeding = true; render();
     override = { pose: 'idle', until: Infinity }; setSprite();
-    say(kind === 'drink' ? pick(['Is that Amp Juice?!', 'Ooh, fizzy!']) : pick(['Ooh, snack!', 'Gimme!', 'Is that for me?']), 1200);
+    say(kind === 'golden' ? 'Is that… GOLDEN?!' : kind === 'drink' ? pick(['Is that Amp Juice?!', 'Ooh, fizzy!']) : pick(['Ooh, snack!', 'Gimme!', 'Is that for me?']), 1200);
     await serveFood(b.dataset.food);
     feeding = false; override = null;
     state.stats.fuel = clamp(state.stats.fuel + f.fuel);
     state.stats.vibe = clamp(state.stats.vibe + f.vibe);
     state.stats.energy = clamp(state.stats.energy + (f.energy || 0));
-    state.stats.clean = clamp(state.stats.clean - (f.mess || 0));
+    state.stats.clean = f.clean ? 100 : clamp(state.stats.clean - (f.mess || 0));
     state.c[kind] = (state.c[kind] || 0) + 1;
     show(f.pose, 1800); animate('bounce');
     fx(b.dataset.food === 'pepper' ? 'flames' : f.fx);
     if (kind === 'pepper') { sfx('sizzle'); setTimeout(() => sfx('fire', false), 350); }
     else if (kind === 'drink') { sfx('zap'); animate('shake'); }
+    else if (kind === 'golden') { sfx('sparkle'); setTimeout(() => sfx('cheer', true), 300); flash(); embers(30, 50, 55, 260, 240, 1.3); }
     else sfx('chirp', state.stage);
     say(pick(f.line));
     checkSkills(); render(); save();
   }));
 
   $('btnSleep').addEventListener('click', () => {
+    state.passedOut = false;  // tucked in or woken by you: he sleeps until you wake him
     if (state.asleep) {
       state.asleep = false;
       say(state.stats.energy < 40 ? 'Huh? I\'m up… barely.' : 'Rested and ready to rock!');
@@ -1973,12 +2019,12 @@
   function forecast() {
     if (state.stage === 'egg' || state.over) return null;
     const s = { ...state.stats }, h = 1 / 12;
-    let asleep = state.asleep;
+    let asleep = state.asleep, auto = !!state.passedOut;
     const low = () => s.fuel < 25 ? 'hungry' : s.vibe < 25 ? 'bored' : s.clean < 25 ? 'grimy' : null;
     if (low()) return { now: true, what: low() };
     for (let t = h; t <= 72; t += h) {
-      const flip = drain(s, asleep, h);
-      if (flip) asleep = flip === 'passedout';
+      const flip = drain(s, asleep, h, auto);
+      if (flip) asleep = auto = flip === 'passedout';
       if (low()) return { hours: t, what: low() };
     }
     return null;
