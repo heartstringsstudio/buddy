@@ -1000,6 +1000,30 @@
        <path d="M44 34 L36 58 L46 52 Z M56 34 L64 58 L54 52 Z" fill="#d63f86"/>
        <rect x="40" y="20" width="20" height="20" rx="7" fill="#f07ac4" stroke="#a82a66" stroke-width="2"/>
        <path d="M16 20 C20 14 30 14 34 20" fill="none" stroke="#ffd1ea" stroke-width="3" stroke-linecap="round"/>` },
+    // up: fraction of the usual hat height (bandana sits on the forehead); at: 'eyes' anchors on the eye line.
+    bandana: { label: 'Bandana', vb: '0 0 130 56', w: 1.2, ax: .54, ay: .5, up: .45, svg:
+      G('gBand', [[0, '#e0203a'], [1, '#9e1024']]) +
+      `<path d="M16 22 C40 8 100 8 124 22 L122 38 C98 26 42 26 18 38 Z" fill="url(#gBand)" stroke="#6d0b19" stroke-width="1.5"/>
+       <path d="M18 30 C6 34 2 46 6 54 L16 40 Z M18 32 C10 42 14 52 22 54 L22 38 Z" fill="#b8142b" stroke="#6d0b19" stroke-width="1.2"/>
+       <circle cx="18" cy="30" r="6" fill="#c8182e" stroke="#6d0b19" stroke-width="1.2"/>
+       ${[[40, 20], [62, 16], [84, 17], [106, 22], [52, 28], [96, 28]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="none" stroke="#fff" stroke-width="1.4"/>`).join('')}
+       <path d="M72 22 l3 -5 l3 5 l-3 5 Z" fill="#fff"/>` },
+    phones: { label: 'Headphones', vb: '0 0 130 84', w: 1.45, ax: .5, ay: .74, at: 'eyes', svg:
+      G('gCup', [[0, '#3a3d4a'], [1, '#111217']]) +
+      `<path d="M16 60 C12 8 118 8 114 60" fill="none" stroke="#1d1f27" stroke-width="9" stroke-linecap="round"/>
+       <path d="M22 46 C22 16 108 16 108 46" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"/>
+       <rect x="2" y="44" width="26" height="36" rx="11" fill="url(#gCup)" stroke="#07080b" stroke-width="2"/>
+       <rect x="102" y="44" width="26" height="36" rx="11" fill="url(#gCup)" stroke="#07080b" stroke-width="2"/>
+       <circle cx="15" cy="62" r="6" fill="#ff7a1a"/><circle cx="115" cy="62" r="6" fill="#ff7a1a"/>
+       <path d="M8 50 C10 47 14 46 17 47 M108 50 C110 47 114 46 117 47" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".4"/>` },
+    wvcap: { label: 'WV Cap', vb: '0 0 140 72', w: 1.35, ax: .43, ay: .84, svg:
+      G('gCap', [[0, '#1b3f7a'], [1, '#0c2248']]) +
+      `<path d="M84 52 C104 48 126 50 138 58 C126 66 102 66 82 62 Z" fill="#eaaa00" stroke="#9c7000" stroke-width="1.5"/>
+       <path d="M12 60 C10 22 34 6 60 6 C86 6 110 22 108 60 Z" fill="url(#gCap)" stroke="#081a38" stroke-width="1.5"/>
+       <path d="M60 6 C52 20 50 40 52 60 M60 6 C72 18 80 38 82 60" fill="none" stroke="#2a5aa3" stroke-width="1.4"/>
+       <rect x="10" y="54" width="100" height="8" rx="3" fill="#eaaa00"/>
+       <circle cx="60" cy="7" r="4" fill="#eaaa00"/>
+       <text x="62" y="46" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#eaaa00" stroke="#081a38" stroke-width="1" letter-spacing="-1">WV</text>` },
   };
   const EYES = {
     none: { label: 'None' },
@@ -1049,7 +1073,8 @@
       html += svgOf(it, `style="left:${x - w * ax}px;top:${y - h * ay}px;width:${w}px;height:${h}px;transform-origin:${ax * 100}% ${ay * 100}%;transform:rotate(${a}deg)"`);
     };
     const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
-    if (hat.svg) put(hat, ex + Math.sin(r) * up, ey - Math.cos(r) * up, hat.ax, hat.ay);
+    const hu = hat.at === 'eyes' ? 0 : up * (hat.up || 1);
+    if (hat.svg) put(hat, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
     if (eyes.svg) put(eyes, ex, ey, .5, .5);
     gear.innerHTML = html;
   }
