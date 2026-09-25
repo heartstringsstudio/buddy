@@ -229,6 +229,7 @@
   .fetching .soundbtn.ward, .bathing .soundbtn.ward { display: none; }
   /* Wardrobe: accessories drawn over his picture, placed per pose */
   .gear { position: absolute; pointer-events: none; }
+  .petbtn.flipped .unflip { transform: scaleX(-1); transform-box: fill-box; transform-origin: center; }  /* text reads right way round when he faces left */
   .gear > svg { position: absolute; overflow: visible; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
   .wpreview { position: relative; height: 170px; border-radius: 12px; background: radial-gradient(ellipse at 50% 100%, rgba(244,185,66,.18), transparent 65%), #120d0c; border: 1px solid var(--edge); overflow: hidden; }
   .wpreview .wfig { position: absolute; inset: 8px 0 4px; }
@@ -1023,7 +1024,7 @@
        <path d="M60 6 C52 20 50 40 52 60 M60 6 C72 18 80 38 82 60" fill="none" stroke="#2a5aa3" stroke-width="1.4"/>
        <rect x="10" y="54" width="100" height="8" rx="3" fill="#eaaa00"/>
        <circle cx="60" cy="7" r="4" fill="#eaaa00"/>
-       <text x="62" y="46" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#eaaa00" stroke="#081a38" stroke-width="1" letter-spacing="-1">WV</text>` },
+       <text class="unflip" x="62" y="46" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#eaaa00" stroke="#081a38" stroke-width="1" letter-spacing="-1">WV</text>` },
   };
   const EYES = {
     none: { label: 'None' },
@@ -1935,6 +1936,7 @@
     b.style.transition = ms ? `transform ${ms}ms linear` : 'transform .35s ease';
     b.style.transform = `translate(${(x - 50) / 100 * r.width}px, ${(y - 95) / 100 * r.height}px) scale(${s})`;
     b.style.scale = facing < 0 ? '-1 1' : '1 1';  // separate property, so turning around is instant
+    b.classList.toggle('flipped', facing < 0);   // lets lettering on his gear turn back around
     dpos = { x, y };
   }
   function bonePx(x, y) {
@@ -2067,7 +2069,7 @@
     boneEl.hidden = true; mouthEl.hidden = true; $('fetchBar').hidden = true;
     els.fig.className = 'fig';
     facing = 1;
-    const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = ''; b.style.scale = '';
+    const b = $('petBtn'); b.style.transition = 'transform .35s ease'; b.style.transform = ''; b.style.scale = ''; b.classList.remove('flipped');
     dpos = { x: 50, y: 95 };
     override = null;
     if (throws) {
