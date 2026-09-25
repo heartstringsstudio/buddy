@@ -307,6 +307,11 @@
   .pill { border: 1px solid var(--edge); background: var(--tolex); border-radius: 999px; padding: 8px 16px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 15px; }
   .pill[aria-pressed="true"] { background: var(--gold); color: var(--soot); border-color: var(--gold); }
   .pill.warn { background: var(--crimson); color: #fff; border-color: var(--crimson); }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .swatch { display: grid; justify-items: center; gap: 4px; background: none; border: 0; padding: 0; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .swatch i { width: 46px; height: 46px; border-radius: 50%; background: var(--sw); border: 3px solid var(--edge); box-shadow: inset 0 -4px 6px rgba(0,0,0,.3), inset 0 3px 4px rgba(255,255,255,.35); }
+  .swatch[aria-pressed="true"] { color: var(--gold); }
+  .swatch[aria-pressed="true"] i { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(244,185,66,.35), inset 0 -4px 6px rgba(0,0,0,.3), inset 0 3px 4px rgba(255,255,255,.35); }
   .hint { text-align: center; font-family: var(--scrawl); color: var(--gold); font-size: 18px; margin: 2px 0; }
 
   /* ---------- Stompbox pedals ---------- */
@@ -599,6 +604,11 @@
       <div class="btns"><button class="pill" id="bsSoundOn">On</button><button class="pill" id="bsSoundOff">Off</button></div>
     </section>
     <section class="bs">
+      <h3>Scale color</h3>
+      <div class="swatches" id="bsColors"></div>
+      <p class="small" id="bsColorNote" hidden>He'll show his color once he hatches.</p>
+    </section>
+    <section class="bs">
       <h3>Hall of Fame</h3>
       <ul id="bsHall"></ul>
       <p id="bsHallEmpty">Empty so far. Every dragon you raise ends up here.</p>
@@ -831,6 +841,76 @@
   let bathS = null;    // active bath
   // Optional poses fall back to existing art until their images are uploaded.
   const HAVE = {};
+
+  // ---------- Scale color ----------
+  // Recolors his red scales, wings and mohawk on the phone (canvas), leaving eyes, collar,
+  // belly and bolt alone. hue/sat/val set the new color; reach is how far into the orange
+  // (wing edges, belly) the recolor extends, in degrees past red.
+  const SCALES = {
+    red:    { label: 'Red',    sw: '#d9302b' },
+    pink:   { label: 'Pink',   sw: '#f07ac4', hue: 325, sat: .62, val: v => Math.min(1, v * 1.12 + .06) },
+    yellow: { label: 'Yellow', sw: '#f5d130', hue: 48,  sat: .95, val: v => Math.min(1, v * 1.18 + .08) },
+    black:  { label: 'Black',  sw: '#2a2624', hue: 0,   sat: .12, val: v => v * .34 + .02, reach: 26 },
+    white:  { label: 'White',  sw: '#f2efeb', hue: 30,  sat: .07, val: v => .5 + .5 * v, reach: 30 },
+    blue:   { label: 'Blue',   sw: '#2f7fd8', hue: 212, sat: .85, val: v => v },
+    green:  { label: 'Green',  sw: '#34b24a', hue: 125, sat: .75, val: v => v * .95 },
+    purple: { label: 'Purple', sw: '#8e4fd6', hue: 272, sat: .7,  val: v => v },
+  };
+  let scale = 'red';
+  try { const c = localStorage.getItem('rockfire.color'); if (SCALES[c]) scale = c; } catch (e) {}
+  const tinted = {};  // 'color/pose' -> blob URL, or a Promise while it's being made
+  const unit = x => x < 0 ? 0 : x > 1 ? 1 : x;
+  function tintPixels(d, sc) {
+    const reach = sc.reach || 20;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 8) continue;
+      const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+      const mx = Math.max(r, g, b), dl = mx - Math.min(r, g, b);
+      if (!dl) continue;
+      const s = dl / mx;
+      const h = 60 * (mx === r ? (g - b) / dl : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4);
+      const hd = ((h % 360) + 540) % 360 - 180;  // degrees from pure red: - is pinkish, + is orange
+      const w = unit((reach + 10 - hd) / 10) * unit((hd + 30) / 10) * unit((s - .18) / .15);
+      if (!w) continue;
+      const S = Math.min(1, s * sc.sat), V = sc.val(mx), H = sc.hue / 60, k = Math.floor(H) % 6, f = H - Math.floor(H);
+      const p = V * (1 - S), q = V * (1 - S * f), t = V * (1 - S * (1 - f));
+      const [nr, ng, nb] = [[V, t, p], [q, V, p], [p, V, t], [p, q, V], [t, p, V], [V, p, q]][k];
+      d[i] += (nr * 255 - d[i]) * w; d[i + 1] += (ng * 255 - d[i + 1]) * w; d[i + 2] += (nb * 255 - d[i + 2]) * w;
+    }
+  }
+  function tint(name, color) {
+    const key = color + '/' + name, base = 'sprites/' + name + '.webp';
+    if (tinted[key]) return tinted[key];
+    return tinted[key] = new Promise(done => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+          const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+          const px = g.getImageData(0, 0, c.width, c.height); tintPixels(px.data, SCALES[color]); g.putImageData(px, 0, 0);
+          c.toBlob(b => done(tinted[key] = b ? URL.createObjectURL(b) : base), 'image/png');
+        } catch (e) { done(tinted[key] = base); }
+      };
+      img.onerror = () => done(tinted[key] = base);
+      img.src = base;
+    });
+  }
+  // The picture to show for a dragon pose in his current color; null while it's still being made.
+  function dragonSrc(name) {
+    if (scale === 'red' || name.startsWith('egg')) return 'sprites/' + name + '.webp';
+    const t = tinted[scale + '/' + name];
+    return typeof t === 'string' ? t : null;
+  }
+  // Recolor every pose of his stage in the background so pose changes are instant.
+  async function pretint() {
+    if (scale === 'red' || state.stage === 'egg') return;
+    const color = scale, stg = state.stage;
+    for (const p of ['idle', 'happy', 'sleep', 'sad', 'fire', 'run', 'fetch', 'bath']) {
+      if (color !== scale || stg !== state.stage) return;
+      await tint(stg + '-' + p, color);
+      setSprite();
+    }
+  }
   const FALLBACK = { run: 'happy', fetch: 'happy', bath: 'idle' };
   const BONE_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 52"><g stroke="#3a2a22" stroke-width="6"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#f3e7cf"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#5a3b2c" opacity=".55"><circle cx="11" cy="12" r="5"/><circle cx="113" cy="40" r="5"/></g><path d="M66 17 55 28h8l-5 9 12-12h-8z" fill="#f4b942" stroke="#3a2a22" stroke-width="1.5"/></svg>');
   function pose() {
@@ -846,7 +926,13 @@
     let name = pose();
     const [stg, p] = name.split('-');
     if (FALLBACK[p] && !HAVE[name]) name = stg + '-' + FALLBACK[p];
-    const src = 'sprites/' + name + '.webp';
+    const src = dragonSrc(name);
+    if (!src) {  // this color isn't ready yet: keep what's showing, or stay hidden on first paint
+      tint(name, scale).then(() => setSprite());
+      if (!currentSrc) els.sprite.style.visibility = 'hidden';
+      return;
+    }
+    els.sprite.style.visibility = '';
     if (src !== currentSrc) {
       currentSrc = src; els.sprite.src = src;
       els.dirt.style.webkitMaskImage = els.dirt.style.maskImage = `url(${src})`;
@@ -1509,7 +1595,7 @@
     openSheet('rushSheet');
     rush = { items: [], score: 0, lives: 3, x: .5, t: 0, next: 0, last: 0, raf: 0, started: false, done: false };
     const c = $('catcher');
-    c.src = 'sprites/' + state.stage + '-happy.webp';
+    c.src = dragonSrc(state.stage + '-happy') || 'sprites/' + state.stage + '-happy.webp';
     c.style.transform = `translateX(${$('rush').offsetWidth / 2 - 48}px)`;
     $('rush').querySelectorAll('.drop').forEach(d => d.remove());
     $('rushCall').textContent = 'Ready?';
@@ -1916,6 +2002,9 @@
     $('bsForecast').textContent = state.stage === 'egg' ? 'Nothing yet. Eggs just need warmth.' : fc ? fc.text : 'He\'s all set for now.';
     $('bsSoundOn').setAttribute('aria-pressed', String(Sound.on));
     $('bsSoundOff').setAttribute('aria-pressed', String(!Sound.on));
+    $('bsColors').innerHTML = Object.entries(SCALES).map(([k, c]) =>
+      `<button class="swatch" data-scale="${k}" aria-pressed="${k === scale}" style="--sw:${c.sw}"><i></i>${c.label}</button>`).join('');
+    $('bsColorNote').hidden = state.stage !== 'egg';
     const ul = $('bsHall');
     ul.textContent = '';
     for (const h of state.hall.slice().reverse()) {
@@ -1931,6 +2020,15 @@
     $('bsNewStart').hidden = false;
     $('bsNewConfirm').hidden = true;
   }
+  $('bsColors').addEventListener('click', e => {
+    const b = e.target.closest('[data-scale]');
+    if (!b || b.dataset.scale === scale) return;
+    scale = b.dataset.scale;
+    try { localStorage.setItem('rockfire.color', scale); } catch (err) {}
+    drawBackstage();
+    sfx('sparkle');
+    if (state.stage !== 'egg') { toast(state.name + ' is ' + SCALES[scale].label.toLowerCase() + ' now!'); pretint(); setSprite(); }
+  });
   $('menuBtn').addEventListener('click', () => { if (fetchS || feeding || hatching || bathS) return; drawBackstage(); openSheet('backSheet'); });
   $('bsSoundOn').addEventListener('click', () => { if (!Sound.on) { Sound.toggle(); drawSoundBtn(); sfx('chirp', state.stage); } drawBackstage(); });
   $('bsSoundOff').addEventListener('click', () => { if (Sound.on) { Sound.toggle(); drawSoundBtn(); } drawBackstage(); });
@@ -2012,6 +2110,7 @@
     .forEach(n => { const i = new Image(); i.onload = () => { HAVE[n] = true; }; i.src = 'sprites/' + n + '.webp'; });
 
   initCloud();
+  pretint();
 
   // Installable app: offline support once added to the home screen.
   if ('serviceWorker' in navigator && isSecureContext) {
