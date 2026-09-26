@@ -757,6 +757,12 @@
     { id: 'echo', name: 'Echo Riff', stage: 'teen', hint: 'Clear 6 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 6], pose: 'happy', anim: 'shake', fx: 'notes', line: 'Riff… riff… RIFF!' },
     { id: 'furnace', name: 'Furnace Belly', stage: 'teen', hint: 'Score 20 in Coal Rush', prog: s => [s.bestRush || 0, 20], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'Feed the fire!' },
     { id: 'encore', name: 'Encore', stage: 'adult', hint: 'Clear all 8 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 8], pose: 'happy', anim: 'float', fx: 'solo', line: 'One more song? ONE MORE SONG!' },
+    // Merch Match + Heckler Whack skills. test/note: for goals that aren't a simple count.
+    { id: 'merch', name: 'Merch Table', stage: 'baby', hint: 'Finish a game of Merch Match', prog: s => [s.c.match || 0, 1], pose: 'happy', anim: 'bounce', fx: 'hearts', line: 'Get your T-shirts here!' },
+    { id: 'stomp', name: 'Stage Stomp', stage: 'baby', hint: 'Bounce 10 hecklers in one game', prog: s => [s.bestWhack || 0, 10], pose: 'fire', anim: 'recoil', fx: 'roar', line: 'Hey! Respect the band!' },
+    { id: 'memory', name: 'Photographic Memory', stage: 'teen', hint: 'Finish Merch Match in 8 flips or fewer', test: s => s.bestMatch > 0 && s.bestMatch <= 8, note: s => s.bestMatch ? 'best: ' + s.bestMatch + ' flips' : 'not played yet', pose: 'happy', anim: 'shake', fx: 'sparks', line: 'I never forget a riff… or a T-shirt.' },
+    { id: 'fanfave', name: 'Fan Favorite', stage: 'teen', hint: 'Bounce 10+ hecklers without tapping a fan', test: s => !!s.fanFave, pose: 'happy', anim: 'float', fx: 'hearts', line: 'Love you guys! You\'re the best!' },
+    { id: 'crowd', name: 'Crowd Control', stage: 'adult', hint: 'Bounce 25 hecklers in one game', prog: s => [s.bestWhack || 0, 25], pose: 'happy', anim: 'shake', fx: 'wave', line: 'This crowd is MINE!' },
     { id: 'pyro', name: 'Pyro Show', stage: 'adult', hint: 'Unlock every other skill', pose: 'fire', anim: 'shake', fx: 'pyro', line: 'GOODNIGHT, WEST VIRGINIA!' },
   ];
 
@@ -898,6 +904,7 @@
       if (state.skills.includes(k.id) || ORDER.indexOf(k.stage) > si) continue;
       let ok;
       if (k.id === 'pyro') ok = SKILLS.every(o => o.id === 'pyro' || state.skills.includes(o.id));
+      else if (k.test) ok = k.test(state);
       else if (k.prog) { const [a, b] = k.prog(state); ok = a >= b; }
       else ok = true;
       if (ok) {
@@ -1973,6 +1980,7 @@
     state.stats.energy = clamp(state.stats.energy - 6 + Math.min(6, Math.floor(n / 5)));  // a good set gets his blood pumping
     state.c.whack = (state.c.whack || 0) + 1;
     state.bestWhack = Math.max(state.bestWhack || 0, n);
+    if (!out && whack.lives === 3 && n >= 10) state.fanFave = true;
     $('whackCall').textContent = (out ? 'Too many fans bonked! ' : 'Time! ') + n + ' heckler' + (n === 1 ? '' : 's') + ' bounced' + (n >= 20 ? ' — the crowd is all yours!' : n >= 10 ? ' — nice set.' : '.');
     $('whackGo').textContent = 'Done'; $('whackGo').disabled = false;
     whackHud();
@@ -2352,6 +2360,7 @@
         let hint = k.hint;
         if (!has && ORDER.indexOf(stg) > si) hint = 'Unlocks as ' + STAGES[stg].title;
         else if (!has && k.prog) { const [a, b] = k.prog(state); hint += ` (${Math.min(a, b)}/${b})`; }
+        else if (!has && k.note) hint += ` (${k.note(state)})`;
         else if (has) hint = 'Tap Play to perform';
         html += `<div class="skill${has ? '' : ' locked'}${state.unseen.includes(k.id) ? ' new' : ''}"><span class="n">${k.name}</span><span class="h">${hint}</span>${has ? `<button data-skill="${k.id}">Play</button>` : ''}</div>`;
       }
@@ -2362,7 +2371,7 @@
     $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Rushes ${c.rush || 0} · Best rush ${state.bestRush || 0} · Merch Matches ${c.match || 0} · Fewest flips ${state.bestMatch || '–'} · Heckler Whacks ${c.whack || 0} · Best whack ${state.bestWhack || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
   }
-  const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro', drumfill: 'drumfill', cruncher: 'crunch', echo: 'echo', furnace: 'fire', encore: 'encore' };
+  const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro', drumfill: 'drumfill', cruncher: 'crunch', echo: 'echo', furnace: 'fire', encore: 'encore', merch: 'unlock', stomp: 'roar', memory: 'sparkle', fanfave: 'cheer', crowd: 'blast' };
   let lastPerform = {};
   function perform(id) {
     const k = SKILLS.find(s => s.id === id);
