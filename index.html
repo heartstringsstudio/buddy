@@ -2016,34 +2016,47 @@
     c.onload = () => { if (rush) rush.mask = catcherMask(c); };
     c.src = dragonSrc(state.stage + '-happy') || 'sprites/' + state.stage + '-happy.webp';
     if (c.complete && c.naturalWidth) rush.mask = catcherMask(c);
-    c.style.transform = `translateX(${$('rush').offsetWidth / 2 - CATCH / 2}px)`;
+    c.style.transform = `translateX(${$('rush').clientWidth / 2 - CATCH / 2}px)`;
     $('rush').querySelectorAll('.drop').forEach(d => d.remove());
     $('rushCall').textContent = 'Ready?';
     $('rushGo').textContent = 'Start'; $('rushGo').disabled = false;
     rushHud();
   }
   // His outline, so a snack counts when it touches any part of him (wings, tail, head, feet).
-  const CATCH = 116;  // catcher box, px (matches .rush .catcher)
+  // We keep, for every point around him, the distance to his nearest visible pixel; a drop is
+  // caught when its centre is within its own radius (plus a little grace) of him.
+  const CATCH = 116, PAD = 36, MW = CATCH + 2 * PAD;  // catcher box (matches .rush .catcher), margin
+  const REACH = { coal: 26, pepper: 25, water: 16 };   // snacks: drawn radius (~22/21px) + ~4px grace; water must really touch
   function catcherMask(img) {
     try {
-      const c = document.createElement('canvas'); c.width = c.height = CATCH;
+      const c = document.createElement('canvas'); c.width = c.height = MW;
       const k = Math.min(CATCH / img.naturalWidth, CATCH / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
       const g = c.getContext('2d', { willReadFrequently: true });
-      g.drawImage(img, (CATCH - w) / 2, (CATCH - h) / 2, w, h);
-      const d = g.getImageData(0, 0, CATCH, CATCH).data, a = new Uint8Array(CATCH * CATCH);
-      for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3] > 60;
-      return a;
+      g.drawImage(img, PAD + (CATCH - w) / 2, PAD + (CATCH - h) / 2, w, h);
+      const px = g.getImageData(0, 0, MW, MW).data, d = new Float32Array(MW * MW);
+      for (let i = 0; i < d.length; i++) d[i] = px[i * 4 + 3] > 40 ? 0 : 1e6;
+      // two-pass chamfer distance transform (1 / 1.414 steps)
+      const at = (x, y) => y * MW + x, R2 = Math.SQRT2;
+      for (let y = 0; y < MW; y++) for (let x = 0; x < MW; x++) {
+        let v = d[at(x, y)];
+        if (x > 0) v = Math.min(v, d[at(x - 1, y)] + 1);
+        if (y > 0) { v = Math.min(v, d[at(x, y - 1)] + 1); if (x > 0) v = Math.min(v, d[at(x - 1, y - 1)] + R2); if (x < MW - 1) v = Math.min(v, d[at(x + 1, y - 1)] + R2); }
+        d[at(x, y)] = v;
+      }
+      for (let y = MW - 1; y >= 0; y--) for (let x = MW - 1; x >= 0; x--) {
+        let v = d[at(x, y)];
+        if (x < MW - 1) v = Math.min(v, d[at(x + 1, y)] + 1);
+        if (y < MW - 1) { v = Math.min(v, d[at(x, y + 1)] + 1); if (x < MW - 1) v = Math.min(v, d[at(x + 1, y + 1)] + R2); if (x > 0) v = Math.min(v, d[at(x - 1, y + 1)] + R2); }
+        d[at(x, y)] = v;
+      }
+      return d;
     } catch (e) { return null; }
   }
-  // Does a drop (centre x, top y) touch him? Samples a 5x5 grid over the drop's middle 70%.
   function touches(it, cx, H) {
-    const m = rush.mask, left = cx - CATCH / 2, top = H - 2 - CATCH;
+    const m = rush.mask;
     if (!m) return it.y + DROP >= H - 92 && it.y + DROP <= H - 18 && Math.abs(it.x - cx) < 56;  // outline not ready yet
-    for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
-      const px = Math.round(it.x - DROP * .35 + DROP * .7 * i / 4 - left), py = Math.round(it.y + DROP * .15 + DROP * .7 * j / 4 - top);
-      if (px >= 0 && py >= 0 && px < CATCH && py < CATCH && m[py * CATCH + px]) return true;
-    }
-    return false;
+    const X = Math.round(it.x - (cx - CATCH / 2) + PAD), Y = Math.round(it.y + DROP / 2 - (H - 2 - CATCH) + PAD);
+    return X >= 0 && Y >= 0 && X < MW && Y < MW && m[Y * MW + X] <= REACH[it.kind];
   }
   function stopRush() { if (!rush) return; cancelAnimationFrame(rush.raf); rush.items.forEach(it => it.el.remove()); rush = null; }
   function rushHud() { $('rushHud').innerHTML = `<span>Score ${rush.score}</span><span>${'🔥'.repeat(rush.lives)}${'<span style="opacity:.25">🔥</span>'.repeat(3 - rush.lives)}</span><span>Speed ×${rushSpeed(rush.t).toFixed(1)}</span>`; }
@@ -2081,7 +2094,7 @@
     if (!rush || rush.done) return;
     const dt = Math.min(.05, (t - rush.last) / 1000); rush.last = t;
     rush.t += dt;
-    const box = $('rush'), W = box.offsetWidth, H = box.offsetHeight;
+    const box = $('rush'), W = box.clientWidth, H = box.clientHeight;
     const cx = CATCH / 2 + rush.x * (W - CATCH);
     $('catcher').style.transform = `translateX(${cx - CATCH / 2}px)`;
     rush.next -= dt;
