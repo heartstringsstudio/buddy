@@ -230,13 +230,15 @@
   /* Wardrobe: accessories drawn over his picture, placed per pose */
   .gear { position: absolute; pointer-events: none; }
   .petbtn.flipped .unflip { transform: scaleX(-1); transform-box: fill-box; transform-origin: center; }  /* text reads right way round when he faces left */
-  .gear > svg { position: absolute; overflow: visible; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .gear > img { position: absolute; height: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .gear > .yflip, .petbtn.flipped .gear > .nflip { display: none; }  /* WV cap: letters stay readable when he faces left */
+  .petbtn.flipped .gear > .yflip { display: block; }
   .wpreview { position: relative; height: 170px; border-radius: 12px; background: radial-gradient(ellipse at 50% 100%, rgba(244,185,66,.18), transparent 65%), #120d0c; border: 1px solid var(--edge); overflow: hidden; }
   .wpreview .wfig { position: absolute; inset: 8px 0 4px; }
   .wpreview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
   .wgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .witem { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 8px 2px 6px; border-radius: 10px; background: var(--tolex); border: 2px solid var(--edge); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); line-height: 1.1; text-align: center; }
-  .witem svg { width: 46px; height: 32px; overflow: visible; }
+  .witem svg, .witem img { width: 46px; height: 32px; overflow: visible; object-fit: contain; }
   .witem[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: linear-gradient(160deg, rgba(244,185,66,.18), var(--tolex) 70%); }
   .fetching .soundbtn.left, .bathing .soundbtn.left { display: none; }
   .soundbtn .cross { display: none; }
@@ -419,6 +421,7 @@
     background: var(--tolex); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px;
   }
   .game i { grid-row: 1 / span 2; width: 56px; height: 56px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-size: 30px; background: var(--gc); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 3px 0 rgba(0,0,0,.5); }
+  .game i img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
   .game strong { font-size: 20px; letter-spacing: .04em; grid-column: 2; }
   .game span { color: var(--muted); font-size: 15px; grid-column: 2; }
   .game em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-weight: 700; color: var(--gold); font-size: 14px; letter-spacing: .06em; text-align: right; }
@@ -437,15 +440,17 @@
   .card > b { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .28s ease; }
   .card.up > b, .card.got > b { transform: rotateY(180deg); }
   .card i { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 10px; backface-visibility: hidden; -webkit-backface-visibility: hidden; font-style: normal; box-shadow: 0 3px 0 rgba(0,0,0,.5); }
-  .card .back { background: repeating-linear-gradient(45deg, #2c211e 0 8px, #34271f 8px 16px); border: 2px solid var(--edge); color: var(--flame); font-size: 26px; }
-  .card .face { transform: rotateY(180deg); background: var(--paper); border: 2px solid var(--gold); font-size: 34px; }
+  .card .back { background: url(sprites/card-back.webp) center / cover, #1a1311; border: 2px solid var(--edge); }
+  .card .face { transform: rotateY(180deg); background: var(--paper); border: 2px solid var(--gold); }
+  .card .face img { position: absolute; inset: 12%; width: 76%; height: 76%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
   .card.got .face { background: linear-gradient(160deg, #fff4c2, var(--paper)); box-shadow: 0 0 12px rgba(244,185,66,.7); }
 
   /* Heckler Whack */
   .holes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .hole { position: relative; aspect-ratio: 1; border: 0; padding: 0; border-radius: 14px; overflow: hidden; touch-action: manipulation;
-    background: radial-gradient(circle at 50% 55%, #0b0909 0 38%, #3a2c28 39% 42%, #1a1311 43%), #221917; box-shadow: inset 0 0 0 3px #3d2e29, 0 3px 0 rgba(0,0,0,.5); }
+    background: url(sprites/whack-amp.webp) center / cover, #1a1311; box-shadow: 0 3px 0 rgba(0,0,0,.5); }
   .hole span { position: absolute; left: 0; right: 0; bottom: -100%; font-size: 52px; line-height: 1; display: grid; place-items: center; height: 100%; transition: bottom .14s ease-out; pointer-events: none; }
+  .hole span img { width: 86%; height: 86%; min-height: 0; object-fit: contain; object-position: center bottom; }
   .hole.out span { bottom: 0; }
   .hole.hit span { transform: scale(.7) rotate(-20deg); opacity: .4; transition: transform .15s, opacity .15s, bottom .14s; }
   .hole.oops { box-shadow: inset 0 0 0 3px var(--crimson), 0 0 14px var(--crimson); }
@@ -453,15 +458,17 @@
   /* Coal Mine */
   .mine { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }  /* minmax: big snack pictures mustn't widen the columns */
   .tile { aspect-ratio: 1; border: 0; padding: 0; border-radius: 9px; display: grid; place-items: center; touch-action: manipulation;
-    background: radial-gradient(circle at 30% 25%, #6b5a52, #3d302b 60%, #2a201c); box-shadow: inset 0 2px 0 rgba(255,255,255,.12), 0 3px 0 rgba(0,0,0,.55);
+    background: url(sprites/mine-rock.webp) center / cover, #3d302b; box-shadow: inset 0 2px 0 rgba(255,255,255,.12), 0 3px 0 rgba(0,0,0,.55);
     font-weight: 700; font-size: 22px; color: var(--chrome); }
   .tile:active:not(.dug) { transform: translateY(2px); }
-  .tile.dug { background: #150f0d; box-shadow: inset 0 2px 6px rgba(0,0,0,.8); }
+  .tile.dug { background: url(sprites/mine-dug.webp) center / cover, #150f0d; box-shadow: inset 0 2px 6px rgba(0,0,0,.8); text-shadow: 0 0 4px #000, 0 0 8px #000; }
   .tile { min-width: 0; overflow: hidden; }
   .tile img { width: 78%; height: 78%; min-width: 0; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
-  .tile.water { background: radial-gradient(circle, rgba(95,184,217,.45), #0f1c24 70%); font-size: 26px; }
+  .tile.water { background: url(sprites/mine-water.webp) center / cover, #0f1c24; }
   .tile.n1 { color: #7fd3ff; } .tile.n2 { color: #9dff3a; } .tile.n3 { color: #f4b942; } .tile.n4 { color: #ff7a1a; }
   .tile.ghost { opacity: .45; }
+  .rushhud .life { width: 24px; height: 24px; object-fit: contain; vertical-align: middle; }
+  .rushhud .life.lost { opacity: .25; filter: grayscale(1); }
   .rushhud { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; color: var(--chrome); font-size: 16px; pointer-events: none; text-shadow: 0 1px 2px #000; }
 
   /* Setlist */
@@ -577,11 +584,11 @@
   <div class="panel">
     <div class="row"><h2>Mini Games</h2><button class="x" data-close>Close</button></div>
     <div class="games">
-      <button class="game" data-game="jam" style="--gc: var(--gold)"><i>🎸</i><strong>Jam Session</strong><span>Strum on the beat. Six strums, faster each time.</span><em>VIBE</em></button>
-      <button class="game" data-game="riff" style="--gc: #5fb8d9"><i>🥁</i><strong>Riff Recall</strong><span>He plays a riff, you play it back. It keeps growing.</span><em>VIBE</em></button>
-      <button class="game" data-game="mine" style="--gc: #6b5a52"><i>⛏️</i><strong>Coal Mine</strong><span>Dig for coal and peppers. Mind the water pockets! No timer.</span><em>FUEL<br>VIBE</em></button>
-      <button class="game" data-game="match" style="--gc: var(--paper)"><i>👕</i><strong>Merch Match</strong><span>Flip cards to find matching pairs. No timer, just a sharp memory.</span><em>VIBE</em></button>
-      <button class="game" data-game="whack" style="--gc: var(--crimson)"><i>😠&#xFE0F;</i><strong>Heckler Whack</strong><span>Bounce the hecklers. Don't tap the fans!</span><em>VIBE</em></button>
+      <button class="game" data-game="jam" style="--gc: var(--gold)"><i><img src="sprites/icon-jam.webp" alt=""></i><strong>Jam Session</strong><span>Strum on the beat. Six strums, faster each time.</span><em>VIBE</em></button>
+      <button class="game" data-game="riff" style="--gc: #5fb8d9"><i><img src="sprites/icon-riff.webp" alt=""></i><strong>Riff Recall</strong><span>He plays a riff, you play it back. It keeps growing.</span><em>VIBE</em></button>
+      <button class="game" data-game="mine" style="--gc: #6b5a52"><i><img src="sprites/icon-mine.webp" alt=""></i><strong>Coal Mine</strong><span>Dig for coal and peppers. Mind the water pockets! No timer.</span><em>FUEL<br>VIBE</em></button>
+      <button class="game" data-game="match" style="--gc: var(--paper)"><i><img src="sprites/icon-match.webp" alt=""></i><strong>Merch Match</strong><span>Flip cards to find matching pairs. No timer, just a sharp memory.</span><em>VIBE</em></button>
+      <button class="game" data-game="whack" style="--gc: var(--crimson)"><i><img src="sprites/icon-whack.webp" alt=""></i><strong>Heckler Whack</strong><span>Bounce the hecklers. Don't tap the fans!</span><em>VIBE</em></button>
     </div>
   </div>
 </div>
@@ -604,7 +611,7 @@
 <div class="sheet" id="mineSheet" hidden>
   <div class="panel">
     <div class="row"><h2>Coal Mine</h2><button class="x" data-close>Close</button></div>
-    <p>Tap rocks to dig for coal and peppers. A number tells how many water pockets 💧 touch that spot. Hit water and the mine floods: you lose half your haul. Head up anytime to keep it all.</p>
+    <p>Tap rocks to dig for coal and peppers. A number tells how many water pockets touch that spot. Hit water and the mine floods: you lose half your haul. Head up anytime to keep it all.</p>
     <div class="rushhud" id="mineHud" style="position:static"></div>
     <div class="mine" id="mine"></div>
     <div class="call" id="mineCall"></div>
@@ -624,7 +631,7 @@
 <div class="sheet" id="whackSheet" hidden>
   <div class="panel">
     <div class="row"><h2>Heckler Whack</h2><button class="x" data-close>Close</button></div>
-    <p>Tap the grumpy hecklers 😠&#xFE0F; before they duck. Leave the fans 🤩 alone. Tap three fans and you're out.</p>
+    <p>Tap the grumpy hecklers before they duck. Leave the cheering fans alone. Tap three fans and you're out.</p>
     <div class="rushhud" id="whackHud" style="position:static"></div>
     <div class="holes" id="holes"></div>
     <div class="call" id="whackCall"></div>
@@ -1010,92 +1017,28 @@
   }
 
   // ---------- Wardrobe ----------
-  // Accessories are SVG drawn over his picture. Each has a viewBox, a width relative to his face
-  // (w), and the point (ax, ay; 0-1 of the box) that sits on his head (hats) or between his eyes.
-  const G = (id, stops) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient></defs>`;
+  // Accessories are pictures (sprites/gear-*.webp, cut from art/sheet-*.png by
+  // tools/process_sheets.py) laid over his picture. w: width relative to his face; ax, ay: the
+  // point of the picture (0-1) that sits on his head (hats) or between his eyes (eyewear).
+  // up: fraction of the usual hat height (the bandana sits on the forehead, headphones at the
+  // temples); at: 'eyes' would anchor a hat on the eye line. flip: a second picture shown while he faces left.
   const HATS = {
     none: { label: 'None' },
-    sunhat: { label: 'Sun Hat', vb: '0 0 140 70', w: 1.75, ax: .5, ay: .78, svg:
-      G('gSun', [[0, '#f7df9c'], [1, '#caa04e']]) +
-      `<ellipse cx="70" cy="54" rx="68" ry="13" fill="url(#gSun)" stroke="#9c7632" stroke-width="1.5"/>
-       <path d="M36 54 C36 16 104 16 104 54 Z" fill="url(#gSun)" stroke="#9c7632" stroke-width="1.5"/>
-       <path d="M37 44 C50 49 90 49 103 44 L104 53 C88 58 52 58 36 53 Z" fill="#e8559b"/>
-       <path d="M96 47 l14 -8 l-2 14 Z M96 47 l12 10 l-14 2 Z" fill="#d63f86"/><circle cx="97" cy="48" r="4" fill="#f07ac4"/>
-       <path d="M44 30 C60 22 80 22 96 30" fill="none" stroke="#fff3c9" stroke-width="2" opacity=".6"/>` },
-    beanie: { label: 'Beanie', vb: '0 0 100 80', w: 1.05, ax: .5, ay: .9, svg:
-      G('gBean', [[0, '#3a3d4a'], [1, '#1f2029']]) +
-      `<circle cx="50" cy="12" r="11" fill="#ff7a1a"/><circle cx="46" cy="9" r="4" fill="#ffb066"/>
-       <path d="M8 62 C8 18 92 18 92 62 Z" fill="url(#gBean)"/>
-       <path d="M10 46 C30 38 70 38 90 46 L91 53 C70 45 30 45 9 53 Z" fill="#ff7a1a"/>
-       <rect x="4" y="58" width="92" height="16" rx="7" fill="#2c2e39"/>
-       ${Array.from({ length: 11 }, (_, i) => `<line x1="${11 + i * 8}" y1="60" x2="${11 + i * 8}" y2="72" stroke="#444857" stroke-width="3" stroke-linecap="round"/>`).join('')}` },
-    cowboy: { label: 'Cowboy', vb: '0 0 150 70', w: 1.7, ax: .5, ay: .8, svg:
-      G('gCow', [[0, '#a8743f'], [1, '#6b4523']]) +
-      `<path d="M4 44 C20 62 50 60 75 60 C100 60 130 62 146 44 C140 58 110 70 75 69 C40 70 10 58 4 44 Z" fill="#5a3a1d"/>
-       <path d="M4 44 C24 58 52 57 75 57 C98 57 126 58 146 44 C136 60 106 64 75 64 C44 64 14 60 4 44 Z" fill="url(#gCow)"/>
-       <path d="M42 56 C40 30 46 12 60 10 C66 16 84 16 90 10 C104 12 110 30 108 56 Z" fill="url(#gCow)" stroke="#5a3a1d" stroke-width="1.5"/>
-       <path d="M43 46 C60 50 90 50 107 46 L108 54 C90 58 60 58 42 54 Z" fill="#2b1a0c"/>
-       <circle cx="75" cy="51" r="3.2" fill="#f4b942"/>` },
-    crown: { label: 'Crown', vb: '0 0 100 64', w: .95, ax: .5, ay: .9, svg:
-      G('gCrown', [[0, '#ffe58a'], [.55, '#f4b942'], [1, '#b87d17']]) +
-      `<path d="M8 58 L4 16 L28 36 L50 6 L72 36 L96 16 L92 58 Z" fill="url(#gCrown)" stroke="#8a5a0e" stroke-width="2" stroke-linejoin="round"/>
-       <rect x="8" y="48" width="84" height="10" rx="3" fill="#d99a1f"/>
-       <circle cx="50" cy="32" r="6" fill="#e0203a"/><circle cx="28" cy="42" r="4" fill="#2f7fd8"/><circle cx="72" cy="42" r="4" fill="#34b24a"/>
-       <circle cx="4" cy="15" r="4" fill="#ffe58a"/><circle cx="50" cy="5" r="4" fill="#ffe58a"/><circle cx="96" cy="15" r="4" fill="#ffe58a"/>` },
-    party: { label: 'Party Hat', vb: '0 0 70 90', w: .7, ax: .5, ay: .92, svg:
-      `<defs><clipPath id="cParty"><path d="M35 8 L64 82 L6 82 Z"/></clipPath></defs>
-       <path d="M35 8 L64 82 L6 82 Z" fill="#8e4fd6"/>
-       <g clip-path="url(#cParty)" fill="#f4b942">${[20, 40, 60].map(y => `<path d="M0 ${y} L70 ${y - 16} L70 ${y - 8} L0 ${y + 8} Z"/>`).join('')}</g>
-       <circle cx="35" cy="8" r="8" fill="#f07ac4"/><path d="M4 82 C20 88 50 88 66 82" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 6"/>` },
-    bow: { label: 'Pink Bow', vb: '0 0 100 60', w: .85, ax: .5, ay: .75, svg:
-      G('gBow', [[0, '#ff9ad4'], [1, '#d63f86']]) +
-      `<path d="M50 30 C34 6 6 4 6 28 C6 52 34 50 50 30 Z" fill="url(#gBow)" stroke="#a82a66" stroke-width="2"/>
-       <path d="M50 30 C66 6 94 4 94 28 C94 52 66 50 50 30 Z" fill="url(#gBow)" stroke="#a82a66" stroke-width="2"/>
-       <path d="M44 34 L36 58 L46 52 Z M56 34 L64 58 L54 52 Z" fill="#d63f86"/>
-       <rect x="40" y="20" width="20" height="20" rx="7" fill="#f07ac4" stroke="#a82a66" stroke-width="2"/>
-       <path d="M16 20 C20 14 30 14 34 20" fill="none" stroke="#ffd1ea" stroke-width="3" stroke-linecap="round"/>` },
-    // up: fraction of the usual hat height (bandana sits on the forehead); at: 'eyes' anchors on the eye line.
-    bandana: { label: 'Bandana', vb: '0 0 130 56', w: 1.2, ax: .54, ay: .5, up: .45, svg:
-      G('gBand', [[0, '#e0203a'], [1, '#9e1024']]) +
-      `<path d="M16 22 C40 8 100 8 124 22 L122 38 C98 26 42 26 18 38 Z" fill="url(#gBand)" stroke="#6d0b19" stroke-width="1.5"/>
-       <path d="M18 30 C6 34 2 46 6 54 L16 40 Z M18 32 C10 42 14 52 22 54 L22 38 Z" fill="#b8142b" stroke="#6d0b19" stroke-width="1.2"/>
-       <circle cx="18" cy="30" r="6" fill="#c8182e" stroke="#6d0b19" stroke-width="1.2"/>
-       ${[[40, 20], [62, 16], [84, 17], [106, 22], [52, 28], [96, 28]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="none" stroke="#fff" stroke-width="1.4"/>`).join('')}
-       <path d="M72 22 l3 -5 l3 5 l-3 5 Z" fill="#fff"/>` },
-    phones: { label: 'Headphones', vb: '0 0 130 84', w: 1.45, ax: .5, ay: .74, at: 'eyes', svg:
-      G('gCup', [[0, '#3a3d4a'], [1, '#111217']]) +
-      `<path d="M16 60 C12 8 118 8 114 60" fill="none" stroke="#1d1f27" stroke-width="9" stroke-linecap="round"/>
-       <path d="M22 46 C22 16 108 16 108 46" fill="none" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"/>
-       <rect x="2" y="44" width="26" height="36" rx="11" fill="url(#gCup)" stroke="#07080b" stroke-width="2"/>
-       <rect x="102" y="44" width="26" height="36" rx="11" fill="url(#gCup)" stroke="#07080b" stroke-width="2"/>
-       <circle cx="15" cy="62" r="6" fill="#ff7a1a"/><circle cx="115" cy="62" r="6" fill="#ff7a1a"/>
-       <path d="M8 50 C10 47 14 46 17 47 M108 50 C110 47 114 46 117 47" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".4"/>` },
-    wvcap: { label: 'WV Cap', vb: '0 0 140 72', w: 1.35, ax: .43, ay: .84, svg:
-      G('gCap', [[0, '#1b3f7a'], [1, '#0c2248']]) +
-      `<path d="M84 52 C104 48 126 50 138 58 C126 66 102 66 82 62 Z" fill="#eaaa00" stroke="#9c7000" stroke-width="1.5"/>
-       <path d="M12 60 C10 22 34 6 60 6 C86 6 110 22 108 60 Z" fill="url(#gCap)" stroke="#081a38" stroke-width="1.5"/>
-       <path d="M60 6 C52 20 50 40 52 60 M60 6 C72 18 80 38 82 60" fill="none" stroke="#2a5aa3" stroke-width="1.4"/>
-       <rect x="10" y="54" width="100" height="8" rx="3" fill="#eaaa00"/>
-       <circle cx="60" cy="7" r="4" fill="#eaaa00"/>
-       <text class="unflip" x="62" y="46" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#eaaa00" stroke="#081a38" stroke-width="1" letter-spacing="-1">WV</text>` },
+    sunhat: { label: 'Sun Hat', img: 'gear-sunhat', w: 1.6, ax: .47, ay: .8 },
+    beanie: { label: 'Beanie', img: 'gear-beanie', w: 1.05, ax: .5, ay: .9 },
+    cowboy: { label: 'Cowboy', img: 'gear-cowboy', w: 1.5, ax: .52, ay: .78 },
+    crown: { label: 'Crown', img: 'gear-crown', w: 1, ax: .5, ay: .9 },
+    party: { label: 'Party Hat', img: 'gear-party', w: .85, ax: .5, ay: .88 },
+    bow: { label: 'Pink Bow', img: 'gear-bow', w: .9, ax: .5, ay: .72 },
+    bandana: { label: 'Bandana', img: 'gear-bandana', w: 1.3, ax: .58, ay: .6, up: .6 },
+    phones: { label: 'Headphones', img: 'gear-phones', w: 1.55, ax: .5, ay: 1.12, at: 'eyes' },  // cups rest just above his eyes, so his face shows
+    wvcap: { label: 'WV Cap', img: 'gear-wvcap', flip: 'gear-wvcap-flip', w: 1.3, ax: .42, ay: .8 },
   };
   const EYES = {
     none: { label: 'None' },
-    shades: { label: 'Sunglasses', vb: '0 0 120 40', w: 1.2, svg:
-      G('gLens', [[0, '#3a3f4c'], [1, '#07080b']]) +
-      `<path d="M2 8 H118" stroke="#111" stroke-width="5" stroke-linecap="round"/>
-       <path d="M6 8 H54 C54 26 48 36 30 36 C12 36 6 26 6 8 Z" fill="url(#gLens)" stroke="#111" stroke-width="3"/>
-       <path d="M66 8 H114 C114 26 108 36 90 36 C72 36 66 26 66 8 Z" fill="url(#gLens)" stroke="#111" stroke-width="3"/>
-       <path d="M13 13 L22 13 L14 24 Z M73 13 L82 13 L74 24 Z" fill="#fff" opacity=".35"/>` },
-    hearts: { label: 'Heart Shades', vb: '0 0 120 44', w: 1.25, svg:
-      `<path d="M54 14 H66" stroke="#b3124e" stroke-width="4" stroke-linecap="round"/>
-       ${[30, 90].map(x => `<path d="M${x} 40 C${x - 30} 22 ${x - 26} 2 ${x - 12} 4 C${x - 5} 5 ${x} 10 ${x} 14 C${x} 10 ${x + 5} 5 ${x + 12} 4 C${x + 26} 2 ${x + 30} 22 ${x} 40 Z" fill="#ff3d8b" stroke="#b3124e" stroke-width="3" stroke-linejoin="round"/>`).join('')}
-       <path d="M12 12 C14 8 20 7 23 9 M72 12 C74 8 80 7 83 9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>` },
-    specs: { label: 'Round Specs', vb: '0 0 120 44', w: 1.15, svg:
-      `<path d="M44 20 C52 12 68 12 76 20" fill="none" stroke="#c8961e" stroke-width="3"/>
-       <circle cx="26" cy="22" r="19" fill="rgba(200,230,255,.25)" stroke="#e0ad2a" stroke-width="4"/>
-       <circle cx="94" cy="22" r="19" fill="rgba(200,230,255,.25)" stroke="#e0ad2a" stroke-width="4"/>
-       <path d="M14 14 C18 9 24 8 28 9 M82 14 C86 9 92 8 96 9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>` },
+    shades: { label: 'Sunglasses', img: 'gear-shades', w: 1.25, ax: .5, ay: .42 },
+    hearts: { label: 'Heart Shades', img: 'gear-hearts', w: 1.3, ax: .5, ay: .45 },
+    specs: { label: 'Round Specs', img: 'gear-specs', w: 1.2, ax: .5, ay: .45 },
   };
   // Where his eyes are in each picture: centre x, y (% of the picture), face width (% of the
   // picture's width) and head tilt in degrees. Hats sit above, along the same tilt.
@@ -1107,12 +1050,13 @@
     'adult-idle': [51, 21, 22, 0], 'adult-happy': [49, 24, 20, -5], 'adult-sleep': [49, 51, 24, 15], 'adult-sad': [58, 32, 22, 5],
     'adult-fire': [47, 20, 18, -15], 'adult-run': [86, 46, 17, 5], 'adult-fetch': [73, 28, 20, 5], 'adult-bath': [49, 35, 20, 3],
   };
-  const HAT_UP = { baby: .34, teen: .28, adult: .38 };  // how far above the eyes the hat sits, in face widths
+  const HAT_UP = { baby: .34, teen: .28, adult: .38 };
+  const EYE_SIZE = { baby: .82, teen: 1, adult: 1 };  // his baby face is round: smaller glasses; older ones cover his built-in shades  // how far above the eyes the hat sits, in face widths
   let wear = { hat: 'none', eyes: 'none' };
   try { Object.assign(wear, JSON.parse(localStorage.getItem('rockfire.wardrobe')) || {}); } catch (e) {}
   if (!HATS[wear.hat]) wear.hat = 'none';
   if (!EYES[wear.eyes]) wear.eyes = 'none';
-  const svgOf = (it, extra = '') => `<svg viewBox="${it.vb}" ${extra} aria-hidden="true">${it.svg}</svg>`;
+  const gearSrc = n => 'sprites/' + n + '.webp';
   // Lay the accessories over the picture in `box` (sized like the figure), for pose `name`.
   function dressUp(gear, box, img, name) {
     const f = FACE[name];
@@ -1123,13 +1067,15 @@
     const ex = f[0] / 100 * gw, ey = f[1] / 100 * gh, face = f[2] / 100 * gw, a = f[3], r = a * Math.PI / 180;
     let html = '';
     const put = (it, x, y, ax, ay) => {
-      const [, , vw, vh] = it.vb.split(' ').map(Number), w = face * it.w, h = w * vh / vw;
-      html += svgOf(it, `style="left:${x - w * ax}px;top:${y - h * ay}px;width:${w}px;height:${h}px;transform-origin:${ax * 100}% ${ay * 100}%;transform:rotate(${a}deg)"`);
+      // translate puts the anchor on (x, y); the tilt turns around the anchor
+      const css = `left:${x}px;top:${y}px;width:${face * it.w}px;transform-origin:${ax * 100}% ${ay * 100}%;transform:translate(${-ax * 100}%, ${-ay * 100}%) rotate(${a}deg)`;
+      html += `<img src="${gearSrc(it.img)}" alt="" ${it.flip ? 'class="nflip" ' : ''}style="${css}">`;
+      if (it.flip) html += `<img src="${gearSrc(it.flip)}" alt="" class="yflip" style="${css}">`;
     };
     const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
     const hu = hat.at === 'eyes' ? 0 : up * (hat.up || 1);
-    if (hat.svg) put(hat, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
-    if (eyes.svg) put(eyes, ex, ey, .5, .5);
+    if (hat.img) put(hat, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
+    if (eyes.img) put({ ...eyes, w: eyes.w * (EYE_SIZE[name.split('-')[0]] || 1) }, ex, ey, eyes.ax, eyes.ay);
     gear.innerHTML = html;
   }
   let gearName = '';
@@ -1145,7 +1091,7 @@
     if (!src) tint(name, scale).then(drawWardrobe);
     $('bsColors').innerHTML = Object.entries(SCALES).map(([k, c]) =>
       `<button class="swatch" data-scale="${k}" aria-pressed="${k === scale}" style="--sw:${c.sw}"><i></i>${c.label}</button>`).join('');
-    const tile = (slot, k, it) => `<button class="witem" data-${slot}="${k}" aria-pressed="${wear[slot] === k}">${it.svg ? svgOf(it) : '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 23 L28 7" stroke="currentColor" stroke-width="2.5"/></svg>'}${it.label}</button>`;
+    const tile = (slot, k, it) => `<button class="witem" data-${slot}="${k}" aria-pressed="${wear[slot] === k}">${it.img ? `<img src="${gearSrc(it.img)}" alt="">` : '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 23 L28 7" stroke="currentColor" stroke-width="2.5"/></svg>'}${it.label}</button>`;
     $('wHats').innerHTML = Object.entries(HATS).map(([k, it]) => tile('hat', k, it)).join('');
     $('wEyes').innerHTML = Object.entries(EYES).map(([k, it]) => tile('eyes', k, it)).join('');
   }
@@ -1877,12 +1823,12 @@
 
   // ---------- Merch Match mini-game ----------
   // Memory pairs: 12 cards, 6 pairs of band merch. No timer; the reward shrinks with extra flips.
-  const MERCH = ['🎸', '🥁', '🎤', '🎧', '🔥', '⚡\uFE0F'];  // FE0F: always the colour emoji
+  const MERCH = ['guitar', 'drum', 'mic', 'phones', 'flame', 'bolt'];  // sprites/card-*.webp
   function openMatch() {
     openSheet('matchSheet');
     const deck = [...MERCH, ...MERCH].sort(() => Math.random() - .5);
     match = { deck, open: [], got: 0, moves: 0, busy: false, done: false, timer: 0 };
-    $('cards').innerHTML = deck.map((m, i) => `<button class="card" data-card="${i}" aria-label="Card"><b><i class="back">🤘</i><i class="face">${m}</i></b></button>`).join('');
+    $('cards').innerHTML = deck.map((m, i) => `<button class="card" data-card="${i}" aria-label="Card"><b><i class="back"></i><i class="face"><img src="sprites/card-${m}.webp" alt="${m}"></i></b></button>`).join('');
     $('matchCall').textContent = 'Find the pairs!';
   }
   function stopMatch() { if (match) clearTimeout(match.timer); match = null; }
@@ -1932,7 +1878,7 @@
     whackHud();
   }
   function stopWhack() { if (whack) cancelAnimationFrame(whack.raf); whack = null; }
-  function whackHud() { $('whackHud').innerHTML = `<span>Score ${whack.score}</span><span>${'🤩'.repeat(whack.lives)}${'<span style="opacity:.25">🤩</span>'.repeat(3 - whack.lives)}</span><span>${Math.max(0, Math.ceil(WHACK_SECS - whack.t))}s</span>`; }
+  function whackHud() { $('whackHud').innerHTML = `<span>Score ${whack.score}</span><span>${'<img class="life" src="sprites/whack-fan.webp" alt="">'.repeat(whack.lives)}${'<img class="life lost" src="sprites/whack-fan.webp" alt="">'.repeat(3 - whack.lives)}</span><span>${Math.max(0, Math.ceil(WHACK_SECS - whack.t))}s</span>`; }
   $('whackGo').addEventListener('click', () => {
     if (!whack) return;
     if (whack.done) { closeSheets(); return; }
@@ -1951,7 +1897,7 @@
       const free = [...Array(9).keys()].filter(i => !whack.up.some(u => u.i === i));
       if (free.length) {
         const i = pick(free), fan = Math.random() < .25, el = document.querySelector(`.hole[data-hole="${i}"]`);
-        el.className = 'hole'; el.firstChild.textContent = fan ? '🤩' : '😠\uFE0F';
+        el.className = 'hole'; el.firstChild.innerHTML = `<img src="sprites/whack-${fan ? 'fan' : 'heckler'}.webp" alt="${fan ? 'fan' : 'heckler'}">`;
         requestAnimationFrame(() => el.classList.add('out'));
         whack.up.push({ i, fan, until: whack.t + whackStay(whack.t) });
       }
@@ -2066,10 +2012,10 @@
       if (mine.dug.has(i)) return;
       const el = document.querySelector(`.tile[data-tile="${i}"]`);
       el.className = 'tile dug ghost' + (k === 'water' ? ' water' : '');
-      el.innerHTML = k === 'water' ? '💧' : k === 'rock' ? '' : `<img src="${foodSrc(k)}" alt="">`;
+      el.innerHTML = k === 'water' || k === 'rock' ? '' : `<img src="${foodSrc(k)}" alt="">`;
     });
     if (how === 'flood') {
-      const el = document.querySelector(`.tile[data-tile="${hit}"]`); el.className = 'tile dug water'; el.textContent = '💧';
+      const el = document.querySelector(`.tile[data-tile="${hit}"]`); el.className = 'tile dug water'; el.textContent = '';
       sfx('rushWater'); setTimeout(() => sfx('rushOver'), 300); buzz(80);
     }
     state.stats.fuel = clamp(state.stats.fuel + Math.min(30, haul * 3));
