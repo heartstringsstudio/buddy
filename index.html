@@ -450,14 +450,18 @@
   .hole.hit span { transform: scale(.7) rotate(-20deg); opacity: .4; transition: transform .15s, opacity .15s, bottom .14s; }
   .hole.oops { box-shadow: inset 0 0 0 3px var(--crimson), 0 0 14px var(--crimson); }
 
-  /* Coal Rush */
-  .rush {
-    position: relative; height: 300px; border-radius: 10px; overflow: hidden; touch-action: none;
-    background: radial-gradient(ellipse at 50% 110%, rgba(255,122,26,.28), transparent 60%), #120d0c; border: 1px solid var(--edge);
-  }
-  .rush .drop { position: absolute; top: 0; left: 0; width: 54px; height: 54px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
-  .rush .drop.water { display: grid; place-items: center; font-size: 38px; line-height: 1; border-radius: 50%; background: radial-gradient(circle, rgba(95,184,217,.45), rgba(95,184,217,0) 70%); }
-  .rush .catcher { position: absolute; bottom: 2px; left: 0; width: 116px; height: 116px; object-fit: contain; pointer-events: none; }
+  /* Coal Mine */
+  .mine { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }  /* minmax: big snack pictures mustn't widen the columns */
+  .tile { aspect-ratio: 1; border: 0; padding: 0; border-radius: 9px; display: grid; place-items: center; touch-action: manipulation;
+    background: radial-gradient(circle at 30% 25%, #6b5a52, #3d302b 60%, #2a201c); box-shadow: inset 0 2px 0 rgba(255,255,255,.12), 0 3px 0 rgba(0,0,0,.55);
+    font-weight: 700; font-size: 22px; color: var(--chrome); }
+  .tile:active:not(.dug) { transform: translateY(2px); }
+  .tile.dug { background: #150f0d; box-shadow: inset 0 2px 6px rgba(0,0,0,.8); }
+  .tile { min-width: 0; overflow: hidden; }
+  .tile img { width: 78%; height: 78%; min-width: 0; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+  .tile.water { background: radial-gradient(circle, rgba(95,184,217,.45), #0f1c24 70%); font-size: 26px; }
+  .tile.n1 { color: #7fd3ff; } .tile.n2 { color: #9dff3a; } .tile.n3 { color: #f4b942; } .tile.n4 { color: #ff7a1a; }
+  .tile.ghost { opacity: .45; }
   .rushhud { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; color: var(--chrome); font-size: 16px; pointer-events: none; text-shadow: 0 1px 2px #000; }
 
   /* Setlist */
@@ -575,7 +579,7 @@
     <div class="games">
       <button class="game" data-game="jam" style="--gc: var(--gold)"><i>🎸</i><strong>Jam Session</strong><span>Strum on the beat. Six strums, faster each time.</span><em>VIBE</em></button>
       <button class="game" data-game="riff" style="--gc: #5fb8d9"><i>🥁</i><strong>Riff Recall</strong><span>He plays a riff, you play it back. It keeps growing.</span><em>VIBE</em></button>
-      <button class="game" data-game="rush" style="--gc: var(--flame)"><i>🔥</i><strong>Coal Rush</strong><span>Slide to catch falling snacks. Dodge the water!</span><em>FUEL<br>VIBE</em></button>
+      <button class="game" data-game="mine" style="--gc: #6b5a52"><i>⛏️</i><strong>Coal Mine</strong><span>Dig for coal and peppers. Mind the water pockets! No timer.</span><em>FUEL<br>VIBE</em></button>
       <button class="game" data-game="match" style="--gc: var(--paper)"><i>👕</i><strong>Merch Match</strong><span>Flip cards to find matching pairs. No timer, just a sharp memory.</span><em>VIBE</em></button>
       <button class="game" data-game="whack" style="--gc: var(--crimson)"><i>😠&#xFE0F;</i><strong>Heckler Whack</strong><span>Bounce the hecklers. Don't tap the fans!</span><em>VIBE</em></button>
     </div>
@@ -597,14 +601,14 @@
   </div>
 </div>
 
-<div class="sheet" id="rushSheet" hidden>
+<div class="sheet" id="mineSheet" hidden>
   <div class="panel">
-    <div class="row"><h2>Coal Rush</h2><button class="x" data-close>Close</button></div>
-    <p>Drag him so snacks land anywhere on him. Dodge the water! It starts slow and speeds up little by little. Catch water or drop a snack three times and you're out.</p>
-    <div class="btns" id="rushLevel" role="group" aria-label="Speed"></div>
-    <div class="rush" id="rush"><div class="rushhud" id="rushHud"></div><img class="catcher" id="catcher" alt=""></div>
-    <div class="call" id="rushCall"></div>
-    <button class="big" id="rushGo">Start</button>
+    <div class="row"><h2>Coal Mine</h2><button class="x" data-close>Close</button></div>
+    <p>Tap rocks to dig for coal and peppers. A number tells how many water pockets 💧 touch that spot. Hit water and the mine floods: you lose half your haul. Head up anytime to keep it all.</p>
+    <div class="rushhud" id="mineHud" style="position:static"></div>
+    <div class="mine" id="mine"></div>
+    <div class="call" id="mineCall"></div>
+    <button class="big" id="mineGo">Head up with my haul</button>
   </div>
 </div>
 
@@ -754,9 +758,9 @@
     { id: 'dive', name: 'Stage Dive', stage: 'adult', hint: 'Grow into a Headliner', pose: 'happy', anim: 'dive', fx: 'sparks', line: 'Catch me!' },
     // Mini-game skills (best scores count, so earlier runs already qualify)
     { id: 'drumfill', name: 'Drum Fill', stage: 'baby', hint: 'Clear 3 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 3], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Ba-dum-TSSS!' },
-    { id: 'cruncher', name: 'Coal Cruncher', stage: 'baby', hint: 'Score 10 in Coal Rush', prog: s => [s.bestRush || 0, 10], pose: 'fire', anim: 'bounce', fx: 'sparks', line: 'Crunch time!' },
+    { id: 'cruncher', name: 'Coal Cruncher', stage: 'baby', hint: 'Bring up a haul of 6 in Coal Mine', prog: s => [s.bestMine || 0, 6], pose: 'fire', anim: 'bounce', fx: 'sparks', line: 'Crunch time!' },
     { id: 'echo', name: 'Echo Riff', stage: 'teen', hint: 'Clear 6 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 6], pose: 'happy', anim: 'shake', fx: 'notes', line: 'Riff… riff… RIFF!' },
-    { id: 'furnace', name: 'Furnace Belly', stage: 'teen', hint: 'Score 20 in Coal Rush', prog: s => [s.bestRush || 0, 20], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'Feed the fire!' },
+    { id: 'furnace', name: 'Furnace Belly', stage: 'teen', hint: 'Dig up every snack in a mine without flooding it', test: s => !!s.mineClear, pose: 'fire', anim: 'recoil', fx: 'flames', line: 'Feed the fire!' },
     { id: 'encore', name: 'Encore', stage: 'adult', hint: 'Clear all 8 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 8], pose: 'happy', anim: 'float', fx: 'solo', line: 'One more song? ONE MORE SONG!' },
     // Merch Match + Heckler Whack skills. test/note: for goals that aren't a simple count.
     { id: 'merch', name: 'Merch Table', stage: 'baby', hint: 'Finish a game of Merch Match', prog: s => [s.c.match || 0, 1], pose: 'happy', anim: 'bounce', fx: 'hearts', line: 'Get your T-shirts here!' },
@@ -799,7 +803,7 @@
     return {
       v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
       stats: { fuel: 85, energy: 90, vibe: 85, clean: 100 }, asleep: false,
-      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0, riff: 0, rush: 0, match: 0, whack: 0 }, best: 0, bestRiff: 0, bestRush: 0, bestMatch: 0, bestWhack: 0, drinks: [],
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0, riff: 0, rush: 0, match: 0, whack: 0, mine: 0 }, best: 0, bestRiff: 0, bestRush: 0, bestMatch: 0, bestWhack: 0, bestMine: 0, drinks: [],
       skills: [], unseen: [], neglectH: 0, over: false,
       lastTick: t, savedAt: 0, hall: hall || [],
     };
@@ -809,7 +813,7 @@
     return Object.assign(base, s, { stats: Object.assign(base.stats, s.stats), c: Object.assign(base.c, s.c) });
   }
   let state;
-  let riff = null, rush = null, match = null, whack = null; // active mini-games (declared early: closeSheets() stops them)
+  let riff = null, mine = null, match = null, whack = null; // active mini-games (declared early: closeSheets() stops them)
   // Daily prize progress (see Golden Pizza below); declared early because render() reads it.
   const DAILY_KEY = SPEED > 1 ? 'rockfire.fast.daily' : 'rockfire.daily';
   const DAILY_SECS = SPEED > 1 ? 10 : 300, GOLDEN_MAX = 3;
@@ -1357,15 +1361,10 @@
         for (let i = 0; i < (big ? 4 : 2); i++) tone({ t: .2 + i * .3 + Math.random() * .2, f: 1900 + Math.random() * 500, f2: 2700, dur: .35, vol: .06 });
       },
       wahwah: () => [392, 370, 349, 311].forEach((f, i) => tone({ t: i * .38, f, f2: f * .97, dur: i === 3 ? .9 : .34, type: 'triangle', vol: .18, vib: i === 3 ? 6 : 0, cut: 1400 })),
-      // Coal Rush
+      // Coal Mine / Heckler Whack (names kept from the old Coal Rush)
       rushCount: () => { [0, .22, .44].forEach(t => noise({ t, dur: .03, vol: .3, type: 'highpass', f: 3500 })); chord(E3, .66, .45, .22, 3000); },
-      rushBeat: (step) => {  // eighth-note groove: kick on 1 and 3, snare on 2 and 4, hats between
-        if (step % 4 === 0) tone({ f: 110, f2: 42, dur: .16, vol: .22 });
-        if (step % 4 === 2) { noise({ dur: .12, vol: .11, f: 1800, q: .8 }); tone({ f: 190, f2: 150, dur: .08, type: 'triangle', vol: .08 }); }
-        noise({ dur: .025, vol: step % 2 ? .05 : .08, type: 'highpass', f: 7000 });
-        if (step % 8 === 0) tone({ f: [E2, E2, G2, A2][(step / 8) % 4] * 2, dur: .3, type: 'sawtooth', vol: .07, cut: 600 });
-      },
-      // Catch: a bright two-note ding that climbs a semitone per catch in a row (up to an octave).
+      dig: () => { noise({ dur: .07, vol: .28, type: 'lowpass', f: 1400 }); noise({ t: .05, dur: .05, vol: .18, f: 2600, q: 2 }); },
+      // Find: a bright two-note ding that climbs a semitone per find in a row (up to an octave).
       rushCoal: (combo = 0) => {
         const k = Math.pow(2, Math.min(combo, 12) / 12);
         tone({ f: 988 * k, dur: .08, type: 'square', vol: .13, cut: 5000 });
@@ -1379,7 +1378,6 @@
       },
       rushWater: () => { fx.splash(); noise({ t: .05, dur: .6, vol: .25, type: 'highpass', f: 5000, attack: .02 }); tone({ t: .1, f: 400, f2: 180, dur: .45, type: 'triangle', vol: .14 }); },
       rushDrop: () => { fx.thud(); tone({ t: .05, f: 260, f2: 110, dur: .35, type: 'square', vol: .06, cut: 900 }); },
-      rushLevel: () => { noise({ dur: .5, vol: .16, f: 500, f2: 3000, q: 1.2, attack: .3 }); chord(A2, .45, .4, .2, 3200); },
       rushOver: () => { tone({ f: 600, f2: 70, dur: .9, type: 'sawtooth', vol: .14, cut: 1400 }); noise({ dur: .9, vol: .12, type: 'lowpass', f: 900, f2: 120 }); },
       drumfill: () => {
         [0, .1, .2, .3, .38, .46].forEach((t, i) => noise({ t, dur: .09, vol: .28, f: 900 + i * 350, q: 1.2 }));  // tom run
@@ -1542,7 +1540,7 @@
 
   // ---------- Sheets ----------
   function openSheet(id) { closeSheets(); $(id).hidden = false; }
-  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); stopRiff(); stopRush(); stopMatch(); stopWhack(); }
+  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); stopRiff(); stopMine(); stopMatch(); stopWhack(); }
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
   document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => {
     if (e.target === s && s.id !== 'nameSheet' && s.id !== 'endSheet') closeSheets();
@@ -1762,7 +1760,7 @@
   });
   document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => {
     if (state.stats.energy < 10) { closeSheets(); say('Too tired to play… need sleep.'); return; }
-    ({ jam: startJam, riff: openRiff, rush: openRush, match: openMatch, whack: openWhack })[b.dataset.game]();
+    ({ jam: startJam, riff: openRiff, mine: openMine, match: openMatch, whack: openWhack })[b.dataset.game]();
   }));
   function startJam() {
     openSheet('jamSheet');
@@ -2001,172 +1999,94 @@
     checkSkills(); render(); save();
   }
 
-  // ---------- Coal Rush mini-game ----------
-  // Endless: snacks fall, starting slow and speeding up every second. Catching water
-  // or letting a snack hit the floor costs a life; three and you're out.
-  const DROP = 54;                                      // item size, px
-  // Tuned against a player with human reaction time (~0.35s) and finger speed, not a perfect bot.
-  // Speed settings. v0: starting fall speed (px/s), acc: added each second, max: top speed;
-  // g0/gmin/gdec: seconds between drops at the start, the floor, and how fast it shrinks.
-  const RUSH_LEVELS = {
-    chill:  { label: '🐢 Chill',  v0: 20, acc: .6,   max: 120, g0: 3.2, gmin: 1.2, gdec: .015 },  // ~15s to fall at first, x2 at ~33s
-    normal: { label: '🎸 Normal', v0: 40, acc: 1.35, max: 170, g0: 2.4, gmin: .85, gdec: .02 },   // ~7.5s to fall, x2 at ~30s
-    wild:   { label: '🔥 Wild',   v0: 60, acc: 2,    max: 220, g0: 1.8, gmin: .6,  gdec: .025 },  // ~5s to fall, x2 at ~30s
-  };
-  let rushLevel = 'chill';
-  try { const l = localStorage.getItem('rockfire.rushLevel'); if (RUSH_LEVELS[l]) rushLevel = l; } catch (e) {}
-  const RL = () => RUSH_LEVELS[rushLevel];
-  const rushFall = t => Math.min(RL().max, RL().v0 + RL().acc * t);
-  const rushGap = t => Math.max(RL().gmin, RL().g0 - RL().gdec * t);
-  const RUSH_DRY = 8;                                   // no water for the first few seconds
-  const rushSpeed = t => rushFall(t) / rushFall(0);
-  function drawRushLevel() {
-    const locked = !!(rush && rush.started && !rush.done);
-    $('rushLevel').innerHTML = Object.entries(RUSH_LEVELS).map(([k, l]) =>
-      `<button class="pill" data-level="${k}" aria-pressed="${k === rushLevel}"${locked ? ' disabled' : ''}>${l.label}</button>`).join('');
+  // ---------- Coal Mine mini-game ----------
+  // Turn-based dig on a 5x5 grid: 6 coal (+1), 2 peppers (+2), 4 water pockets. Empty rock shows
+  // how many water pockets touch it (Minesweeper-style); zeros open up their neighbours. Hitting
+  // water floods the mine and halves the haul; heading up keeps it all. The first dig is always safe.
+  const MINE_N = 5, MINE_WATER = 4, MINE_FOOD = { coal: 6, pepper: 2 }, MINE_SNACKS = 8;
+  const around = i => { const r = Math.floor(i / MINE_N), c = i % MINE_N, out = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const rr = r + dr, cc = c + dc;
+      if ((dr || dc) && rr >= 0 && cc >= 0 && rr < MINE_N && cc < MINE_N) out.push(rr * MINE_N + cc); }
+    return out; };
+  function openMine() {
+    openSheet('mineSheet');
+    mine = { board: null, dug: new Set(), score: 0, coal: 0, pepper: 0, finds: 0, streak: 0, done: false };
+    $('mine').innerHTML = Array.from({ length: MINE_N * MINE_N }, (_, i) => `<button class="tile" data-tile="${i}" aria-label="Rock"></button>`).join('');
+    $('mineCall').textContent = 'Pick a spot to start digging!';
+    $('mineGo').textContent = 'Head up with my haul';
+    mineHud();
   }
-  $('rushLevel').addEventListener('click', e => {
-    const b = e.target.closest('[data-level]');
-    if (!b || (rush && rush.started && !rush.done)) return;
-    rushLevel = b.dataset.level;
-    try { localStorage.setItem('rockfire.rushLevel', rushLevel); } catch (err) {}
-    sfx('click'); drawRushLevel();
-    if (rush && rush.done) openRush();  // pick a speed after a game: fresh board ready to go
+  function stopMine() { mine = null; }
+  function mineHud() { $('mineHud').innerHTML = `<span>Haul ${mine.score}</span><span>Coal ${mine.coal} · Peppers ${mine.pepper}</span><span>${MINE_SNACKS - mine.finds} left</span>`; }
+  function makeMine(safe) {
+    const b = Array(MINE_N * MINE_N).fill('rock'), keepClear = new Set([safe, ...around(safe)]);
+    const spots = [...b.keys()].sort(() => Math.random() - .5);
+    let w = 0; for (const i of spots) if (w < MINE_WATER && !keepClear.has(i)) { b[i] = 'water'; w++; }
+    const free = spots.filter(i => b[i] === 'rock' && i !== safe);
+    let k = 0; for (const [kind, n] of Object.entries(MINE_FOOD)) for (let j = 0; j < n; j++) b[free[k++]] = kind;
+    return b;
+  }
+  $('mine').addEventListener('click', e => {
+    const t = e.target.closest('.tile');
+    if (!t || !mine || mine.done) return;
+    const i = +t.dataset.tile;
+    if (mine.dug.has(i)) return;
+    if (!mine.board) mine.board = makeMine(i);
+    sfx('dig');
+    if (mine.board[i] === 'water') return finishMine('flood', i);
+    reveal(i);
+    mineHud();
+    if (mine.finds === MINE_SNACKS) finishMine('clear');
   });
-  function openRush() {
-    openSheet('rushSheet');
-    rush = { items: [], score: 0, lives: 3, x: .5, t: 0, next: 0, last: 0, raf: 0, started: false, done: false };
-    const c = $('catcher');
-    c.onload = () => { if (rush) rush.mask = catcherMask(c); };
-    c.src = dragonSrc(state.stage + '-happy') || 'sprites/' + state.stage + '-happy.webp';
-    if (c.complete && c.naturalWidth) rush.mask = catcherMask(c);
-    c.style.transform = `translateX(${$('rush').clientWidth / 2 - CATCH / 2}px)`;
-    $('rush').querySelectorAll('.drop').forEach(d => d.remove());
-    $('rushCall').textContent = 'Ready?';
-    $('rushGo').textContent = 'Start'; $('rushGo').disabled = false;
-    rushHud(); drawRushLevel();
+  function reveal(i) {
+    if (mine.dug.has(i)) return;
+    mine.dug.add(i);
+    const el = document.querySelector(`.tile[data-tile="${i}"]`), kind = mine.board[i];
+    el.className = 'tile dug';
+    if (kind === 'coal' || kind === 'pepper') {
+      el.innerHTML = `<img src="${foodSrc(kind)}" alt="${kind}">`;
+      mine.finds++; mine[kind]++; mine.score += kind === 'pepper' ? 2 : 1;
+      sfx(kind === 'pepper' ? 'rushPepper' : 'rushCoal', ++mine.streak); buzz(20);
+      $('mineCall').textContent = kind === 'pepper' ? pick(['A ghost pepper! +2', 'Spicy find! +2']) : pick(['Coal! +1', 'Found some coal!', 'Nice chunk!']);
+      return;
+    }
+    const n = around(i).filter(j => mine.board[j] === 'water').length;
+    if (n) { el.textContent = n; el.classList.add('n' + Math.min(n, 4)); }
+    else around(i).forEach(j => { if (mine.board[j] !== 'water') reveal(j); });  // zero: open up the neighbours
   }
-  // His outline, so a snack counts when it touches any part of him (wings, tail, head, feet).
-  // We keep, for every point around him, the distance to his nearest visible pixel; a drop is
-  // caught when its centre is within its own radius (plus a little grace) of him.
-  const CATCH = 116, PAD = 36, MW = CATCH + 2 * PAD;  // catcher box (matches .rush .catcher), margin
-  const REACH = { coal: 26, pepper: 25, water: 16 };   // snacks: drawn radius (~22/21px) + ~4px grace; water must really touch
-  function catcherMask(img) {
-    try {
-      const c = document.createElement('canvas'); c.width = c.height = MW;
-      const k = Math.min(CATCH / img.naturalWidth, CATCH / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
-      const g = c.getContext('2d', { willReadFrequently: true });
-      g.drawImage(img, PAD + (CATCH - w) / 2, PAD + (CATCH - h) / 2, w, h);
-      const px = g.getImageData(0, 0, MW, MW).data, d = new Float32Array(MW * MW);
-      for (let i = 0; i < d.length; i++) d[i] = px[i * 4 + 3] > 40 ? 0 : 1e6;
-      // two-pass chamfer distance transform (1 / 1.414 steps)
-      const at = (x, y) => y * MW + x, R2 = Math.SQRT2;
-      for (let y = 0; y < MW; y++) for (let x = 0; x < MW; x++) {
-        let v = d[at(x, y)];
-        if (x > 0) v = Math.min(v, d[at(x - 1, y)] + 1);
-        if (y > 0) { v = Math.min(v, d[at(x, y - 1)] + 1); if (x > 0) v = Math.min(v, d[at(x - 1, y - 1)] + R2); if (x < MW - 1) v = Math.min(v, d[at(x + 1, y - 1)] + R2); }
-        d[at(x, y)] = v;
-      }
-      for (let y = MW - 1; y >= 0; y--) for (let x = MW - 1; x >= 0; x--) {
-        let v = d[at(x, y)];
-        if (x < MW - 1) v = Math.min(v, d[at(x + 1, y)] + 1);
-        if (y < MW - 1) { v = Math.min(v, d[at(x, y + 1)] + 1); if (x < MW - 1) v = Math.min(v, d[at(x + 1, y + 1)] + R2); if (x > 0) v = Math.min(v, d[at(x - 1, y + 1)] + R2); }
-        d[at(x, y)] = v;
-      }
-      return d;
-    } catch (e) { return null; }
-  }
-  function touches(it, cx, H) {
-    const m = rush.mask;
-    if (!m) return it.y + DROP >= H - 92 && it.y + DROP <= H - 18 && Math.abs(it.x - cx) < 56;  // outline not ready yet
-    const X = Math.round(it.x - (cx - CATCH / 2) + PAD), Y = Math.round(it.y + DROP / 2 - (H - 2 - CATCH) + PAD);
-    return X >= 0 && Y >= 0 && X < MW && Y < MW && m[Y * MW + X] <= REACH[it.kind];
-  }
-  function stopRush() { if (!rush) return; cancelAnimationFrame(rush.raf); rush.items.forEach(it => it.el.remove()); rush = null; }
-  function rushHud() { $('rushHud').innerHTML = `<span>Score ${rush.score}</span><span>${'🔥'.repeat(rush.lives)}${'<span style="opacity:.25">🔥</span>'.repeat(3 - rush.lives)}</span><span>Speed ×${rushSpeed(rush.t).toFixed(1)}</span>`; }
-  function aimRush(e) {
-    if (!rush || !rush.started || rush.done) return;
-    const r = $('rush').getBoundingClientRect();
-    rush.x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-  }
-  $('rush').addEventListener('pointerdown', e => { e.preventDefault(); aimRush(e); });
-  $('rush').addEventListener('pointermove', aimRush);
-  $('rushGo').addEventListener('click', () => {
-    if (!rush) return;
-    if (rush.done) { closeSheets(); return; }
-    if (rush.started) return;
-    rush.started = true; $('rushGo').disabled = true; $('rushGo').textContent = 'Go!';
-    $('rushCall').textContent = 'Catch!';
-    sfx('rushCount');
-    rush.beat = .9; rush.step = 0; rush.level = 1;  // groove starts after the count-in
-    drawRushLevel();  // speed is locked while playing
-    rush.last = performance.now();
-    rush.raf = requestAnimationFrame(rushLoop);
+  $('mineGo').addEventListener('click', () => {
+    if (!mine) return;
+    if (mine.done) { closeSheets(); return; }
+    finishMine('up');
   });
-  function spawnDrop(W) {
-    const roll = Math.random(), kind = roll < (rush.t < RUSH_DRY ? 0 : .2) ? 'water' : roll < .4 ? 'pepper' : 'coal';
-    let el;
-    if (kind === 'water') { el = document.createElement('div'); el.className = 'drop water'; el.textContent = '💧'; }
-    else { el = document.createElement('img'); el.className = 'drop'; el.alt = ''; el.src = foodSrc(kind); }
-    $('rush').appendChild(el);
-    // Keep new drops away from the last one so they're easy to tell apart.
-    let x, tries = 0;
-    do x = DROP / 2 + Math.random() * (W - DROP); while (rush.lastX != null && Math.abs(x - rush.lastX) < DROP * 1.2 && ++tries < 6);
-    rush.lastX = x;
-    rush.items.push({ el, kind, x, y: -DROP });
-  }
-  function rushLoop(t) {
-    if (!rush || rush.done) return;
-    const dt = Math.min(.05, (t - rush.last) / 1000); rush.last = t;
-    rush.t += dt;
-    const box = $('rush'), W = box.clientWidth, H = box.clientHeight;
-    const cx = CATCH / 2 + rush.x * (W - CATCH);
-    $('catcher').style.transform = `translateX(${cx - CATCH / 2}px)`;
-    rush.next -= dt;
-    if (rush.next <= 0) { spawnDrop(W); rush.next = rushGap(rush.t); }
-    const fall = rushFall(rush.t);
-    // Backing groove speeds up with the game (90 bpm at ×1, capped at 200).
-    if (rush.t >= rush.beat) {
-      sfx('rushBeat', rush.step++);
-      rush.beat += 30 / Math.min(200, 90 * (.7 + .3 * rushSpeed(rush.t)));
+  function finishMine(how, hit) {
+    mine.done = true;
+    const clear = how === 'clear', haul = how === 'flood' ? Math.floor(mine.score / 2) : mine.score + (clear ? 2 : 0);
+    if (mine.board) mine.board.forEach((k, i) => {  // show the rest of the mine
+      if (mine.dug.has(i)) return;
+      const el = document.querySelector(`.tile[data-tile="${i}"]`);
+      el.className = 'tile dug ghost' + (k === 'water' ? ' water' : '');
+      el.innerHTML = k === 'water' ? '💧' : k === 'rock' ? '' : `<img src="${foodSrc(k)}" alt="">`;
+    });
+    if (how === 'flood') {
+      const el = document.querySelector(`.tile[data-tile="${hit}"]`); el.className = 'tile dug water'; el.textContent = '💧';
+      sfx('rushWater'); setTimeout(() => sfx('rushOver'), 300); buzz(80);
     }
-    const lvl = Math.floor(rushSpeed(rush.t));
-    if (lvl > rush.level) { rush.level = lvl; sfx('rushLevel'); $('rushCall').textContent = 'Speed ×' + lvl + '!'; }
-    for (const it of rush.items.slice()) {
-      it.y += fall * dt;
-      it.el.style.transform = `translate(${it.x - DROP / 2}px, ${it.y}px)`;
-      const inMouth = touches(it, cx, H);
-      if (inMouth || it.y > H) {
-        it.el.remove(); rush.items.splice(rush.items.indexOf(it), 1);
-        if (!inMouth) {
-          if (it.kind !== 'water') { rush.combo = 0; rush.lives--; sfx('rushDrop'); buzz(40); $('rushCall').textContent = pick(['Dropped one!', 'Missed it!', 'Aw, my snack!']); }
-          continue;
-        }
-        if (it.kind === 'water') { rush.combo = 0; rush.lives--; sfx('rushWater'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
-        else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'rushPepper' : 'rushCoal', rush.combo = (rush.combo || 0) + 1); buzz(15); }
-      }
-    }
-    rushHud();
-    if (rush.lives <= 0) return finishRush();
-    rush.raf = requestAnimationFrame(rushLoop);
-  }
-  function finishRush() {
-    const n = rush.score;
-    rush.done = true; drawRushLevel();
-    rush.items.forEach(it => it.el.remove()); rush.items = [];
-    state.stats.fuel = clamp(state.stats.fuel + Math.min(25, Math.round(n * 1.2)));
-    state.stats.vibe = clamp(state.stats.vibe + (n >= 15 ? 8 : n >= 6 ? 4 : 0));
-    state.stats.energy = clamp(state.stats.energy - 8);
-    state.stats.clean = clamp(state.stats.clean - 3);
-    state.c.rush = (state.c.rush || 0) + 1;
-    state.bestRush = Math.max(state.bestRush || 0, n);
-    $('rushCall').textContent = 'Out at speed ×' + rushSpeed(rush.t).toFixed(1) + '! Score ' + n + (n >= 20 ? ' — legendary appetite!' : n >= 12 ? ' — stuffed and happy.' : n >= 6 ? ' — nice snack.' : '.');
-    $('rushGo').textContent = 'Done'; $('rushGo').disabled = false;
-    rushHud();
-    show(n >= 8 ? 'happy' : 'idle', 2200); animate(n >= 8 ? 'bounce' : '');
-    if (n >= 8) fx('sparks');
-    sfx('rushOver');
-    setTimeout(() => sfx(n >= 8 ? 'cheer' : 'wahwah', n >= 20), 900);
+    state.stats.fuel = clamp(state.stats.fuel + Math.min(30, haul * 3));
+    state.stats.vibe = clamp(state.stats.vibe + (clear ? 8 : haul >= 6 ? 4 : haul ? 1 : 0));
+    state.stats.energy = clamp(state.stats.energy - 5);
+    state.stats.clean = clamp(state.stats.clean - 3);  // mines are dusty
+    state.c.mine = (state.c.mine || 0) + 1;
+    state.bestMine = Math.max(state.bestMine || 0, haul);
+    if (clear) state.mineClear = true;
+    $('mineCall').textContent = clear ? 'Cleaned out the whole mine! +2 bonus. Haul ' + haul + '!'
+      : how === 'flood' ? 'Flooded! You keep half: haul ' + haul + '.'
+      : 'Headed up with a haul of ' + haul + (haul >= 6 ? '. Great dig!' : '.');
+    $('mineGo').textContent = 'Done';
+    mineHud();
+    show(haul >= 4 ? 'happy' : 'idle', 2200); animate(haul >= 4 ? 'bounce' : '');
+    if (haul >= 4) fx('sparks');
+    setTimeout(() => sfx(haul >= 4 ? 'cheer' : 'wahwah', clear), how === 'flood' ? 900 : 300);
     checkSkills(); render(); save();
   }
 
@@ -2441,7 +2361,7 @@
     $('skillList').innerHTML = html;
     $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
     const c = state.c;
-    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Rushes ${c.rush || 0} · Best rush ${state.bestRush || 0} · Merch Matches ${c.match || 0} · Fewest flips ${state.bestMatch || '–'} · Heckler Whacks ${c.whack || 0} · Best whack ${state.bestWhack || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Mines ${c.mine || 0} · Best haul ${state.bestMine || 0} · Merch Matches ${c.match || 0} · Fewest flips ${state.bestMatch || '–'} · Heckler Whacks ${c.whack || 0} · Best whack ${state.bestWhack || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
   }
   const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro', drumfill: 'drumfill', cruncher: 'crunch', echo: 'echo', furnace: 'fire', encore: 'encore', merch: 'unlock', stomp: 'roar', memory: 'sparkle', fanfave: 'cheer', crowd: 'blast' };
