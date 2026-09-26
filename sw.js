@@ -1,6 +1,6 @@
 // Offline support: keep the game and its sprites on the phone.
 // Bump CACHE when shipping changes so phones drop the old copy.
-const CACHE = 'rockfire-v11';
+const CACHE = 'rockfire-v12';
 const ASSETS = [
   './',
   './manifest.webmanifest',
@@ -78,6 +78,7 @@ const ASSETS = [
   './sprites/gem-sapphire.webp',
   './sprites/gem-emerald.webp',
   './sprites/riff-board.webp',
+  './sprites/gear-phones-side.webp',
 ];
 
 self.addEventListener('install', e => {

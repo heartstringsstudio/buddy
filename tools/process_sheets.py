@@ -69,6 +69,8 @@ def cut_transparent(sheet, cols, rows, names):
         if name == "icon-riff":  # the same drum pads, large, as the Riff Recall game board
             save(Image.fromarray(px).copy(), "riff-board", 480)
         part = save(Image.fromarray(px), name, size)
+        if name == "gear-phones":
+            save(side_phones(Image.open(f"sprites/{name}.webp").convert("RGBA")), "gear-phones-side", size)
         if name == "gear-bandana":
             save(cut_bandana_back(Image.open(f"sprites/{name}.webp").convert("RGBA")), name, size)
         if name == "gear-wvcap":
@@ -106,6 +108,18 @@ def cut_bandana_back(band):
         c = curve(x) if x <= x1 else curve(x1) + (x - x1) * .9  # past the join: a short curl
         fade = np.clip((yy[:, 0] - c) / 3 + .5, 0, 1)  # soft 3px edge
         px[:, x, 3] = (px[:, x, 3] * (1 - fade)).astype(np.uint8)
+    return Image.fromarray(px)
+
+
+def side_phones(ph):
+    """Headphones as worn on a head turned three-quarters to the right: keep the band and the
+    near (left) ear cup, and remove the far cup, which would be hidden behind his head."""
+    px = np.asarray(ph).copy()
+    h, w = px.shape[:2]
+    y0 = int(h * .42)
+    x0 = int(w * .49)
+    fade = np.clip((np.arange(w) - x0) / 6, 0, 1)  # soft edge
+    px[y0:, :, 3] = (px[y0:, :, 3] * (1 - fade)[None, :]).astype(np.uint8)
     return Image.fromarray(px)
 
 
