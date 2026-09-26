@@ -233,9 +233,9 @@
   .gear > img { position: absolute; height: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
   .gear > .yflip, .petbtn.flipped .gear > .nflip { display: none; }  /* WV cap: letters stay readable when he faces left */
   .petbtn.flipped .gear > .yflip { display: block; }
-  .wpreview { position: relative; height: 170px; border-radius: 12px; background: radial-gradient(ellipse at 50% 100%, rgba(244,185,66,.18), transparent 65%), #120d0c; border: 1px solid var(--edge); overflow: hidden; }
-  .wpreview .wfig { position: absolute; inset: 8px 0 4px; }
-  .wpreview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+  .wpreview { position: relative; height: 190px; border-radius: 12px; background: radial-gradient(ellipse at 50% 100%, rgba(244,185,66,.18), transparent 65%), #120d0c; border: 1px solid var(--edge); overflow: hidden; }
+  .wpreview .wfig { position: absolute; inset: 44px 0 6px; }  /* headroom for tall hats */
+  .wpreview #wImg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
   .wgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .witem { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 8px 2px 6px; border-radius: 10px; background: var(--tolex); border: 2px solid var(--edge); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); line-height: 1.1; text-align: center; }
   .witem svg, .witem img { width: 46px; height: 32px; overflow: visible; object-fit: contain; }
@@ -1042,22 +1042,24 @@
   };
   const EYES = {
     none: { label: 'None' },
-    shades: { label: 'Sunglasses', img: 'gear-shades', w: 1.25, ax: .5, ay: .42 },
-    hearts: { label: 'Heart Shades', img: 'gear-hearts', w: 1.3, ax: .5, ay: .45 },
-    specs: { label: 'Round Specs', img: 'gear-specs', w: 1.2, ax: .5, ay: .45 },
+    shades: { label: 'Sunglasses', img: 'gear-shades', w: 1.08, ax: .5, ay: .42 },
+    hearts: { label: 'Heart Shades', img: 'gear-hearts', w: 1.1, ax: .5, ay: .45 },
+    specs: { label: 'Round Specs', img: 'gear-specs', w: 1.06, ax: .5, ay: .45 },
   };
-  // Where his eyes are in each picture: centre x, y (% of the picture), face width (% of the
-  // picture's width) and head tilt in degrees. Hats sit above, along the same tilt.
+  // Measured in each picture (pixels): near eye x, y; far eye x, y; and the left/right edges of
+  // what glasses must cover (his eyes, or the teen's star shades / the adult's aviators).
+  // Glasses tilt along the eye line and span the edges; hats sit above the eye line.
   const FACE = {
-    'baby-idle': [61, 41, 46, 4], 'baby-happy': [64.5, 45.5, 38, 30], 'baby-sleep': [54, 63, 32, 8], 'baby-sad': [61.5, 51.5, 44, -2],
-    'baby-fire': [58, 40, 36, -3], 'baby-run': [85, 45, 30, 3], 'baby-fetch': [77, 39, 34, 6], 'baby-bath': [47.5, 25, 36, 0],
-    'teen-idle': [52.5, 16, 30, -22], 'teen-happy': [43.5, 21.5, 26, -16], 'teen-sleep': [23.5, 69.5, 30, -28], 'teen-sad': [57, 30, 30, 5],
-    'teen-fire': [52.5, 18, 26, -8], 'teen-run': [88.5, 39.5, 22, 3], 'teen-fetch': [71, 18, 24, -10], 'teen-bath': [38.5, 12, 28, -12],
-    'adult-idle': [51, 21, 22, 0], 'adult-happy': [49, 24, 20, -5], 'adult-sleep': [49, 51, 24, 15], 'adult-sad': [58, 32, 22, 5],
-    'adult-fire': [47, 20, 18, -15], 'adult-run': [86, 46, 17, 5], 'adult-fetch': [73, 28, 20, 5], 'adult-bath': [49, 35, 20, 3],
+    'baby-idle': [290, 232, 482, 250, 245, 525], 'baby-happy': [345, 185, 515, 252, 300, 545], 'baby-sleep': [290, 378, 432, 346, 245, 455], 'baby-sad': [305, 290, 430, 284, 255, 470],
+    'baby-fire': [270, 225, 365, 212, 232, 388], 'baby-run': [508, 282, 612, 268, 455, 626], 'baby-fetch': [445, 225, 555, 225, 398, 585], 'baby-bath': [178, 160, 318, 140, 135, 350],
+    'teen-idle': [285, 100, 365, 85, 222, 398], 'teen-happy': [232, 133, 330, 122, 182, 368], 'teen-sleep': [95, 470, 165, 410, 48, 222], 'teen-sad': [345, 180, 430, 190, 288, 466],
+    'teen-fire': [290, 125, 355, 105, 232, 388], 'teen-run': [545, 240, 598, 248, 503, 622], 'teen-fetch': [400, 128, 455, 118, 345, 488], 'teen-bath': [178, 140, 238, 120, 145, 262],
+    'adult-idle': [280, 135, 330, 130, 233, 358], 'adult-happy': [240, 158, 320, 142, 203, 338], 'adult-sleep': [255, 316, 300, 300, 225, 322], 'adult-sad': [295, 210, 352, 218, 258, 382],
+    'adult-fire': [262, 138, 345, 108, 213, 362], 'adult-run': [475, 270, 520, 280, 433, 546], 'adult-fetch': [435, 180, 482, 183, 393, 515], 'adult-bath': [246, 236, 300, 245, 203, 326],
   };
-  const HAT_UP = { baby: .34, teen: .28, adult: .38 };
-  const EYE_SIZE = { baby: .82, teen: 1, adult: 1 };  // his baby face is round: smaller glasses; older ones cover his built-in shades  // how far above the eyes the hat sits, in face widths
+  const HAT_UP = { baby: .34, teen: .1, adult: .3 };  // how far above the eye line hats sit, in face widths
+  const HAT_SIZE = { baby: 1, teen: .85, adult: 1 };  // the teen's measured span includes his wide star shades
+  const EYE_COVER = { baby: 1, teen: 1.14, adult: 1.04 };  // a touch bigger over his built-in star shades / aviators
   let wear = { hat: 'none', eyes: 'none' };
   try { Object.assign(wear, JSON.parse(localStorage.getItem('rockfire.wardrobe')) || {}); } catch (e) {}
   if (!HATS[wear.hat]) wear.hat = 'none';
@@ -1070,7 +1072,10 @@
     const W = box.clientWidth, H = box.clientHeight, k = Math.min(W / img.naturalWidth, H / img.naturalHeight);
     const gw = img.naturalWidth * k, gh = img.naturalHeight * k;
     Object.assign(gear.style, { left: (W - gw) / 2 + 'px', top: (H - gh) + 'px', width: gw + 'px', height: gh + 'px' });
-    const ex = f[0] / 100 * gw, ey = f[1] / 100 * gh, face = f[2] / 100 * gw, a = f[3], r = a * Math.PI / 180;
+    const px = gw / img.naturalWidth, [nx, ny, fx, fy, L, R] = f;
+    const a = Math.atan2(fy - ny, fx - nx) * 180 / Math.PI, r = a * Math.PI / 180;
+    const face = (R - L) * px;                                   // what glasses must cover
+    const ex = (L + R) / 2 * px, ey = (ny + (fy - ny) * ((L + R) / 2 - nx) / (fx - nx)) * px;  // on the eye line
     let html = '';
     const put = (it, x, y, ax, ay) => {
       // translate puts the anchor on (x, y); the tilt turns around the anchor
@@ -1080,8 +1085,8 @@
     };
     const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
     const hu = hat.at === 'eyes' ? 0 : up * (hat.up || 1);
-    if (hat.img) put(hat, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
-    if (eyes.img) put({ ...eyes, w: eyes.w * (EYE_SIZE[name.split('-')[0]] || 1) }, ex, ey, eyes.ax, eyes.ay);
+    if (hat.img) put({ ...hat, w: hat.w * (HAT_SIZE[name.split('-')[0]] || 1) }, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
+    if (eyes.img) put({ ...eyes, w: eyes.w * (EYE_COVER[name.split('-')[0]] || 1) }, ex, ey, eyes.ax, eyes.ay);
     gear.innerHTML = html;
   }
   let gearName = '';
