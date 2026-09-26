@@ -67,8 +67,44 @@ def cut_transparent(sheet, cols, rows, names):
         px = np.asarray(part).copy()
         px[px[..., 3] == 0, :3] = 0
         part = save(Image.fromarray(px), name, size)
+        if name == "gear-bandana":
+            save(cut_bandana_back(Image.open(f"sprites/{name}.webp").convert("RGBA")), name, size)
         if name == "gear-wvcap":
             save(flip_letters(Image.open(f"sprites/{name}.webp").convert("RGBA")), "gear-wvcap-flip", size)
+
+
+def cut_bandana_back(band):
+    """Remove the back of the headband loop (the narrower, shadowed band seen through the
+    opening), so only the front band and the knot sit on his head. The opening between the two
+    bands is measured where it's clear (the middle of the band), a smooth curve is fitted
+    through it, and everything below the curve is faded out, from just right of the knot to a
+    short curl where the bands join on the right. The knot and tails on the left stay."""
+    px = np.asarray(band).copy()
+    a = px[..., 3] > 60
+    h, w = a.shape
+    pts = []
+    for x in range(int(w * .4), int(w * .82)):
+        col = a[:, x]
+        ys = np.nonzero(col)[0]
+        if not len(ys):
+            continue
+        y = ys[0]
+        while y < h and col[y]:
+            y += 1
+        gap_top = y
+        while y < h and not col[y]:
+            y += 1
+        if gap_top < h and y < h:
+            pts.append((x, (gap_top + y) / 2))
+    fx, fy = np.array(pts).T
+    curve = np.poly1d(np.polyfit(fx, fy, 2))
+    x0, x1 = int(w * .29), int(fx.max())
+    yy = np.arange(h)[:, None]
+    for x in range(x0, w):
+        c = curve(x) if x <= x1 else curve(x1) + (x - x1) * .9  # past the join: a short curl
+        fade = np.clip((yy[:, 0] - c) / 3 + .5, 0, 1)  # soft 3px edge
+        px[:, x, 3] = (px[:, x, 3] * (1 - fade)).astype(np.uint8)
+    return Image.fromarray(px)
 
 
 def flip_letters(cap):
