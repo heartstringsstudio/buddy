@@ -601,6 +601,7 @@
   <div class="panel">
     <div class="row"><h2>Coal Rush</h2><button class="x" data-close>Close</button></div>
     <p>Drag him so snacks land anywhere on him. Dodge the water! It starts slow and speeds up little by little. Catch water or drop a snack three times and you're out.</p>
+    <div class="btns" id="rushLevel" role="group" aria-label="Speed"></div>
     <div class="rush" id="rush"><div class="rushhud" id="rushHud"></div><img class="catcher" id="catcher" alt=""></div>
     <div class="call" id="rushCall"></div>
     <button class="big" id="rushGo">Start</button>
@@ -2005,10 +2006,33 @@
   // or letting a snack hit the floor costs a life; three and you're out.
   const DROP = 54;                                      // item size, px
   // Tuned against a player with human reaction time (~0.35s) and finger speed, not a perfect bot.
-  const rushFall = t => Math.min(170, 40 + 1.35 * t);   // px/s: ~7.5s to fall at the start, x2 by 30s, tops out at x4.25 (~1.8s)
-  const rushGap = t => Math.max(.85, 2.4 - .02 * t);    // seconds between drops
+  // Speed settings. v0: starting fall speed (px/s), acc: added each second, max: top speed;
+  // g0/gmin/gdec: seconds between drops at the start, the floor, and how fast it shrinks.
+  const RUSH_LEVELS = {
+    chill:  { label: '🐢 Chill',  v0: 20, acc: .6,   max: 120, g0: 3.2, gmin: 1.2, gdec: .015 },  // ~15s to fall at first, x2 at ~33s
+    normal: { label: '🎸 Normal', v0: 40, acc: 1.35, max: 170, g0: 2.4, gmin: .85, gdec: .02 },   // ~7.5s to fall, x2 at ~30s
+    wild:   { label: '🔥 Wild',   v0: 60, acc: 2,    max: 220, g0: 1.8, gmin: .6,  gdec: .025 },  // ~5s to fall, x2 at ~30s
+  };
+  let rushLevel = 'chill';
+  try { const l = localStorage.getItem('rockfire.rushLevel'); if (RUSH_LEVELS[l]) rushLevel = l; } catch (e) {}
+  const RL = () => RUSH_LEVELS[rushLevel];
+  const rushFall = t => Math.min(RL().max, RL().v0 + RL().acc * t);
+  const rushGap = t => Math.max(RL().gmin, RL().g0 - RL().gdec * t);
   const RUSH_DRY = 8;                                   // no water for the first few seconds
   const rushSpeed = t => rushFall(t) / rushFall(0);
+  function drawRushLevel() {
+    const locked = !!(rush && rush.started && !rush.done);
+    $('rushLevel').innerHTML = Object.entries(RUSH_LEVELS).map(([k, l]) =>
+      `<button class="pill" data-level="${k}" aria-pressed="${k === rushLevel}"${locked ? ' disabled' : ''}>${l.label}</button>`).join('');
+  }
+  $('rushLevel').addEventListener('click', e => {
+    const b = e.target.closest('[data-level]');
+    if (!b || (rush && rush.started && !rush.done)) return;
+    rushLevel = b.dataset.level;
+    try { localStorage.setItem('rockfire.rushLevel', rushLevel); } catch (err) {}
+    sfx('click'); drawRushLevel();
+    if (rush && rush.done) openRush();  // pick a speed after a game: fresh board ready to go
+  });
   function openRush() {
     openSheet('rushSheet');
     rush = { items: [], score: 0, lives: 3, x: .5, t: 0, next: 0, last: 0, raf: 0, started: false, done: false };
@@ -2020,7 +2044,7 @@
     $('rush').querySelectorAll('.drop').forEach(d => d.remove());
     $('rushCall').textContent = 'Ready?';
     $('rushGo').textContent = 'Start'; $('rushGo').disabled = false;
-    rushHud();
+    rushHud(); drawRushLevel();
   }
   // His outline, so a snack counts when it touches any part of him (wings, tail, head, feet).
   // We keep, for every point around him, the distance to his nearest visible pixel; a drop is
@@ -2075,6 +2099,7 @@
     $('rushCall').textContent = 'Catch!';
     sfx('rushCount');
     rush.beat = .9; rush.step = 0; rush.level = 1;  // groove starts after the count-in
+    drawRushLevel();  // speed is locked while playing
     rush.last = performance.now();
     rush.raf = requestAnimationFrame(rushLoop);
   });
@@ -2127,7 +2152,7 @@
   }
   function finishRush() {
     const n = rush.score;
-    rush.done = true;
+    rush.done = true; drawRushLevel();
     rush.items.forEach(it => it.el.remove()); rush.items = [];
     state.stats.fuel = clamp(state.stats.fuel + Math.min(25, Math.round(n * 1.2)));
     state.stats.vibe = clamp(state.stats.vibe + (n >= 15 ? 8 : n >= 6 ? 4 : 0));
