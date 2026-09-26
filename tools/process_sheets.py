@@ -66,6 +66,8 @@ def cut_transparent(sheet, cols, rows, names):
         # so it can't bleed into the edges when the picture is scaled.
         px = np.asarray(part).copy()
         px[px[..., 3] == 0, :3] = 0
+        if name == "icon-riff":  # the same drum pads, large, as the Riff Recall game board
+            save(Image.fromarray(px).copy(), "riff-board", 480)
         part = save(Image.fromarray(px), name, size)
         if name == "gear-bandana":
             save(cut_bandana_back(Image.open(f"sprites/{name}.webp").convert("RGBA")), name, size)
