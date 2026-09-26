@@ -457,7 +457,7 @@
   }
   .rush .drop { position: absolute; top: 0; left: 0; width: 54px; height: 54px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
   .rush .drop.water { display: grid; place-items: center; font-size: 38px; line-height: 1; border-radius: 50%; background: radial-gradient(circle, rgba(95,184,217,.45), rgba(95,184,217,0) 70%); }
-  .rush .catcher { position: absolute; bottom: 2px; left: 0; width: 96px; height: 96px; object-fit: contain; pointer-events: none; }
+  .rush .catcher { position: absolute; bottom: 2px; left: 0; width: 116px; height: 116px; object-fit: contain; pointer-events: none; }
   .rushhud { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; color: var(--chrome); font-size: 16px; pointer-events: none; text-shadow: 0 1px 2px #000; }
 
   /* Setlist */
@@ -600,7 +600,7 @@
 <div class="sheet" id="rushSheet" hidden>
   <div class="panel">
     <div class="row"><h2>Coal Rush</h2><button class="x" data-close>Close</button></div>
-    <p>Drag to catch coal and peppers. Dodge the water! It starts slow and speeds up little by little. Catch water or drop a snack three times and you're out.</p>
+    <p>Drag him so snacks land anywhere on him. Dodge the water! It starts slow and speeds up little by little. Catch water or drop a snack three times and you're out.</p>
     <div class="rush" id="rush"><div class="rushhud" id="rushHud"></div><img class="catcher" id="catcher" alt=""></div>
     <div class="call" id="rushCall"></div>
     <button class="big" id="rushGo">Start</button>
@@ -2003,12 +2003,37 @@
     openSheet('rushSheet');
     rush = { items: [], score: 0, lives: 3, x: .5, t: 0, next: 0, last: 0, raf: 0, started: false, done: false };
     const c = $('catcher');
+    c.onload = () => { if (rush) rush.mask = catcherMask(c); };
     c.src = dragonSrc(state.stage + '-happy') || 'sprites/' + state.stage + '-happy.webp';
-    c.style.transform = `translateX(${$('rush').offsetWidth / 2 - 48}px)`;
+    if (c.complete && c.naturalWidth) rush.mask = catcherMask(c);
+    c.style.transform = `translateX(${$('rush').offsetWidth / 2 - CATCH / 2}px)`;
     $('rush').querySelectorAll('.drop').forEach(d => d.remove());
     $('rushCall').textContent = 'Ready?';
     $('rushGo').textContent = 'Start'; $('rushGo').disabled = false;
     rushHud();
+  }
+  // His outline, so a snack counts when it touches any part of him (wings, tail, head, feet).
+  const CATCH = 116;  // catcher box, px (matches .rush .catcher)
+  function catcherMask(img) {
+    try {
+      const c = document.createElement('canvas'); c.width = c.height = CATCH;
+      const k = Math.min(CATCH / img.naturalWidth, CATCH / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(img, (CATCH - w) / 2, (CATCH - h) / 2, w, h);
+      const d = g.getImageData(0, 0, CATCH, CATCH).data, a = new Uint8Array(CATCH * CATCH);
+      for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3] > 60;
+      return a;
+    } catch (e) { return null; }
+  }
+  // Does a drop (centre x, top y) touch him? Samples a 5x5 grid over the drop's middle 70%.
+  function touches(it, cx, H) {
+    const m = rush.mask, left = cx - CATCH / 2, top = H - 2 - CATCH;
+    if (!m) return it.y + DROP >= H - 92 && it.y + DROP <= H - 18 && Math.abs(it.x - cx) < 56;  // outline not ready yet
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
+      const px = Math.round(it.x - DROP * .35 + DROP * .7 * i / 4 - left), py = Math.round(it.y + DROP * .15 + DROP * .7 * j / 4 - top);
+      if (px >= 0 && py >= 0 && px < CATCH && py < CATCH && m[py * CATCH + px]) return true;
+    }
+    return false;
   }
   function stopRush() { if (!rush) return; cancelAnimationFrame(rush.raf); rush.items.forEach(it => it.el.remove()); rush = null; }
   function rushHud() { $('rushHud').innerHTML = `<span>Score ${rush.score}</span><span>${'🔥'.repeat(rush.lives)}${'<span style="opacity:.25">🔥</span>'.repeat(3 - rush.lives)}</span><span>Speed ×${rushSpeed(rush.t).toFixed(1)}</span>`; }
@@ -2047,8 +2072,8 @@
     const dt = Math.min(.05, (t - rush.last) / 1000); rush.last = t;
     rush.t += dt;
     const box = $('rush'), W = box.offsetWidth, H = box.offsetHeight;
-    const cx = 48 + rush.x * (W - 96);
-    $('catcher').style.transform = `translateX(${cx - 48}px)`;
+    const cx = CATCH / 2 + rush.x * (W - CATCH);
+    $('catcher').style.transform = `translateX(${cx - CATCH / 2}px)`;
     rush.next -= dt;
     if (rush.next <= 0) { spawnDrop(W); rush.next = rushGap(rush.t); }
     const fall = rushFall(rush.t);
@@ -2062,7 +2087,7 @@
     for (const it of rush.items.slice()) {
       it.y += fall * dt;
       it.el.style.transform = `translate(${it.x - DROP / 2}px, ${it.y}px)`;
-      const inMouth = it.y + DROP >= H - 92 && it.y + DROP <= H - 18 && Math.abs(it.x - cx) < 56;
+      const inMouth = touches(it, cx, H);
       if (inMouth || it.y > H) {
         it.el.remove(); rush.items.splice(rush.items.indexOf(it), 1);
         if (!inMouth) {
