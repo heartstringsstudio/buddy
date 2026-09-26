@@ -1,6 +1,6 @@
 // Offline support: keep the game and its sprites on the phone.
 // Bump CACHE when shipping changes so phones drop the old copy.
-const CACHE = 'rockfire-v3';
+const CACHE = 'rockfire-v4';
 const ASSETS = [
   './',
   './manifest.webmanifest',
@@ -43,6 +43,37 @@ const ASSETS = [
   './sprites/teen-run.webp',
   './sprites/teen-sad.webp',
   './sprites/teen-sleep.webp',
+  './sprites/card-back.webp',
+  './sprites/card-bolt.webp',
+  './sprites/card-drum.webp',
+  './sprites/card-flame.webp',
+  './sprites/card-guitar.webp',
+  './sprites/card-mic.webp',
+  './sprites/card-phones.webp',
+  './sprites/gear-bandana.webp',
+  './sprites/gear-beanie.webp',
+  './sprites/gear-bow.webp',
+  './sprites/gear-cowboy.webp',
+  './sprites/gear-crown.webp',
+  './sprites/gear-hearts.webp',
+  './sprites/gear-party.webp',
+  './sprites/gear-phones.webp',
+  './sprites/gear-shades.webp',
+  './sprites/gear-specs.webp',
+  './sprites/gear-sunhat.webp',
+  './sprites/gear-wvcap-flip.webp',
+  './sprites/gear-wvcap.webp',
+  './sprites/icon-jam.webp',
+  './sprites/icon-match.webp',
+  './sprites/icon-mine.webp',
+  './sprites/icon-riff.webp',
+  './sprites/icon-whack.webp',
+  './sprites/mine-dug.webp',
+  './sprites/mine-rock.webp',
+  './sprites/mine-water.webp',
+  './sprites/whack-amp.webp',
+  './sprites/whack-fan.webp',
+  './sprites/whack-heckler.webp',
 ];
 
 self.addEventListener('install', e => {
