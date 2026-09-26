@@ -240,6 +240,7 @@
   .wgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .witem { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 8px 2px 6px; border-radius: 10px; background: var(--tolex); border: 2px solid var(--edge); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); line-height: 1.1; text-align: center; }
   .witem svg, .witem img { width: 46px; height: 32px; overflow: visible; object-fit: contain; }
+  .witem:disabled { opacity: .4; }
   .witem[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: linear-gradient(160deg, rgba(244,185,66,.18), var(--tolex) 70%); }
   .fetching .soundbtn.left, .bathing .soundbtn.left { display: none; }
   .soundbtn .cross { display: none; }
@@ -689,6 +690,7 @@
     </section>
     <section class="bs">
       <h3>Eyewear</h3>
+      <p class="small" id="wEyesNote" hidden>As an Opening Act he rocks his own star shades. Your pick comes back when he's a Headliner.</p>
       <div class="wgrid" id="wEyes"></div>
     </section>
   </div>
@@ -1104,7 +1106,7 @@
     const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
     const hu = hat.at === 'eyes' ? 0 : up * (hat.up || 1);
     if (hat.img) put({ ...hat, w: hat.w * (HAT_SIZE[name.split('-')[0]] || 1) }, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
-    if (eyes.svg) {  // one lens on each eye: width from the distance between his eyes, centred between them
+    if (eyes.svg && !name.startsWith('teen')) {  // teen keeps his own star shades; one lens on each eye: width from the distance between his eyes, centred between them
       const d = Math.hypot(fx - nx, fy - ny) * px, cover = EYE_COVER[name.split('-')[0]] || 1;
       put(eyes, (nx + fx) / 2 * px, (ny + fy) / 2 * px, .5, name.startsWith('baby') ? .5 : .42, d / eyes.sep * cover);  // a touch lower on teen/adult to cover built-in shades
     }
@@ -1126,6 +1128,9 @@
     const tile = (slot, k, it) => `<button class="witem" data-${slot}="${k}" aria-pressed="${wear[slot] === k}">${it.img ? `<img src="${gearSrc(it.img)}" alt="">` : it.svg ? svgOf(it) : '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 23 L28 7" stroke="currentColor" stroke-width="2.5"/></svg>'}${it.label}</button>`;
     $('wHats').innerHTML = Object.entries(HATS).map(([k, it]) => tile('hat', k, it)).join('');
     $('wEyes').innerHTML = Object.entries(EYES).map(([k, it]) => tile('eyes', k, it)).join('');
+    const teen = state.stage === 'teen';
+    $('wEyesNote').hidden = !teen;
+    $('wEyes').querySelectorAll('button').forEach(b => { b.disabled = teen; });
   }
   const FALLBACK = { run: 'happy', fetch: 'happy', bath: 'idle' };
   const BONE_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 52"><g stroke="#3a2a22" stroke-width="6"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#f3e7cf"><circle cx="17" cy="15" r="12"/><circle cx="17" cy="37" r="12"/><circle cx="107" cy="15" r="12"/><circle cx="107" cy="37" r="12"/><rect x="17" y="16" width="90" height="20"/></g><g fill="#5a3b2c" opacity=".55"><circle cx="11" cy="12" r="5"/><circle cx="113" cy="40" r="5"/></g><path d="M66 17 55 28h8l-5 9 12-12h-8z" fill="#f4b942" stroke="#3a2a22" stroke-width="1.5"/></svg>');
