@@ -230,6 +230,7 @@
   /* Wardrobe: accessories drawn over his picture, placed per pose */
   .gear { position: absolute; pointer-events: none; }
   .petbtn.flipped .unflip { transform: scaleX(-1); transform-box: fill-box; transform-origin: center; }  /* text reads right way round when he faces left */
+  .gear > svg { position: absolute; overflow: visible; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
   .gear > img { position: absolute; height: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
   .gear > .yflip, .petbtn.flipped .gear > .nflip { display: none; }  /* WV cap: letters stay readable when he faces left */
   .petbtn.flipped .gear > .yflip { display: block; }
@@ -1040,11 +1041,26 @@
     phones: { label: 'Headphones', img: 'gear-phones', w: 1.55, ax: .5, ay: 1.12, at: 'eyes' },  // cups rest just above his eyes, so his face shows
     wvcap: { label: 'WV Cap', img: 'gear-wvcap', flip: 'gear-wvcap-flip', w: 1.3, ax: .42, ay: .8 },
   };
+  // Eyewear stays drawn (SVG): thin frames sit on his three-quarter face far better than the
+  // painted front-on pictures did. vb: viewBox; w: width relative to the eye span.
+  const G = (id, stops) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient></defs>`;
   const EYES = {
     none: { label: 'None' },
-    shades: { label: 'Sunglasses', img: 'gear-shades', w: 1.08, ax: .5, ay: .42 },
-    hearts: { label: 'Heart Shades', img: 'gear-hearts', w: 1.1, ax: .5, ay: .45 },
-    specs: { label: 'Round Specs', img: 'gear-specs', w: 1.06, ax: .5, ay: .45 },
+    shades: { label: 'Sunglasses', vb: '0 0 120 40', sep: .5, w: 1.2, svg:
+      G('gLens', [[0, '#3a3f4c'], [1, '#07080b']]) +
+      `<path d="M2 8 H118" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+       <path d="M6 8 H54 C54 26 48 36 30 36 C12 36 6 26 6 8 Z" fill="url(#gLens)" stroke="#111" stroke-width="3"/>
+       <path d="M66 8 H114 C114 26 108 36 90 36 C72 36 66 26 66 8 Z" fill="url(#gLens)" stroke="#111" stroke-width="3"/>
+       <path d="M13 13 L22 13 L14 24 Z M73 13 L82 13 L74 24 Z" fill="#fff" opacity=".35"/>` },
+    hearts: { label: 'Heart Shades', vb: '0 0 120 44', sep: .5, w: 1.25, svg:
+      `<path d="M54 14 H66" stroke="#b3124e" stroke-width="4" stroke-linecap="round"/>
+       ${[30, 90].map(x => `<path d="M${x} 40 C${x - 30} 22 ${x - 26} 2 ${x - 12} 4 C${x - 5} 5 ${x} 10 ${x} 14 C${x} 10 ${x + 5} 5 ${x + 12} 4 C${x + 26} 2 ${x + 30} 22 ${x} 40 Z" fill="#ff3d8b" stroke="#b3124e" stroke-width="3" stroke-linejoin="round"/>`).join('')}
+       <path d="M12 12 C14 8 20 7 23 9 M72 12 C74 8 80 7 83 9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>` },
+    specs: { label: 'Round Specs', vb: '0 0 120 44', sep: .567, w: 1.15, svg:
+      `<path d="M44 20 C52 12 68 12 76 20" fill="none" stroke="#c8961e" stroke-width="3"/>
+       <circle cx="26" cy="22" r="19" fill="rgba(200,230,255,.25)" stroke="#e0ad2a" stroke-width="4"/>
+       <circle cx="94" cy="22" r="19" fill="rgba(200,230,255,.25)" stroke="#e0ad2a" stroke-width="4"/>
+       <path d="M14 14 C18 9 24 8 28 9 M82 14 C86 9 92 8 96 9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>` },
   };
   // Measured in each picture (pixels): near eye x, y; far eye x, y; and the left/right edges of
   // what glasses must cover (his eyes, or the teen's star shades / the adult's aviators).
@@ -1059,12 +1075,13 @@
   };
   const HAT_UP = { baby: .34, teen: .1, adult: .3 };  // how far above the eye line hats sit, in face widths
   const HAT_SIZE = { baby: 1, teen: .85, adult: 1 };  // the teen's measured span includes his wide star shades
-  const EYE_COVER = { baby: 1, teen: 1.14, adult: 1.04 };  // a touch bigger over his built-in star shades / aviators
+  const EYE_COVER = { baby: .8, teen: 1.4, adult: 1.25 };  // lens size over each eye (teen/adult: hide built-in shades)  // a touch bigger over his built-in star shades / aviators
   let wear = { hat: 'none', eyes: 'none' };
   try { Object.assign(wear, JSON.parse(localStorage.getItem('rockfire.wardrobe')) || {}); } catch (e) {}
   if (!HATS[wear.hat]) wear.hat = 'none';
   if (!EYES[wear.eyes]) wear.eyes = 'none';
   const gearSrc = n => 'sprites/' + n + '.webp';
+  const svgOf = (it, extra = '') => `<svg viewBox="${it.vb}" ${extra} aria-hidden="true">${it.svg}</svg>`;
   // Lay the accessories over the picture in `box` (sized like the figure), for pose `name`.
   function dressUp(gear, box, img, name) {
     const f = FACE[name];
@@ -1077,16 +1094,20 @@
     const face = (R - L) * px;                                   // what glasses must cover
     const ex = (L + R) / 2 * px, ey = (ny + (fy - ny) * ((L + R) / 2 - nx) / (fx - nx)) * px;  // on the eye line
     let html = '';
-    const put = (it, x, y, ax, ay) => {
+    const put = (it, x, y, ax, ay, width = face * it.w) => {
       // translate puts the anchor on (x, y); the tilt turns around the anchor
-      const css = `left:${x}px;top:${y}px;width:${face * it.w}px;transform-origin:${ax * 100}% ${ay * 100}%;transform:translate(${-ax * 100}%, ${-ay * 100}%) rotate(${a}deg)`;
+      const css = `left:${x}px;top:${y}px;width:${width}px;transform-origin:${ax * 100}% ${ay * 100}%;transform:translate(${-ax * 100}%, ${-ay * 100}%) rotate(${a}deg)`;
+      if (it.svg) { const [, , vw, vh] = it.vb.split(' ').map(Number); html += svgOf(it, `style="${css};height:${width * vh / vw}px"`); return; }
       html += `<img src="${gearSrc(it.img)}" alt="" ${it.flip ? 'class="nflip" ' : ''}style="${css}">`;
       if (it.flip) html += `<img src="${gearSrc(it.flip)}" alt="" class="yflip" style="${css}">`;
     };
     const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
     const hu = hat.at === 'eyes' ? 0 : up * (hat.up || 1);
     if (hat.img) put({ ...hat, w: hat.w * (HAT_SIZE[name.split('-')[0]] || 1) }, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
-    if (eyes.img) put({ ...eyes, w: eyes.w * (EYE_COVER[name.split('-')[0]] || 1) }, ex, ey, eyes.ax, eyes.ay);
+    if (eyes.svg) {  // one lens on each eye: width from the distance between his eyes, centred between them
+      const d = Math.hypot(fx - nx, fy - ny) * px, cover = EYE_COVER[name.split('-')[0]] || 1;
+      put(eyes, (nx + fx) / 2 * px, (ny + fy) / 2 * px, .5, name.startsWith('baby') ? .5 : .42, d / eyes.sep * cover);  // a touch lower on teen/adult to cover built-in shades
+    }
     gear.innerHTML = html;
   }
   let gearName = '';
@@ -1102,7 +1123,7 @@
     if (!src) tint(name, scale).then(drawWardrobe);
     $('bsColors').innerHTML = Object.entries(SCALES).map(([k, c]) =>
       `<button class="swatch" data-scale="${k}" aria-pressed="${k === scale}" style="--sw:${c.sw}"><i></i>${c.label}</button>`).join('');
-    const tile = (slot, k, it) => `<button class="witem" data-${slot}="${k}" aria-pressed="${wear[slot] === k}">${it.img ? `<img src="${gearSrc(it.img)}" alt="">` : '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 23 L28 7" stroke="currentColor" stroke-width="2.5"/></svg>'}${it.label}</button>`;
+    const tile = (slot, k, it) => `<button class="witem" data-${slot}="${k}" aria-pressed="${wear[slot] === k}">${it.img ? `<img src="${gearSrc(it.img)}" alt="">` : it.svg ? svgOf(it) : '<svg viewBox="0 0 40 30" aria-hidden="true"><circle cx="20" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 23 L28 7" stroke="currentColor" stroke-width="2.5"/></svg>'}${it.label}</button>`;
     $('wHats').innerHTML = Object.entries(HATS).map(([k, it]) => tile('hat', k, it)).join('');
     $('wEyes').innerHTML = Object.entries(EYES).map(([k, it]) => tile('eyes', k, it)).join('');
   }
