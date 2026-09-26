@@ -1956,14 +1956,14 @@
   // hard rock in 4. What's inside pops out and is collected; the spot refills with fresh rock.
   // Coal gives fuel, gems give vibe, and a very rare Golden Pizza goes to the Snack Bar.
   const MINE_N = 5, MINE_SECS = 60, MINE_REFILL = 1.2;
-  const GEMS = { ruby: 0, sapphire: 200, emerald: 110 };  // hue-rotate from the red gem
+  const GEMS = ['ruby', 'sapphire', 'emerald'];  // sprites/gem-*.webp
   const FINDS = [  // [kind, weight]
     ['coal', 50], ['bigcoal', 14], ['pepper', 8], ['gem', 12], ['nothing', 16],
   ];
   function rollFind() {
     if (!mine.golden && Math.random() < .012) { mine.golden = true; return { kind: 'golden' }; }
     let r = Math.random() * FINDS.reduce((a, f) => a + f[1], 0);
-    for (const [kind, w] of FINDS) if ((r -= w) < 0) return kind === 'gem' ? { kind, gem: pick(Object.keys(GEMS)) } : { kind };
+    for (const [kind, w] of FINDS) if ((r -= w) < 0) return kind === 'gem' ? { kind, gem: pick(GEMS) } : { kind };
     return { kind: 'coal' };
   }
   function newRock(i) {
@@ -2013,8 +2013,8 @@
     t.className = 'tile dug';
     if (f.kind === 'nothing') { t.innerHTML = ''; }
     else {
-      const src = f.kind === 'gem' ? 'sprites/gem.webp' : f.kind === 'golden' ? foodSrc('pizza') : foodSrc(f.kind === 'bigcoal' ? 'coal' : f.kind);
-      const style = f.kind === 'gem' ? ` style="filter: hue-rotate(${GEMS[f.gem]}deg) drop-shadow(0 0 6px rgba(255,255,255,.5))"` : '';
+      const src = f.kind === 'gem' ? `sprites/gem-${f.gem}.webp` : f.kind === 'golden' ? foodSrc('pizza') : foodSrc(f.kind === 'bigcoal' ? 'coal' : f.kind);
+      const style = f.kind === 'gem' ? ' style="filter: drop-shadow(0 0 6px rgba(255,255,255,.5))"' : '';
       t.innerHTML = `<img class="found${f.kind === 'bigcoal' ? ' big' : ''}${f.kind === 'golden' ? ' goldpz' : ''}" src="${src}" alt="${f.kind}"${style}>`;
     }
     if (f.kind === 'coal' || f.kind === 'bigcoal') { const n = f.kind === 'bigcoal' ? 3 : 1; mine.coal += n; sfx('rushCoal', n); $('mineCall').textContent = n === 3 ? 'Big chunk! +3 coal' : pick(['Coal!', '+1 coal', 'Nice chunk!']); }
