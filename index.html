@@ -429,12 +429,14 @@
   .game em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-weight: 700; color: var(--gold); font-size: 14px; letter-spacing: .06em; text-align: right; }
 
   /* Riff Recall */
-  .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .pad {
-    height: 96px; border: 0; border-radius: 14px; background: var(--pc); opacity: .45;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 4px 0 rgba(0,0,0,.55); transition: opacity .08s, transform .08s;
-  }
-  .pad.lit { opacity: 1; transform: translateY(2px); box-shadow: 0 0 22px 4px var(--pc), 0 2px 0 rgba(0,0,0,.55); }
+  /* Riff Recall board: the painted drum-pad art, with a round tap zone over each pad */
+  .pads { position: relative; width: 100%; max-width: 360px; margin: 0 auto; aspect-ratio: 456 / 393; background: url(sprites/riff-board.webp) center / contain no-repeat; }
+  .pad { position: absolute; border: 0; padding: 0; border-radius: 50%; background: transparent; touch-action: manipulation; transition: box-shadow .08s, background .08s; }
+  .pad[data-pad="0"] { left: 15%; top: 1%; width: 36%; height: 41%; }   /* orange */
+  .pad[data-pad="1"] { left: 55%; top: 1%; width: 36%; height: 41%; }   /* gold */
+  .pad[data-pad="2"] { left: 8%; top: 40%; width: 42%; height: 48%; }   /* red */
+  .pad[data-pad="3"] { left: 53%; top: 40%; width: 42%; height: 48%; }  /* blue */
+  .pad.lit { background: radial-gradient(circle, rgba(255,255,255,.75), rgba(255,255,255,.25) 45%, transparent 70%); box-shadow: 0 0 26px 8px var(--pc); }
 
   /* Merch Match */
   .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -594,7 +596,7 @@
     <div class="games">
       <button class="game" data-game="jam" style="--gc: var(--gold)"><i><img src="sprites/icon-jam.webp" alt=""></i><strong>Jam Session</strong><span>Strum on the beat. Six strums, faster each time.</span><em>VIBE</em></button>
       <button class="game" data-game="riff" style="--gc: #5fb8d9"><i><img src="sprites/icon-riff.webp" alt=""></i><strong>Riff Recall</strong><span>He plays a riff, you play it back. It keeps growing.</span><em>VIBE</em></button>
-      <button class="game" data-game="mine" style="--gc: #6b5a52"><i><img src="sprites/icon-mine.webp" alt=""></i><strong>Coal Mine</strong><span>One minute to dig. Coal, gems, and a rare golden surprise.</span><em>FUEL<br>VIBE</em></button>
+      <button class="game" data-game="mine" style="--gc: #6b5a52"><i><img src="sprites/icon-mine.webp" alt=""></i><strong>Coal Mine</strong><span>30 seconds to dig. Coal, gems, and a rare golden surprise.</span><em>FUEL<br>VIBE</em></button>
       <button class="game" data-game="match" style="--gc: var(--paper)"><i><img src="sprites/icon-match.webp" alt=""></i><strong>Merch Match</strong><span>Flip cards to find matching pairs. No timer, just a sharp memory.</span><em>VIBE</em></button>
       <button class="game" data-game="whack" style="--gc: var(--crimson)"><i><img src="sprites/icon-whack.webp" alt=""></i><strong>Heckler Whack</strong><span>Bounce the hecklers. Don't tap the fans!</span><em>VIBE</em></button>
     </div>
@@ -619,7 +621,7 @@
 <div class="sheet" id="mineSheet" hidden>
   <div class="panel">
     <div class="row"><h2>Coal Mine</h2><button class="x" data-close>Close</button></div>
-    <p>You have one minute. Tap rocks to break them: light dirt takes 1 tap, stone 2 or 3, dark hard rock 4. Coal fuels him, gems lift his vibe, and if you're lucky there's a Golden Pizza in there.</p>
+    <p>You have 30 seconds. Tap rocks to break them: light dirt takes 1 tap, stone 2 or 3, dark hard rock 4. Coal fuels him, gems lift his vibe, and if you're lucky there's a Golden Pizza in there.</p>
     <div class="rushhud" id="mineHud" style="position:static"></div>
     <div class="mine" id="mine"></div>
     <div class="call" id="mineCall"></div>
@@ -774,9 +776,9 @@
     { id: 'dive', name: 'Stage Dive', stage: 'adult', hint: 'Grow into a Headliner', pose: 'happy', anim: 'dive', fx: 'sparks', line: 'Catch me!' },
     // Mini-game skills (best scores count, so earlier runs already qualify)
     { id: 'drumfill', name: 'Drum Fill', stage: 'baby', hint: 'Clear 3 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 3], pose: 'happy', anim: 'headbang', fx: 'notes', line: 'Ba-dum-TSSS!' },
-    { id: 'cruncher', name: 'Coal Cruncher', stage: 'baby', hint: 'Mine 25 coal in one dig', prog: s => [s.bestMine || 0, 25], pose: 'fire', anim: 'bounce', fx: 'sparks', line: 'Crunch time!' },
+    { id: 'cruncher', name: 'Coal Cruncher', stage: 'baby', hint: 'Mine 15 coal in one dig', prog: s => [s.bestMine || 0, 15], pose: 'fire', anim: 'bounce', fx: 'sparks', line: 'Crunch time!' },
     { id: 'echo', name: 'Echo Riff', stage: 'teen', hint: 'Clear 6 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 6], pose: 'happy', anim: 'shake', fx: 'notes', line: 'Riff… riff… RIFF!' },
-    { id: 'furnace', name: 'Furnace Belly', stage: 'teen', hint: 'Mine 60 coal in one dig', prog: s => [s.bestMine || 0, 60], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'Feed the fire!' },
+    { id: 'furnace', name: 'Furnace Belly', stage: 'teen', hint: 'Mine 30 coal in one dig', prog: s => [s.bestMine || 0, 30], pose: 'fire', anim: 'recoil', fx: 'flames', line: 'Feed the fire!' },
     { id: 'encore', name: 'Encore', stage: 'adult', hint: 'Clear all 8 rounds of Riff Recall', prog: s => [s.bestRiff || 0, 8], pose: 'happy', anim: 'float', fx: 'solo', line: 'One more song? ONE MORE SONG!' },
     // Merch Match + Heckler Whack skills. test/note: for goals that aren't a simple count.
     { id: 'merch', name: 'Merch Table', stage: 'baby', hint: 'Finish a game of Merch Match', prog: s => [s.c.match || 0, 1], pose: 'happy', anim: 'bounce', fx: 'hearts', line: 'Get your T-shirts here!' },
@@ -1983,16 +1985,16 @@
   }
 
   // ---------- Coal Mine mini-game ----------
-  // 60 seconds at a 5x5 rock wall. Tap a rock to chip it: dirt breaks in 1 tap, stone in 2-3,
+  // 30 seconds at a 5x5 rock wall. Tap a rock to chip it: dirt breaks in 1 tap, stone in 2-3,
   // hard rock in 4. What's inside pops out and is collected; the spot refills with fresh rock.
   // Coal gives fuel, gems give vibe, and a very rare Golden Pizza goes to the Snack Bar.
-  const MINE_N = 5, MINE_SECS = 60, MINE_REFILL = 1.2;
+  const MINE_N = 5, MINE_SECS = 30, MINE_REFILL = 1.2;
   const GEMS = ['ruby', 'sapphire', 'emerald'];  // sprites/gem-*.webp
   const FINDS = [  // [kind, weight]
     ['coal', 50], ['bigcoal', 14], ['pepper', 8], ['gem', 12], ['nothing', 16],
   ];
   function rollFind() {
-    if (!mine.golden && Math.random() < .012) { mine.golden = true; return { kind: 'golden' }; }
+    if (!mine.golden && Math.random() < .02) { mine.golden = true; return { kind: 'golden' }; }
     let r = Math.random() * FINDS.reduce((a, f) => a + f[1], 0);
     for (const [kind, w] of FINDS) if ((r -= w) < 0) return kind === 'gem' ? { kind, gem: pick(GEMS) } : { kind };
     return { kind: 'coal' };
@@ -2064,19 +2066,19 @@
   function finishMine() {
     mine.done = true; cancelAnimationFrame(mine.raf);
     const coal = mine.coal, gems = mine.gems;
-    state.stats.fuel = clamp(state.stats.fuel + Math.min(35, Math.round(coal / 2) + mine.pepper * 2));
+    state.stats.fuel = clamp(state.stats.fuel + Math.min(35, coal + mine.pepper * 2));
     state.stats.vibe = clamp(state.stats.vibe + Math.min(15, gems * 3) + (mine.pepper ? 2 : 0));
     state.stats.energy = clamp(state.stats.energy - 8);
     state.stats.clean = clamp(state.stats.clean - 4);  // mines are dusty
     state.c.mine = (state.c.mine || 0) + 1;
     state.bestMine = Math.max(state.bestMine || 0, coal);
     state.gems = (state.gems || 0) + gems;
-    $('mineCall').textContent = `Time! ${coal} coal and ${gems} gem${gems === 1 ? '' : 's'}` + (coal >= 60 ? ' — a legendary shift!' : coal >= 30 ? ' — great dig!' : '.');
+    $('mineCall').textContent = `Time! ${coal} coal and ${gems} gem${gems === 1 ? '' : 's'}` + (coal >= 30 ? ' — a legendary shift!' : coal >= 15 ? ' — great dig!' : '.');
     $('mineGo').textContent = 'Done'; $('mineGo').disabled = false;
     mineHud();
-    show(coal >= 20 ? 'happy' : 'idle', 2200); animate(coal >= 20 ? 'bounce' : '');
-    if (coal >= 20) fx('sparks');
-    setTimeout(() => sfx(coal >= 20 ? 'cheer' : 'wahwah', coal >= 60), 300);
+    show(coal >= 10 ? 'happy' : 'idle', 2200); animate(coal >= 10 ? 'bounce' : '');
+    if (coal >= 10) fx('sparks');
+    setTimeout(() => sfx(coal >= 10 ? 'cheer' : 'wahwah', coal >= 30), 300);
     checkSkills(); render(); save();
   }
 
