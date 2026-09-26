@@ -431,6 +431,25 @@
   }
   .pad.lit { opacity: 1; transform: translateY(2px); box-shadow: 0 0 22px 4px var(--pc), 0 2px 0 rgba(0,0,0,.55); }
 
+  /* Merch Match */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .card { aspect-ratio: 4 / 5; border: 0; padding: 0; border-radius: 10px; perspective: 600px; background: none; }
+  .card > b { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .28s ease; }
+  .card.up > b, .card.got > b { transform: rotateY(180deg); }
+  .card i { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 10px; backface-visibility: hidden; -webkit-backface-visibility: hidden; font-style: normal; box-shadow: 0 3px 0 rgba(0,0,0,.5); }
+  .card .back { background: repeating-linear-gradient(45deg, #2c211e 0 8px, #34271f 8px 16px); border: 2px solid var(--edge); color: var(--flame); font-size: 26px; }
+  .card .face { transform: rotateY(180deg); background: var(--paper); border: 2px solid var(--gold); font-size: 34px; }
+  .card.got .face { background: linear-gradient(160deg, #fff4c2, var(--paper)); box-shadow: 0 0 12px rgba(244,185,66,.7); }
+
+  /* Heckler Whack */
+  .holes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .hole { position: relative; aspect-ratio: 1; border: 0; padding: 0; border-radius: 14px; overflow: hidden; touch-action: manipulation;
+    background: radial-gradient(circle at 50% 55%, #0b0909 0 38%, #3a2c28 39% 42%, #1a1311 43%), #221917; box-shadow: inset 0 0 0 3px #3d2e29, 0 3px 0 rgba(0,0,0,.5); }
+  .hole span { position: absolute; left: 0; right: 0; bottom: -100%; font-size: 52px; line-height: 1; display: grid; place-items: center; height: 100%; transition: bottom .14s ease-out; pointer-events: none; }
+  .hole.out span { bottom: 0; }
+  .hole.hit span { transform: scale(.7) rotate(-20deg); opacity: .4; transition: transform .15s, opacity .15s, bottom .14s; }
+  .hole.oops { box-shadow: inset 0 0 0 3px var(--crimson), 0 0 14px var(--crimson); }
+
   /* Coal Rush */
   .rush {
     position: relative; height: 300px; border-radius: 10px; overflow: hidden; touch-action: none;
@@ -557,6 +576,8 @@
       <button class="game" data-game="jam" style="--gc: var(--gold)"><i>🎸</i><strong>Jam Session</strong><span>Strum on the beat. Six strums, faster each time.</span><em>VIBE</em></button>
       <button class="game" data-game="riff" style="--gc: #5fb8d9"><i>🥁</i><strong>Riff Recall</strong><span>He plays a riff, you play it back. It keeps growing.</span><em>VIBE</em></button>
       <button class="game" data-game="rush" style="--gc: var(--flame)"><i>🔥</i><strong>Coal Rush</strong><span>Slide to catch falling snacks. Dodge the water!</span><em>FUEL<br>VIBE</em></button>
+      <button class="game" data-game="match" style="--gc: var(--paper)"><i>👕</i><strong>Merch Match</strong><span>Flip cards to find matching pairs. No timer, just a sharp memory.</span><em>VIBE</em></button>
+      <button class="game" data-game="whack" style="--gc: var(--crimson)"><i>😠&#xFE0F;</i><strong>Heckler Whack</strong><span>Bounce the hecklers. Don't tap the fans!</span><em>VIBE</em></button>
     </div>
   </div>
 </div>
@@ -583,6 +604,26 @@
     <div class="rush" id="rush"><div class="rushhud" id="rushHud"></div><img class="catcher" id="catcher" alt=""></div>
     <div class="call" id="rushCall"></div>
     <button class="big" id="rushGo">Start</button>
+  </div>
+</div>
+
+<div class="sheet" id="matchSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Merch Match</h2><button class="x" data-close>Close</button></div>
+    <p>Flip two cards at a time to find the six matching pairs. Fewer flips, bigger reward.</p>
+    <div class="cards" id="cards"></div>
+    <div class="call" id="matchCall"></div>
+  </div>
+</div>
+
+<div class="sheet" id="whackSheet" hidden>
+  <div class="panel">
+    <div class="row"><h2>Heckler Whack</h2><button class="x" data-close>Close</button></div>
+    <p>Tap the grumpy hecklers 😠&#xFE0F; before they duck. Leave the fans 🤩 alone. Tap three fans and you're out.</p>
+    <div class="rushhud" id="whackHud" style="position:static"></div>
+    <div class="holes" id="holes"></div>
+    <div class="call" id="whackCall"></div>
+    <button class="big" id="whackGo">Start</button>
   </div>
 </div>
 
@@ -751,7 +792,7 @@
     return {
       v: 1, name: 'Rockfire', stage: 'egg', heat: 0, eggAt: t, hatchedAt: null, age: 0,
       stats: { fuel: 85, energy: 90, vibe: 85, clean: 100 }, asleep: false,
-      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0, riff: 0, rush: 0 }, best: 0, bestRiff: 0, bestRush: 0, drinks: [],
+      c: { pet: 0, pepper: 0, coal: 0, pizza: 0, drink: 0, bath: 0, jam: 0, perform: 0, fetch: 0, catch: 0, riff: 0, rush: 0, match: 0, whack: 0 }, best: 0, bestRiff: 0, bestRush: 0, bestMatch: 0, bestWhack: 0, drinks: [],
       skills: [], unseen: [], neglectH: 0, over: false,
       lastTick: t, savedAt: 0, hall: hall || [],
     };
@@ -761,7 +802,7 @@
     return Object.assign(base, s, { stats: Object.assign(base.stats, s.stats), c: Object.assign(base.c, s.c) });
   }
   let state;
-  let riff = null, rush = null; // active mini-games (declared early: closeSheets() stops them)
+  let riff = null, rush = null, match = null, whack = null; // active mini-games (declared early: closeSheets() stops them)
   // Daily prize progress (see Golden Pizza below); declared early because render() reads it.
   const DAILY_KEY = SPEED > 1 ? 'rockfire.fast.daily' : 'rockfire.daily';
   const DAILY_SECS = SPEED > 1 ? 10 : 300, GOLDEN_MAX = 3;
@@ -1483,7 +1524,7 @@
 
   // ---------- Sheets ----------
   function openSheet(id) { closeSheets(); $(id).hidden = false; }
-  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); stopRiff(); stopRush(); }
+  function closeSheets() { document.querySelectorAll('.sheet').forEach(s => { s.hidden = true; }); stopJam(); stopRiff(); stopRush(); stopMatch(); stopWhack(); }
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
   document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => {
     if (e.target === s && s.id !== 'nameSheet' && s.id !== 'endSheet') closeSheets();
@@ -1703,7 +1744,7 @@
   });
   document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => {
     if (state.stats.energy < 10) { closeSheets(); say('Too tired to play… need sleep.'); return; }
-    ({ jam: startJam, riff: openRiff, rush: openRush })[b.dataset.game]();
+    ({ jam: startJam, riff: openRiff, rush: openRush, match: openMatch, whack: openWhack })[b.dataset.game]();
   }));
   function startJam() {
     openSheet('jamSheet');
@@ -1815,6 +1856,129 @@
     show(r >= 3 ? 'happy' : 'idle', 2200); animate(r >= 3 ? 'headbang' : '');
     if (r >= 3) fx('notes');
     setTimeout(() => sfx(r >= 3 ? 'cheer' : 'wahwah', r >= 6), 400);
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Merch Match mini-game ----------
+  // Memory pairs: 12 cards, 6 pairs of band merch. No timer; the reward shrinks with extra flips.
+  const MERCH = ['🎸', '🥁', '🎤', '🎧', '🔥', '⚡\uFE0F'];  // FE0F: always the colour emoji
+  function openMatch() {
+    openSheet('matchSheet');
+    const deck = [...MERCH, ...MERCH].sort(() => Math.random() - .5);
+    match = { deck, open: [], got: 0, moves: 0, busy: false, done: false, timer: 0 };
+    $('cards').innerHTML = deck.map((m, i) => `<button class="card" data-card="${i}" aria-label="Card"><b><i class="back">🤘</i><i class="face">${m}</i></b></button>`).join('');
+    $('matchCall').textContent = 'Find the pairs!';
+  }
+  function stopMatch() { if (match) clearTimeout(match.timer); match = null; }
+  $('cards').addEventListener('click', e => {
+    const c = e.target.closest('.card');
+    if (!c || !match || match.busy || match.done || c.classList.contains('up') || c.classList.contains('got')) return;
+    c.classList.add('up'); sfx('click'); match.open.push(c);
+    if (match.open.length < 2) return;
+    match.moves++;
+    const [a, b] = match.open, same = match.deck[a.dataset.card] === match.deck[b.dataset.card];
+    match.open = [];
+    if (same) {
+      a.classList.add('got'); b.classList.add('got'); sfx('unlock'); buzz(20);
+      $('matchCall').textContent = pick(['Match!', 'Nice pair!', 'Got it!']);
+      if (++match.got === MERCH.length) finishMatch();
+    } else {
+      match.busy = true; $('matchCall').textContent = pick(['Nope!', 'Not a pair.', 'Try again!']);
+      const m = match;
+      m.timer = setTimeout(() => { if (match !== m) return; a.classList.remove('up'); b.classList.remove('up'); m.busy = false; }, 750);
+    }
+  });
+  function finishMatch() {
+    const n = match.moves, gain = Math.max(6, 26 - 2 * (n - MERCH.length));  // 6 flips is perfect
+    match.done = true;
+    state.stats.vibe = clamp(state.stats.vibe + gain);
+    state.stats.energy = clamp(state.stats.energy - 5);
+    state.c.match = (state.c.match || 0) + 1;
+    state.bestMatch = state.bestMatch ? Math.min(state.bestMatch, n) : n;
+    $('matchCall').textContent = 'All pairs in ' + n + ' flips' + (n <= 8 ? ' — photographic memory!' : n <= 12 ? ' — nice!' : '.') + ' +' + gain + ' vibe';
+    show('happy', 2200); animate('headbang'); fx('notes');
+    setTimeout(() => sfx('cheer', n <= 8), 300);
+    checkSkills(); render(); save();
+  }
+
+  // ---------- Heckler Whack mini-game ----------
+  // 30 seconds. Hecklers pop out of amp speakers: tap them. Fans pop out too: don't.
+  // Paced for human reaction time (tested with a ~0.45s-latency bot); pops speed up gently.
+  const WHACK_SECS = 30;
+  const whackStay = t => 1.9 - .8 * Math.min(1, t / WHACK_SECS);   // how long a face stays up: 1.9s -> 1.1s
+  const whackGap = t => 1.0 - .45 * Math.min(1, t / WHACK_SECS);   // time between pops: 1.0s -> 0.55s
+  function openWhack() {
+    openSheet('whackSheet');
+    whack = { t: 0, next: .6, score: 0, lives: 3, up: [], started: false, done: false, raf: 0, last: 0 };
+    $('holes').innerHTML = Array.from({ length: 9 }, (_, i) => `<button class="hole" data-hole="${i}" aria-label="Amp"><span></span></button>`).join('');
+    $('whackCall').textContent = 'Ready?';
+    $('whackGo').textContent = 'Start'; $('whackGo').disabled = false;
+    whackHud();
+  }
+  function stopWhack() { if (whack) cancelAnimationFrame(whack.raf); whack = null; }
+  function whackHud() { $('whackHud').innerHTML = `<span>Score ${whack.score}</span><span>${'🤩'.repeat(whack.lives)}${'<span style="opacity:.25">🤩</span>'.repeat(3 - whack.lives)}</span><span>${Math.max(0, Math.ceil(WHACK_SECS - whack.t))}s</span>`; }
+  $('whackGo').addEventListener('click', () => {
+    if (!whack) return;
+    if (whack.done) { closeSheets(); return; }
+    if (whack.started) return;
+    whack.started = true; $('whackGo').disabled = true; $('whackGo').textContent = 'Go!';
+    $('whackCall').textContent = 'Bounce \'em!'; sfx('rushCount');
+    whack.last = performance.now(); whack.raf = requestAnimationFrame(whackLoop);
+  });
+  function whackLoop(now) {
+    if (!whack || whack.done) return;
+    const dt = Math.min(.05, (now - whack.last) / 1000); whack.last = now; whack.t += dt;
+    for (const u of whack.up.slice()) if (whack.t >= u.until) hideFace(u);
+    whack.next -= dt;
+    if (whack.next <= 0 && whack.t < WHACK_SECS - .5) {
+      whack.next = whackGap(whack.t);
+      const free = [...Array(9).keys()].filter(i => !whack.up.some(u => u.i === i));
+      if (free.length) {
+        const i = pick(free), fan = Math.random() < .25, el = document.querySelector(`.hole[data-hole="${i}"]`);
+        el.className = 'hole'; el.firstChild.textContent = fan ? '🤩' : '😠\uFE0F';
+        requestAnimationFrame(() => el.classList.add('out'));
+        whack.up.push({ i, fan, until: whack.t + whackStay(whack.t) });
+      }
+    }
+    whackHud();
+    if (whack.t >= WHACK_SECS || whack.lives <= 0) return finishWhack();
+    whack.raf = requestAnimationFrame(whackLoop);
+  }
+  function hideFace(u) {
+    whack.up.splice(whack.up.indexOf(u), 1);
+    const el = document.querySelector(`.hole[data-hole="${u.i}"]`);
+    if (el) el.classList.remove('out');
+  }
+  $('holes').addEventListener('pointerdown', e => {
+    const h = e.target.closest('.hole');
+    if (!h || !whack || !whack.started || whack.done) return;
+    e.preventDefault();
+    const u = whack.up.find(x => x.i === +h.dataset.hole);
+    if (!u) return;
+    hideFace(u);
+    if (u.fan) {
+      whack.lives--; h.classList.add('oops'); setTimeout(() => h.classList.remove('oops'), 400);
+      sfx('rushDrop'); buzz(60); $('whackCall').textContent = pick(['That was a fan!', 'Hey, I love you guys!', 'Oops, a fan!']);
+    } else {
+      whack.score++; h.classList.add('hit'); sfx('knock'); buzz(15);
+      if (whack.score % 5 === 0) { sfx('hearts'); $('whackCall').textContent = pick(['Get outta here!', 'Boo yourself!', 'Next!']); }
+    }
+    whackHud();
+  });
+  function finishWhack() {
+    const n = whack.score, out = whack.lives <= 0;
+    whack.done = true;
+    whack.up.slice().forEach(hideFace);
+    state.stats.vibe = clamp(state.stats.vibe + (n >= 20 ? 14 : n >= 10 ? 8 : n >= 4 ? 4 : 0));
+    state.stats.energy = clamp(state.stats.energy - 6 + Math.min(6, Math.floor(n / 5)));  // a good set gets his blood pumping
+    state.c.whack = (state.c.whack || 0) + 1;
+    state.bestWhack = Math.max(state.bestWhack || 0, n);
+    $('whackCall').textContent = (out ? 'Too many fans bonked! ' : 'Time! ') + n + ' heckler' + (n === 1 ? '' : 's') + ' bounced' + (n >= 20 ? ' — the crowd is all yours!' : n >= 10 ? ' — nice set.' : '.');
+    $('whackGo').textContent = 'Done'; $('whackGo').disabled = false;
+    whackHud();
+    show(n >= 10 ? 'happy' : 'idle', 2200); animate(n >= 10 ? 'headbang' : '');
+    if (n >= 10) fx('notes');
+    setTimeout(() => sfx(n >= 10 ? 'cheer' : 'wahwah', n >= 20), 400);
     checkSkills(); render(); save();
   }
 
@@ -2195,7 +2359,7 @@
     $('skillList').innerHTML = html;
     $('skillList').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => perform(b.dataset.skill)));
     const c = state.c;
-    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Rushes ${c.rush || 0} · Best rush ${state.bestRush || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
+    $('statsLine').textContent = `Peppers ${c.pepper} · Coal ${c.coal} · Pizza ${c.pizza} · Amp Juice ${c.drink || 0} · Jams ${c.jam} · Best jam ${state.best}/6 · Riff Recalls ${c.riff || 0} · Best riff ${state.bestRiff || 0} · Coal Rushes ${c.rush || 0} · Best rush ${state.bestRush || 0} · Merch Matches ${c.match || 0} · Fewest flips ${state.bestMatch || '–'} · Heckler Whacks ${c.whack || 0} · Best whack ${state.bestWhack || 0} · Fetches ${c.fetch} · Baths ${c.bath || 0} · Air catches ${c.catch} · Pets ${c.pet}` +
       (state.hall.length ? ` · Past legends: ${state.hall.map(h => h.name).join(', ')}` : '');
   }
   const SKILL_SFX = { bubbles: 'bubbles', aircatch: 'catch', headbang: 'riff', roar: 'roar', sneeze: 'sneeze', smoke: 'puffs', airguitar: 'riff', firebreath: 'fire', glide: 'whoosh', solo: 'solo', chord: 'blast', dive: 'dive', pyro: 'pyro', drumfill: 'drumfill', cruncher: 'crunch', echo: 'echo', furnace: 'fire', encore: 'encore' };
