@@ -1359,13 +1359,23 @@
       // Coal Rush
       rushCount: () => { [0, .22, .44].forEach(t => noise({ t, dur: .03, vol: .3, type: 'highpass', f: 3500 })); chord(E3, .66, .45, .22, 3000); },
       rushBeat: (step) => {  // eighth-note groove: kick on 1 and 3, snare on 2 and 4, hats between
-        if (step % 4 === 0) tone({ f: 110, f2: 42, dur: .16, vol: .32 });
-        if (step % 4 === 2) { noise({ dur: .12, vol: .16, f: 1800, q: .8 }); tone({ f: 190, f2: 150, dur: .08, type: 'triangle', vol: .08 }); }
+        if (step % 4 === 0) tone({ f: 110, f2: 42, dur: .16, vol: .22 });
+        if (step % 4 === 2) { noise({ dur: .12, vol: .11, f: 1800, q: .8 }); tone({ f: 190, f2: 150, dur: .08, type: 'triangle', vol: .08 }); }
         noise({ dur: .025, vol: step % 2 ? .05 : .08, type: 'highpass', f: 7000 });
         if (step % 8 === 0) tone({ f: [E2, E2, G2, A2][(step / 8) % 4] * 2, dur: .3, type: 'sawtooth', vol: .07, cut: 600 });
       },
-      rushCoal: () => { fx.crunch(); tone({ f: 330, f2: 220, dur: .12, type: 'triangle', vol: .14 }); },
-      rushPepper: () => { noise({ dur: .45, vol: .22, type: 'highpass', f: 3500, attack: .01 }); [880, 1175, 1568].forEach((f, i) => tone({ t: i * .06, f, dur: .16, type: 'triangle', vol: .12 })); },
+      // Catch: a bright two-note ding that climbs a semitone per catch in a row (up to an octave).
+      rushCoal: (combo = 0) => {
+        const k = Math.pow(2, Math.min(combo, 12) / 12);
+        tone({ f: 988 * k, dur: .08, type: 'square', vol: .13, cut: 5000 });
+        tone({ t: .07, f: 1319 * k, dur: .22, type: 'square', vol: .15, cut: 5000 });
+        fx.chomp();
+      },
+      rushPepper: (combo = 0) => {
+        const k = Math.pow(2, Math.min(combo, 12) / 12);
+        [1047, 1319, 1568, 2093].forEach((f, i) => tone({ t: i * .055, f: f * k, dur: .18, type: 'square', vol: .12, cut: 6000 }));
+        noise({ dur: .35, vol: .18, type: 'highpass', f: 4000, attack: .01 });
+      },
       rushWater: () => { fx.splash(); noise({ t: .05, dur: .6, vol: .25, type: 'highpass', f: 5000, attack: .02 }); tone({ t: .1, f: 400, f2: 180, dur: .45, type: 'triangle', vol: .14 }); },
       rushDrop: () => { fx.thud(); tone({ t: .05, f: 260, f2: 110, dur: .35, type: 'square', vol: .06, cut: 900 }); },
       rushLevel: () => { noise({ dur: .5, vol: .16, f: 500, f2: 3000, q: 1.2, attack: .3 }); chord(A2, .45, .4, .2, 3200); },
@@ -2091,11 +2101,11 @@
       if (inMouth || it.y > H) {
         it.el.remove(); rush.items.splice(rush.items.indexOf(it), 1);
         if (!inMouth) {
-          if (it.kind !== 'water') { rush.lives--; sfx('rushDrop'); buzz(40); $('rushCall').textContent = pick(['Dropped one!', 'Missed it!', 'Aw, my snack!']); }
+          if (it.kind !== 'water') { rush.combo = 0; rush.lives--; sfx('rushDrop'); buzz(40); $('rushCall').textContent = pick(['Dropped one!', 'Missed it!', 'Aw, my snack!']); }
           continue;
         }
-        if (it.kind === 'water') { rush.lives--; sfx('rushWater'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
-        else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'rushPepper' : 'rushCoal'); buzz(15); }
+        if (it.kind === 'water') { rush.combo = 0; rush.lives--; sfx('rushWater'); buzz(60); $('rushCall').textContent = pick(['Tssss!', 'Ow, water!', 'My flame!']); }
+        else { rush.score += it.kind === 'pepper' ? 2 : 1; sfx(it.kind === 'pepper' ? 'rushPepper' : 'rushCoal', rush.combo = (rush.combo || 0) + 1); buzz(15); }
       }
     }
     rushHud();
