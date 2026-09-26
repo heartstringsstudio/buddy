@@ -1032,7 +1032,8 @@
   // tools/process_sheets.py) laid over his picture. w: width relative to his face; ax, ay: the
   // point of the picture (0-1) that sits on his head (hats) or between his eyes (eyewear).
   // up: fraction of the usual hat height (the bandana sits on the forehead, headphones at the
-  // temples); at: 'eyes' would anchor a hat on the eye line. flip: a second picture shown while he faces left.
+  // temples); at: 'eyes' would anchor a hat on the eye line; ear: [back, down] puts the anchor on his
+  // near ear, that many eye-distances behind and below the near eye (w is then eye-distances). flip: a second picture shown while he faces left.
   const HATS = {
     none: { label: 'None' },
     sunhat: { label: 'Sun Hat', img: 'gear-sunhat', w: 1.6, ax: .47, ay: .8 },
@@ -1042,7 +1043,7 @@
     party: { label: 'Party Hat', img: 'gear-party', w: .85, ax: .5, ay: .88 },
     bow: { label: 'Pink Bow', img: 'gear-bow', w: .9, ax: .5, ay: .72 },
     bandana: { label: 'Bandana', img: 'gear-bandana', w: 1.35, ax: .62, ay: .42, up: .5 },  // front band only (back of the loop cut away), knot behind
-    phones: { label: 'Headphones', img: 'gear-phones', w: 1.55, ax: .5, ay: 1.12, at: 'eyes' },  // cups rest just above his eyes, so his face shows
+    phones: { label: 'Headphones', img: 'gear-phones-side', w: 2.1, ax: .24, ay: .74, ear: [.95, .12], baby: { w: 1.45, ear: [.45, .1] }, 'baby-sad': { ear: [.85, .15] }, 'baby-bath': { ear: [.05, .05] } },  // baby's eyes are wide apart: closer and smaller  // worn: near cup on his ear behind the near eye, band over his head
     wvcap: { label: 'WV Cap', img: 'gear-wvcap', flip: 'gear-wvcap-flip', w: 1.3, ax: .42, ay: .8 },
   };
   // Eyewear stays drawn (SVG): thin frames sit on his three-quarter face far better than the
@@ -1105,9 +1106,15 @@
       html += `<img src="${gearSrc(it.img)}" alt="" ${it.flip ? 'class="nflip" ' : ''}style="${css}">`;
       if (it.flip) html += `<img src="${gearSrc(it.flip)}" alt="" class="yflip" style="${css}">`;
     };
-    const hat = HATS[wear.hat], eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
+    let hat = HATS[wear.hat]; const eyes = EYES[wear.eyes], up = face * (HAT_UP[name.split('-')[0]] || .4);
     const hu = hat.at === 'eyes' ? 0 : up * (hat.up || 1);
-    if (hat.img) put({ ...hat, w: hat.w * (HAT_SIZE[name.split('-')[0]] || 1) }, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
+    if (hat.ear) {
+      if (hat[name.split('-')[0]]) hat = { ...hat, ...hat[name.split('-')[0]] };
+      if (hat[name]) hat = { ...hat, ...hat[name] };  // per-pose fix
+      const d = Math.hypot(fx - nx, fy - ny), ux = (fx - nx) / d, uy = (fy - ny) / d;  // along the eye line
+      const [back, down] = hat.ear, x = nx - ux * back * d - uy * down * d, y = ny - uy * back * d + ux * down * d;
+      put(hat, x * px, y * px, hat.ax, hat.ay, hat.w * d * px);
+    } else if (hat.img) put({ ...hat, w: hat.w * (HAT_SIZE[name.split('-')[0]] || 1) }, ex + Math.sin(r) * hu, ey - Math.cos(r) * hu, hat.ax, hat.ay);
     if (eyes.svg && !name.startsWith('teen')) {  // teen keeps his own star shades; one lens on each eye: width from the distance between his eyes, centred between them
       const d = Math.hypot(fx - nx, fy - ny) * px, cover = EYE_COVER[name.split('-')[0]] || 1;
       put(eyes, (nx + fx) / 2 * px, (ny + fy) / 2 * px, .5, name.startsWith('baby') ? .5 : .42, d / eyes.sep * cover);  // a touch lower on teen/adult to cover built-in shades
