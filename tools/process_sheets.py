@@ -25,6 +25,7 @@ SHEETS = {
     "sheet-4-cards": (3, 2, [("card-guitar", 200), ("card-drum", 200), ("card-mic", 200),
                              ("card-phones", 200), ("card-flame", 200), ("card-bolt", 200)]),
     "sheet-5-crowd": (2, 1, [("whack-heckler", 240), ("whack-fan", 240)]),
+    "sheet-7-gems": (3, 1, [("gem-ruby", 160), ("gem-sapphire", 160), ("gem-emerald", 160)]),
 }
 TILES = ("sheet-6-tiles", 3, 2, [("card-back", 240), ("whack-amp", 240), ("mine-rock", 200),
                                  ("mine-dug", 200), ("mine-water", 200)])
