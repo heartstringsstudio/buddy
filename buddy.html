@@ -1086,6 +1086,9 @@ O          \\
       trainTired: "Dragon is too powerful to train right now.",
     },
     tricks: ["breathe fire","fly","roar","hoard gold","intimidate","tail whip","crush rocks","mind control"],
+    // Dragons are immortal: stats never fall below this floor, no matter how long you're away.
+    statFloor: 20,
+    welcomeBack: (days) => `The great one slumbered on its hoard for ${days} day${days === 1 ? '' : 's'}. Dragons are eternal. 🔥`,
   },
 };
 
@@ -1109,16 +1112,24 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem('buddySave', JSON.stringify(state));
+  try { localStorage.setItem('buddySave', JSON.stringify(state)); } catch(e) {}
+}
+
+function num(v, fallback) { return Number.isFinite(v) ? v : fallback; }
+
+function decayStats(s, hours) {
+  const floor = (PETS[s.petType] && PETS[s.petType].statFloor) || 0;
+  s.hunger     = clamp(num(s.hunger, 80) - hours * DECAY.hunger, floor, 100);
+  s.happiness  = clamp(num(s.happiness, 80) - hours * DECAY.happiness, floor, 100);
+  s.energy     = clamp(num(s.energy, 80) + hours * DECAY.energyRegen, 0, 100);
+  s.age_days   = num(s.age_days, 0) + hours / 24;
+  s.last_seen  = Date.now();
 }
 
 function applyTimeDecay(s) {
-  const elapsed = (Date.now() - (s.last_seen || Date.now())) / 3600000; // hours
-  s.hunger     = clamp(s.hunger - elapsed * DECAY.hunger, 0, 100);
-  s.happiness  = clamp(s.happiness - elapsed * DECAY.happiness, 0, 100);
-  s.energy     = clamp(s.energy + elapsed * DECAY.energyRegen, 0, 100);
-  s.age_days   = (s.age_days || 0) + elapsed / 24;
-  s.last_seen  = Date.now();
+  const lastSeen = num(s.last_seen, Date.now());
+  const elapsed = Math.max(0, (Date.now() - lastSeen) / 3600000); // hours
+  decayStats(s, elapsed);
   return s;
 }
 
@@ -1269,7 +1280,7 @@ function doAction(action) {
     if (state.energy < 20) return;
     state.happiness = clamp(state.happiness + 25, 0, 100);
     state.energy    = clamp(state.energy - 20, 0, 100);
-    state.hunger    = clamp(state.hunger - 10, 0, 100);
+    state.hunger    = clamp(state.hunger - 10, PETS[state.petType].statFloor || 0, 100);
     msg = pick(r.play);
     animatePet('shake');
 
@@ -1481,12 +1492,7 @@ setInterval(() => {
 // Real-time stat decay every 30s
 setInterval(() => {
   if (!state) return;
-  const tickHours = 30 / 3600;
-  state.hunger    = clamp(state.hunger - tickHours * DECAY.hunger, 0, 100);
-  state.happiness = clamp(state.happiness - tickHours * DECAY.happiness, 0, 100);
-  state.energy    = clamp(state.energy + tickHours * DECAY.energyRegen, 0, 100);
-  state.age_days  = (state.age_days || 0) + tickHours / 24;
-  state.last_seen = Date.now();
+  decayStats(state, 30 / 3600);
   saveState();
   renderStats();
   renderHeader();
@@ -1498,11 +1504,16 @@ setInterval(() => {
 // ══════════════════════════════════════════
 
 (function boot() {
+  // Ask the browser not to evict the save while you're away.
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e) {}
   state = loadState();
-  if (state) {
+  if (state && PETS[state.petType]) {
+    const awayDays = Math.floor(Math.max(0, Date.now() - num(state.last_seen, Date.now())) / 86400000);
     state = applyTimeDecay(state);
     saveState();
     showScreen('main');
+    const pet = PETS[state.petType];
+    if (awayDays >= 1 && pet.welcomeBack) showMessage(pet.welcomeBack(awayDays));
   } else {
     showScreen('selection');
   }
