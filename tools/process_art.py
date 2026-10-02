@@ -77,6 +77,28 @@ def round_left(a, top, mid, k_top, k_bot, ease=70, shade=10):
     a[..., :3] = (a[..., :3] * (1 - rim[..., None])).astype(np.uint8)
 
 
+def carve(a, side, y0, y1, depth, shade=10):
+    """Reshape a flat slice down the figure's left or right side on rows y0..y1: pixels
+    within depth(u) of that side are cleared, u running 0..1 down the rows. The new rim
+    is darkened like round_left's."""
+    cols = np.nonzero((a[..., 3] > 12).any(0))[0]
+    dep = np.array([depth((y - y0) / (y1 - y0)) for y in range(y0, y1 + 1)])[:, None]
+    xs = np.arange(a.shape[1])[None, :].astype(float)
+    d = xs - (cols.min() + dep) if side == "left" else (cols.max() - dep) - xs
+    seg = a[y0:y1 + 1].astype(float)
+    seg[..., 3] *= np.clip(d / 2 + .5, 0, 1)
+    seg[..., :3] *= 1 - (np.clip(1 - d / shade, 0, 1) * (d > -2) * .45)[..., None]
+    a[y0:y1 + 1] = seg.astype(np.uint8)
+
+
+def scallop(depth):  # a wing's membrane edge: dips in between two bone tips
+    return lambda u: depth * np.sin(np.pi * u)
+
+
+def cap(depth):  # a rounded tip: furthest out at mid-height
+    return lambda u: depth * (2 * u - 1) ** 2
+
+
 # Applied after the stage box is measured, so a fix never changes a stage's framing.
 FIXES = {
     # A neighbour's wing is fused to the bottom of his right wing.
@@ -84,6 +106,12 @@ FIXES = {
         a, lambda y: 714 if y < 505 else 714 + (y - 505) * 31 / 70 if y <= 575 else 745, 380, 660),
     # Sliced flat down the left through wing, body and tail.
     "adult-sleep": lambda a: round_left(a, 430, 705, .0009, .0012),
+    # Both wing tips and the tail tip sliced flat.
+    "adult-happy": lambda a: (carve(a, "left", 450, 568, scallop(30)),
+                              carve(a, "left", 690, 834, cap(45)),
+                              carve(a, "right", 242, 318, scallop(22))),
+    # Left wing sliced flat.
+    "adult-fire": lambda a: carve(a, "left", 318, 542, scallop(45)),
 }
 
 
