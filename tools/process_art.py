@@ -4,6 +4,7 @@
   edge of each figure's box.
 - Crops every pose of a stage to one shared box, so the dragon stays the same
   size when he changes pose.
+- Repairs the few poses ChatGPT sliced through or fused with a neighbour (FIXES).
 - Props (the bone, the bed and food-*.png) are cropped tight on their own.
 - Backgrounds (bg-*.png) are only resized.
 
@@ -51,6 +52,39 @@ def save(a, box, name):
     sc = SIZE / max(im.size)
     im = im.resize((round(im.size[0] * sc), round(im.size[1] * sc)), Image.LANCZOS)
     im.save(f"sprites/{name}.webp", "WEBP", quality=86, method=6)
+
+
+def cut_right_of(a, edge, y0, y1):
+    """Clear everything right of edge(y) on rows y0..y1, with an anti-aliased edge."""
+    xs = np.arange(a.shape[1])[None, :]
+    e = np.array([edge(y) for y in range(y0, y1 + 1)])[:, None]
+    a[y0:y1 + 1, :, 3] = (a[y0:y1 + 1, :, 3] * np.clip((e - xs) / 2 + .5, 0, 1)).astype(np.uint8)
+
+
+def round_left(a, top, mid, k_top, k_bot, ease=70, shade=10):
+    """Round a flat slice down the figure's left side into a curve, starting at row top
+    (eased in so nothing above it is touched) and bulging furthest at row mid. The new rim
+    is darkened like the render's own edges so it doesn't read as a cut."""
+    h, w = a.shape[:2]
+    xs = np.arange(w)[None, :].astype(float)
+    ys = np.arange(h)[:, None].astype(float)
+    x0 = np.nonzero((a[..., 3] > 12).any(0))[0].min()
+    t = np.clip((ys - top) / ease, 0, 1)
+    depth = np.where(ys < mid, k_top, k_bot) * (ys - mid) ** 2 * t * t * (3 - 2 * t)
+    d = xs - (x0 + depth)  # how far inside the new edge
+    a[..., 3] = (a[..., 3] * np.clip(d / 2 + .5, 0, 1)).astype(np.uint8)
+    rim = np.clip(1 - d / shade, 0, 1) * (d > -2) * .45
+    a[..., :3] = (a[..., :3] * (1 - rim[..., None])).astype(np.uint8)
+
+
+# Applied after the stage box is measured, so a fix never changes a stage's framing.
+FIXES = {
+    # A neighbour's wing is fused to the bottom of his right wing.
+    "adult-idle": lambda a: cut_right_of(
+        a, lambda y: 714 if y < 505 else 714 + (y - 505) * 31 / 70 if y <= 575 else 745, 380, 660),
+    # Sliced flat down the left through wing, body and tail.
+    "adult-sleep": lambda a: round_left(a, 430, 705, .0009, .0012),
+}
 
 
 EXTRAS = ("run", "fetch", "bath")  # action poses fitted into the stage's standing box
@@ -114,6 +148,9 @@ def main():
         x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
         p = int(0.03 * max(x1 - x0, y1 - y0))
         box = (max(0, x0 - p), max(0, y0 - p), min(1023, x1 + p), min(1023, y1 + p))
+        for k in names:
+            if k in FIXES:
+                FIXES[k](art[k])
         for k in core:
             save(art[k], box, k)
         for k in names:
