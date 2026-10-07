@@ -1086,7 +1086,8 @@ O          \\
       trainTired: "Dragon is too powerful to train right now.",
     },
     tricks: ["breathe fire","fly","roar","hoard gold","intimidate","tail whip","crush rocks","mind control"],
-    // Dragons are immortal: stats never fall below this floor, no matter how long you're away.
+    // Dragons are immortal: no stat (hunger, happiness or energy) ever falls below this
+    // floor — not from time away, not from playing or training, not from a bad save.
     statFloor: 20,
     welcomeBack: (days) => `The great one slumbered on its hoard for ${days} day${days === 1 ? '' : 's'}. Dragons are eternal. 🔥`,
   },
@@ -1112,16 +1113,27 @@ function loadState() {
 }
 
 function saveState() {
+  enforceFloor(state);
   try { localStorage.setItem('buddySave', JSON.stringify(state)); } catch(e) {}
 }
 
 function num(v, fallback) { return Number.isFinite(v) ? v : fallback; }
 
+function statFloor(s) { return (s && PETS[s.petType] && PETS[s.petType].statFloor) || 0; }
+
+// Clamp every stat into [floor, 100] so floored pets (the dragon) can never fade away.
+function enforceFloor(s) {
+  if (!s) return s;
+  const floor = statFloor(s);
+  ['hunger','happiness','energy'].forEach(k => { s[k] = clamp(num(s[k], 80), floor, 100); });
+  return s;
+}
+
 function decayStats(s, hours) {
-  const floor = (PETS[s.petType] && PETS[s.petType].statFloor) || 0;
+  const floor = statFloor(s);
   s.hunger     = clamp(num(s.hunger, 80) - hours * DECAY.hunger, floor, 100);
   s.happiness  = clamp(num(s.happiness, 80) - hours * DECAY.happiness, floor, 100);
-  s.energy     = clamp(num(s.energy, 80) + hours * DECAY.energyRegen, 0, 100);
+  s.energy     = clamp(num(s.energy, 80) + hours * DECAY.energyRegen, floor, 100);
   s.age_days   = num(s.age_days, 0) + hours / 24;
   s.last_seen  = Date.now();
 }
@@ -1221,6 +1233,7 @@ function renderButtons() {
 }
 
 function render() {
+  enforceFloor(state);
   const mood = getMood(state);
   applyTheme(state.petType, mood);
   renderPetArt();
@@ -1280,7 +1293,7 @@ function doAction(action) {
     if (state.energy < 20) return;
     state.happiness = clamp(state.happiness + 25, 0, 100);
     state.energy    = clamp(state.energy - 20, 0, 100);
-    state.hunger    = clamp(state.hunger - 10, PETS[state.petType].statFloor || 0, 100);
+    state.hunger    = clamp(state.hunger - 10, statFloor(state), 100);
     msg = pick(r.play);
     animatePet('shake');
 
